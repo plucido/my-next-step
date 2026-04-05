@@ -331,7 +331,7 @@ export default function TimelineView({
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, padding: "8px 0 0", borderTop: "1px solid " + C.b1 }}>
             {Object.keys(SEGMENTS).map(function(s){return <div key={s} style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: SEGMENTS[s].color }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>{SEGMENTS[s].label}</span></div>;})}
-            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: "#4285F4" }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>Calendar</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: "#4285F4" }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>Synced</span></div>
           </div>
         </div>
         {selectedDate ? renderSelectedDay(selectedDate, selSteps, selCal, selRoutines, selUnscheduled) : null}
@@ -506,7 +506,7 @@ export default function TimelineView({
         <div style={{display:"flex",gap:8}}>
           {next.map(function(item,i){
             var color = item.type==="cal"?"#4285F4":(item.cat?SEGMENTS[catToSeg(item.cat)]?.color:null)||C.acc;
-            var typeLabel = item.type==="cal"?"Calendar":item.type==="routine"?"Routine":"Step";
+            var typeLabel = item.type==="cal"?"Synced":item.type==="routine"?"Routine":"Step";
             return (
               <div key={i} style={{flex:1,padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,borderLeft:"3px solid "+color,minWidth:0}}>
                 <div style={{...F,fontSize:10,fontWeight:600,color:color,textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>{typeLabel}</div>
