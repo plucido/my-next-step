@@ -351,14 +351,7 @@ export default function App(){
   const persist=(p,s,pl,ch,pr)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
   const handleAuth=auth=>{const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=setup=>{
-    const full={...profile,setup};setProfile(full);
-    // Skip deep profile on first setup - they'll be prompted after completing a few steps
-    const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. Pick a segment above \u2014 Career, Wellness, Fun, or Adventure \u2014 and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.`,ts:Date.now()}];
-    setChats({career:[],wellness:w,fun:[],adventure:[]});
-    setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]);
-    setScreen("main");
-  };
+  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"! \u{1F463}\n\nI'm your Next Step coach. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("main");};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
     if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
