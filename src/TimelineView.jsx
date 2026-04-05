@@ -10,7 +10,7 @@ export default function TimelineView({
   allSteps, allPlans, allRoutines, doneSteps, calData,
   expandedPlan, setExpandedPlan,
   markStep, deleteStep, loveStep, dislikeStep, handleBooked,
-  deletePlan, toggleTask, pauseRoutine, deleteRoutine,
+  deletePlan, toggleTask, pauseRoutine, deleteRoutine, completeRoutine,
   talkAbout, shareItem, handleAddCal
 }) {
   const [calMonth, setCalMonth] = useState(new Date());
@@ -396,7 +396,7 @@ export default function TimelineView({
         <div style={{ marginBottom: 24 }}>
           <div style={{ ...sectionHeader, marginBottom: 12 }}>Routines ({active.length})</div>
           {active.map(function(r, i) {
-            return <RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i * 30} />;
+            return <RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onComplete={completeRoutine} onTalk={talkAbout} delay={i * 30} />;
           })}
         </div>
       </FadeIn>
