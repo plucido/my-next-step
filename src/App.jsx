@@ -537,7 +537,7 @@ export default function App(){
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         {/* STEPS & JOURNEYS VIEW */}
-        {(view==="steps"||segment==="everything")&&(
+        {(view==="steps"||segment==="everything")&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
             {segSteps.length===0&&segPlans.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
               <FadeIn><div style={{padding:"20px 0"}}>
@@ -637,7 +637,7 @@ export default function App(){
               </div>
             </div>
           )}
-        )}
+        </>)}
 
         {/* CHAT VIEW */}
         {view==="chat"&&segment!=="everything"&&(<>
