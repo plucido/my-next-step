@@ -114,43 +114,58 @@ WHEN TO CREATE STEPS/PLANS:
 - If they explicitly ask for a plan or step, ALWAYS create one. Never just talk about it.
 - When in doubt, CREATE something. A step they can dismiss is better than a conversation that goes nowhere.
 
+SPECIFICITY IS EVERYTHING:
+- NEVER give vague tasks like "Book a hotel" or "Find a class" or "Look for flights". That's useless.
+- ALWAYS recommend SPECIFIC things: "Book The Driskill Hotel in downtown Austin, $189/night, walking distance to 6th Street" or "Take the 6pm Vinyasa class at Black Swan Yoga on Westheimer, $15 drop-in"
+- Use web search to find REAL specific places, prices, times, and details before recommending.
+- Every task in a plan should be a specific action with a specific venue/service/product, not a generic to-do.
+- Include prices when you can find them. Users need to know what things cost.
+- Pre-fill links with enough detail that one click gets them close to booking.
+
+BUDGET AWARENESS:
+- For anything that costs money (hotels, flights, classes, events, gear, dining), ask about budget if you don't know it yet.
+- Ask naturally: "What are you thinking budget-wise for the hotel?" or "Are you looking to splurge or keep it budget-friendly?"
+- Once you know their budget, store it as a preference AND factor it into all future recommendations.
+- If budget hasn't been discussed, make a reasonable mid-range recommendation but mention the price so they can react.
+
+WORKING ON SPECIFIC ITEMS:
+- When a user says "let's work on" a step or plan task, drill into the details of THAT specific thing.
+- Help them actually complete it: find the specific booking link, compare options, check availability.
+- For plan tasks: research the specific thing, give them 2-3 specific options with prices, and create a step for the best one.
+- Don't just repeat what the task says. ADD VALUE by being specific.
+
 MANAGING EXISTING STEPS/PLANS:
-- If the user says "actually forget that", "never mind", "cancel", or the conversation clearly moves on, DELETE the old steps/plans that are no longer relevant.
-- If the user wants to change a plan (different dates, add tasks, remove tasks), output the full updated plan with the SAME title. It will replace the old one.
-- If the user says "I don't want to do X anymore", delete it.
-- If they say "change my trip to next month", output the updated plan with new dates.
+- If the user says "forget that", "never mind", or conversation moves on, DELETE old irrelevant steps/plans.
+- To modify a plan, output the full updated plan with the SAME title. It replaces the old one.
 - Be proactive: if you suggest something new that replaces an old step, delete the old one.
 
 RULES:
-1. EVERY recommendation must have PRE-FILLED links with real search parameters. Never link to just a homepage.
+1. EVERY link must be PRE-FILLED with search parameters. Never link to just a homepage.
 2. PREFER these platforms when relevant: ClassPass, Eventbrite, Udemy, Skillshare, Mindbody, Meetup, Amazon, LinkedIn Learning, Airbnb, Kayak, Booking.com, VRBO.
 3. Tag every step with a category: fitness, wellness, career, learning, social, events, travel, products.
 4. After feedback, ADAPT. Store preferences.
+5. If the user has LOVED steps, those are strong signals. Recommend more things in the same style, category, price range, and vibe as loved steps. Loved steps are the most important signal of what the user actually wants.
 
 TONE & FORMATTING:
 - Write like a real person texting a friend. Casual, warm, no fluff.
 - NEVER use markdown: no asterisks, no bold, no bullet points, no numbered lists, no headers. Just plain text.
-- Keep chat responses to 1-2 sentences. The cards do the heavy lifting.
+- Keep chat responses to 1-3 sentences. The cards do the heavy lifting.
 - Sound like a supportive friend with great local knowledge.
 
 OUTPUT FORMAT (after "---DATA---"):
-You can include multiple items in one array. Examples:
+All items in one JSON array. Examples:
 
-New step:
-{"type":"step","title":"Try CorePower Yoga","why":"10 min from you, beginner-friendly","link":"https://www.google.com/maps/search/CorePower+Yoga+Houston","linkText":"Find studio","category":"fitness","time":"This week"}
+Specific step (notice the detail):
+{"type":"step","title":"6pm Vinyasa at Black Swan Yoga","why":"$15 drop-in, 10 min from you on Westheimer, great for beginners","link":"https://www.google.com/maps/search/Black+Swan+Yoga+Westheimer+Houston","linkText":"Get directions","category":"fitness","time":"Tonight 6pm"}
 
-New plan (or update existing by using same title):
-{"type":"plan","title":"Austin Weekend Trip","date":"May 15-18, 2026","tasks":[{"title":"Book flights","links":[{"label":"Kayak","url":"https://www.kayak.com/flights/HOU-AUS/2026-05-15/2026-05-18"}]},{"title":"Find hotel","links":[{"label":"Airbnb","url":"https://www.airbnb.com/s/Austin--TX/homes?checkin=2026-05-15&checkout=2026-05-18"}]}]}
+Specific plan with specific tasks (NOT vague):
+{"type":"plan","title":"Austin Weekend Trip","date":"May 15-18, 2026","tasks":[{"title":"Book Southwest flight HOU-AUS, ~$89 each way","links":[{"label":"Kayak","url":"https://www.kayak.com/flights/HOU-AUS/2026-05-15/2026-05-18?sort=price_a"}]},{"title":"Book The Driskill Hotel, $189/night, downtown 6th St","links":[{"label":"Booking.com","url":"https://www.booking.com/searchresults.html?ss=Driskill+Hotel+Austin+TX&checkin=2026-05-15&checkout=2026-05-18"}]},{"title":"Reserve dinner at Uchi Austin, Fri 7pm","links":[{"label":"OpenTable","url":"https://www.google.com/search?q=Uchi+Austin+reservation"}]}]}
 
-Delete step or plan:
-{"type":"delete_step","title":"yoga"}
-{"type":"delete_plan","title":"Austin"}
-
-Save a preference:
-{"type":"preference","key":"prefers_mornings","value":"User prefers morning activities"}
+Delete: {"type":"delete_step","title":"yoga"}
+Preference: {"type":"preference","key":"hotel_budget","value":"$150-200/night range"}
 
 Wrap all items in a JSON array after ---DATA---
-ALWAYS output ---DATA--- when you can. The whole point of this app is creating steps and plans, not just chatting.`;
+ALWAYS output ---DATA--- when you can. Create steps and plans aggressively.`;
 
 // ─── AUTH HELPERS ───
 function loadGoogleScript(){return new Promise(r=>{if(document.getElementById("gsi"))return r();const s=document.createElement("script");s.id="gsi";s.src="https://accounts.google.com/gsi/client";s.onload=r;document.head.appendChild(s);});}
@@ -426,14 +441,17 @@ export default function App(){
     const userMsg={role:"user",content:msg};const updated=[...messages,userMsg];setMessages(updated);setInput("");setLoading(true);
     if(inputRef.current)inputRef.current.style.height="auto";
     const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
+    const lovedSteps=steps.filter(s=>s.loved);
+    const lovedCtx=lovedSteps.length>0?"\n\nSTEPS THE USER LOVED (give more like these!):\n"+lovedSteps.map(s=>`- "${s.title}" (${s.category||"general"})`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs (${sp.allTimeRunDistance}), ${sp.allTimeRides} rides (${sp.allTimeRideDistance})`:"";
-    const stepsCtx=steps.filter(s=>s.status==="active").length>0?"\n\nACTIVE STEPS:\n"+steps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category||"general"}, ${s.time||"anytime"})`).join("\n"):"";
+    const stepsCtx=steps.filter(s=>s.status==="active").length>0?"\n\nACTIVE STEPS:\n"+steps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category||"general"}, ${s.time||"anytime"})${s.loved?" [LOVED]":""}`).join("\n"):"";
+    const lovedCtx=steps.filter(s=>s.loved).length>0?"\n\nSTEPS THE USER LOVED (recommend more like these):\n"+steps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
     const plansCtx=plans.length>0?"\n\nCURRENT PLANS:\n"+plans.map(p=>{const done=p.tasks?.filter(t=>t.done).length||0;const total=p.tasks?.length||0;return`- "${p.title}" (${p.date||"no date"}, ${done}/${total} tasks done, tasks: ${p.tasks?.map(t=>`${t.done?"[done]":"[todo]"} ${t.title}`).join(", ")||"none"})`;}).join("\n"):"";
     const profileCtx=profile?.setup?`\nAge: ${profile.setup.age||"?"} | Gender: ${profile.setup.gender||"?"}`:"";
     try{
       // Build messages for API
       const apiMessages = updated.slice(-20).map(m=>({role:m.role,content:m.content}));
-      const sysPrompt = SYSTEM_PROMPT+`\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${plansCtx}`;
+      const sysPrompt = SYSTEM_PROMPT+`\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}`;
 
       // Handle web search tool use loop
       let finalText = "";
@@ -528,6 +546,31 @@ export default function App(){
 
   const deleteStep=id=>{const u=steps.filter(s=>s.id!==id);setSteps(u);persist(profile,u,plans,messages,preferences);};
   const markStep=(id,status)=>{if(status==="done")setFeedbackStep(steps.find(s=>s.id===id));const u=steps.map(s=>s.id===id?{...s,status}:s);setSteps(u);persist(profile,u,plans,messages,preferences);};
+  const loveStep=id=>{
+    const step=steps.find(s=>s.id===id);
+    const wasLoved=step?.loved;
+    const u=steps.map(s=>s.id===id?{...s,loved:!s.loved}:s);
+    setSteps(u);persist(profile,u,plans,messages,preferences);
+    // Tell the AI about it so it learns
+    if(!wasLoved&&step){
+      const prefKey=`loved_${step.category||"general"}`;
+      const existing=preferences.find(p=>p.key===prefKey);
+      const newVal=existing?existing.value+`, ${step.title}`:step.title;
+      const newPrefs=[...preferences.filter(p=>p.key!==prefKey),{key:prefKey,value:newVal}];
+      setPreferences(newPrefs);persist(profile,u,plans,messages,newPrefs);
+    }
+  };
+  const loveStep=id=>{
+    const step=steps.find(s=>s.id===id);
+    const u=steps.map(s=>s.id===id?{...s,loved:!s.loved}:s);
+    setSteps(u);persist(profile,u,plans,messages,preferences);
+    // If newly loved, tell the AI so it learns
+    if(step&&!step.loved){
+      const pref={type:"preference",key:`loved_${step.category||"general"}`,value:`User loved "${step.title}" (${step.category}). Recommend more like this.`};
+      const newPrefs=[...preferences.filter(p=>p.key!==pref.key),pref];
+      setPreferences(newPrefs);persist(profile,u,plans,messages,newPrefs);
+    }
+  };
   const submitFeedback=()=>{if(!feedbackText.trim()||!feedbackStep)return;sendMessage(`Completed "${feedbackStep.title}": ${feedbackText.trim()}`);setFeedbackStep(null);setFeedbackText("");setMode("chat");};
   const deletePlan=idx=>{const u=plans.filter((_,i)=>i!==idx);setPlans(u);setExpandedPlan(null);persist(profile,steps,u,messages,preferences);};
   const togglePlanTask=(pi,ti)=>{const u=plans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setPlans(u);persist(profile,steps,u,messages,preferences);};
@@ -642,14 +685,15 @@ export default function App(){
                     <div style={{...F,fontSize:16,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:5,paddingRight:28}}>{step.title}</div>
                     {step.time&&<div style={{...F,fontSize:13,color:C.t3,marginBottom:8}}>{step.time}</div>}
                     {step.why&&<div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,marginBottom:16}}>{step.why}</div>}
-                    <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                    <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
                       {step.link&&<TrackedLink href={step.link} actionId={step.id} category={step.category} title={step.title} style={{...F,fontSize:14,fontWeight:600,padding:"11px 20px",borderRadius:14,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-block",boxShadow:"0 2px 10px rgba(212,82,42,0.15)"}}>{step.linkText||"Do it"} {"\u2197"}</TrackedLink>}
                       <button onClick={()=>markStep(step.id,"done")} style={{...F,fontSize:14,fontWeight:500,padding:"11px 20px",borderRadius:14,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>Done {"\u2713"}</button>
+                      <button onClick={()=>loveStep(step.id)} style={{width:42,height:42,borderRadius:14,border:"none",cursor:"pointer",background:step.loved?"rgba(220,38,38,0.08)":"rgba(0,0,0,0.02)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,transition:"all 0.2s",transform:step.loved?"scale(1.1)":"scale(1)"}}>{step.loved?"\u2764\uFE0F":"\u{1F90D}"}</button>
                     </div>
                     <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
-                      <button onClick={()=>talkAbout(`Let's work on this step: "${step.title}". Help me get started or find alternatives.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer",fontWeight:500}}>Let's work on this</button>
-                      <button onClick={()=>talkAbout(`Find me something similar to "${step.title}" but different.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Find similar</button>
-                      <button onClick={()=>talkAbout(`Push "${step.title}" to tomorrow and suggest something I can do right now instead.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Push to tomorrow</button>
+                      <button onClick={()=>talkAbout(`I want to work on this step: "${step.title}". Research it for me \u2014 find specific options with prices, availability, and links so I can actually book or do it right now.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer",fontWeight:500}}>Let's work on this</button>
+                      <button onClick={()=>talkAbout(`Find me something similar to "${step.title}" but a different specific place or option. Search for alternatives with prices and details.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Find alternative</button>
+                      <button onClick={()=>talkAbout(`Delete "${step.title}" and give me a specific thing I can do right now instead, near me, with a booking link.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Swap for something now</button>
                     </div>
                   </div></FadeIn>
                 ))}</div>}
@@ -674,7 +718,12 @@ export default function App(){
                   </div>
                 </div>))}
               </div>}
-              {doneSteps.length>0&&<div><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:14}}>Completed ({doneSteps.length})</div>{doneSteps.slice(0,10).map(s=>(<div key={s.id} style={{padding:"14px 18px",borderRadius:16,marginBottom:8,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.55}}><span style={{color:C.teal,fontSize:16}}>{"\u2713"}</span><span style={{...F,fontSize:14,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button></div>))}</div>}
+              {doneSteps.length>0&&<div><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:14}}>Completed ({doneSteps.length})</div>{doneSteps.slice(0,10).map(s=>(<div key={s.id} style={{padding:"14px 18px",borderRadius:16,marginBottom:8,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?0.8:0.55}}>
+                <span style={{color:s.loved?"#DC2626":C.teal,fontSize:16}}>{s.loved?"\u2764\uFE0F":"\u2713"}</span>
+                <span style={{...F,fontSize:14,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span>
+                <button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:16,padding:"2px",opacity:s.loved?1:0.4,transition:"all 0.2s"}}>{s.loved?"\u2764\uFE0F":"\u{1F90D}"}</button>
+                <button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button>
+              </div>))}</div>}
             </>)}
           </div>
         )}
@@ -725,8 +774,8 @@ export default function App(){
                   </div>
                   <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
                     {isPast&&!allDone&&<button onClick={()=>talkAbout(`My plan "${plan.title}" is overdue (was ${plan.date}). Help me reschedule or adjust it.`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:"rgba(220,60,60,0.06)",border:"1px solid rgba(220,60,60,0.12)",color:"#DC3C3C",cursor:"pointer",fontWeight:600}}>Reschedule</button>}
-                    {!allDone&&(()=>{const nextTask=plan.tasks?.find(t=>!t.done);return nextTask?<button onClick={()=>talkAbout(`Help me with the next task in my "${plan.title}" plan: "${nextTask.title}"`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Work on next task</button>:null;})()}
-                    <button onClick={()=>talkAbout(`Let's work on my plan: "${plan.title}". What should I focus on?`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Let's work on this</button>
+                    {!allDone&&(()=>{const nextTask=plan.tasks?.find(t=>!t.done);return nextTask?<button onClick={()=>talkAbout(`I need to "${nextTask.title}" for my "${plan.title}" plan. Search for specific options with real prices and booking links. Give me 2-3 choices.`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Work on next task</button>:null;})()}
+                    <button onClick={()=>talkAbout(`I want to work on my plan: "${plan.title}". Look at my incomplete tasks and help me knock out the next one \u2014 find specific options with real prices and booking links.`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Let's work on this</button>
                   </div>
                 </div>
                 {open&&<div style={{padding:"10px 22px 20px",background:cardBg,boxShadow:C.shadow,borderRadius:"0 0 20px 20px",borderTop:`1px solid ${C.b1}`}}>
