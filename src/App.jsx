@@ -344,13 +344,28 @@ export default function App(){
     const crossCtx=otherSegs.map(s=>{const msgs=chats[s]||[];if(!msgs.length)return"";const last=msgs.filter(m=>m.role==="user").slice(-2).map(m=>m.content).join(", ");return last?`\nIn ${SEGMENTS[s].label}: recently discussed "${last.slice(0,80)}"`:"";}).filter(Boolean).join("");
 
     try{
-      const apiMsgs=segChat.slice(-20).map(m=>({role:m.role,content:m.content}));
+      // Strip ts field and ensure valid alternating roles for API
+      const cleanMsgs=segChat.slice(-20).map(m=>({role:m.role,content:m.content}));
+      // Ensure messages alternate user/assistant (API requirement)
+      const apiMsgs=[];
+      for(const m of cleanMsgs){
+        if(apiMsgs.length>0&&apiMsgs[apiMsgs.length-1].role===m.role){
+          // Same role twice - merge content
+          apiMsgs[apiMsgs.length-1].content+="\n"+m.content;
+        } else {
+          apiMsgs.push({...m});
+        }
+      }
+      // Ensure first message is from user
+      while(apiMsgs.length>0&&apiMsgs[0].role!=="user")apiMsgs.shift();
       const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}${calCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...apiMsgs],attempts=0;
       while(attempts<3){attempts++;
         const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,tools:[{type:"web_search_20250305",name:"web_search"}],system:sysPrompt,messages:currentMsgs})});
+        if(!res.ok){console.error("API error:",res.status,await res.text());finalText="Let me try that again.";break;}
         const data=await res.json();
+        console.log("API attempt",attempts,"stop:",data.stop_reason,"blocks:",data.content?.length);
         if(!data.content){finalText="Let me try that again.";break;}
         for(const block of data.content)if(block.type==="text"&&block.text)finalText+=block.text+"\n";
         if(data.stop_reason==="end_turn"||data.stop_reason==="stop")break;
