@@ -210,7 +210,7 @@ export default function App(){
       const isError=displayText.startsWith("Something went wrong")||displayText.startsWith("Hmm, I didn't")||displayText.startsWith("Quick hiccup");
       const finalChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:clean(displayText),ts:Date.now(),isError:isError}]};
       setChats(finalChat);
-      if(!isError)persist(profile,newSteps,newPlans,finalChat,newPrefs,allRoutines);
+      if(!isError)persist(profile,newSteps,newPlans,finalChat,newPrefs,newRoutines);
       // Auto-navigate to the correct segment with transition
       if(!isError){
         const createdSteps=newSteps.filter(s=>!allSteps.find(o=>o.id===s.id));
