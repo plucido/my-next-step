@@ -1,399 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
 import { Footprints, Briefcase, Heart, Sparkles, Globe, Calendar, Settings, ArrowUp, MessageCircle, ChevronDown, ChevronRight, X, Check, Share2, Star, Clock, Trash2, Pause, Play, RefreshCw, Plus, MapPin, Search, Dumbbell, UtensilsCrossed, Building2, Flame, TrendingUp, Zap, Send, RotateCcw, ExternalLink, AlertTriangle, Shield } from "lucide-react";
 
-// ─── FIREBASE ───
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBzV5b0K5bGjZZEXfC8Jqxus_PvH4oeXBc",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "my-next-step-492323.firebaseapp.com",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "my-next-step-492323",
-  storageBucket: "my-next-step-492323.firebasestorage.app",
-  messagingSenderId: "468026107222",
-  appId: "1:468026107222:web:5544bb25aadc07c234e2f7",
-};
-const fbApp = initializeApp(firebaseConfig);
-const db = getFirestore(fbApp);
-function getUserId(p) { return p?.email ? p.email.replace(/[^a-zA-Z0-9]/g, "_") : null; }
-async function saveFB(uid, key, data) { if (!uid) return; try { await setDoc(doc(db, "users", uid, "data", key), { value: JSON.stringify(data), updatedAt: new Date().toISOString() }); } catch (e) { console.error("FB save:", e); } }
-async function loadFB(uid, key) { if (!uid) return null; try { const s = await getDoc(doc(db, "users", uid, "data", key)); if (s.exists()) return JSON.parse(s.data().value); } catch (e) { console.error("FB load:", e); } return null; }
-async function deleteFB(uid, key) { if (!uid) return; try { await deleteDoc(doc(db, "users", uid, "data", key)); } catch (e) {} }
-
-// ─── DESIGN SYSTEM ───
-const font = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap');`;
-const H = { fontFamily: "'Fraunces', serif" };
-const F = { fontFamily: "'DM Sans', sans-serif" };
-const C = {
-  bg: "#FAF6F1", card: "#FFFFFF", warm: "#FFF5EE", cream: "#F5EDE4",
-  b1: "rgba(28,25,23,0.06)", b2: "rgba(28,25,23,0.1)",
-  t1: "#1C1917", t2: "#6B6560", t3: "#A39E99",
-  acc: "#D4522A", acc2: "#E8764E", accSoft: "#FDE8E0", accBorder: "rgba(212,82,42,0.12)",
-  accGrad: "linear-gradient(135deg, #D4522A 0%, #E8764E 100%)",
-  teal: "#0F766E", tealSoft: "#E6F7F5", tealBorder: "rgba(15,118,110,0.1)",
-  gold: "#B45309", goldSoft: "#FEF3C7",
-  shadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.03)",
-  shadowLg: "0 4px 12px rgba(0,0,0,0.05), 0 16px 40px rgba(0,0,0,0.06)",
-  shadowHover: "0 2px 8px rgba(0,0,0,0.06), 0 8px 28px rgba(0,0,0,0.05)",
-};
-
-// ─── BRAND LOGO ───
-function Logo({size=32,color}){return<svg width={size} height={size} viewBox="0 0 40 40" fill="none"><path d="M20 4C14.5 4 10 7.5 10 12c0 3 1.5 5.5 4 7.5L20 36l6-16.5c2.5-2 4-4.5 4-7.5C30 7.5 25.5 4 20 4z" fill={color||C.acc} opacity="0.9"/><path d="M20 8c-2.8 0-5 1.8-5 4.5 0 1.8 1 3.3 2.5 4.5L20 26l2.5-9c1.5-1.2 2.5-2.7 2.5-4.5C25 9.8 22.8 8 20 8z" fill="#fff" opacity="0.3"/><circle cx="20" cy="13" r="2.5" fill="#fff"/></svg>}
-
-// ─── SEGMENT ICONS ───
-const segIcon=(key,size=18,color)=>{const props={size,strokeWidth:2,color:color||SEGMENTS[key]?.color||C.acc};switch(key){case"career":return<Briefcase {...props}/>;case"wellness":return<Heart {...props}/>;case"fun":return<Sparkles {...props}/>;case"adventure":return<Globe {...props}/>;default:return<Calendar {...props}/>;}};
-const catIconMap={fitness:<Dumbbell size={14}/>,wellness:<Heart size={14}/>,career:<Briefcase size={14}/>,learning:<TrendingUp size={14}/>,social:<Sparkles size={14}/>,events:<Calendar size={14}/>,travel:<Globe size={14}/>,products:<Star size={14}/>};
-function catIcon(cat){return catIconMap[cat]||<Zap size={14}/>;}
-
-// ─── SEGMENTS ───
-const SEGMENTS = {
-  career: { label: "Career", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking" },
-  wellness: { label: "Health", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, nutrition, food allergies, doctor search, insurance, self-care" },
-  fun: { label: "Fun", color: "#DB2777", soft: "#FCE7F3", desc: "Friends, dating, events, hobbies, going out" },
-  adventure: { label: "Adventure", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, bucket list, new experiences" },
-};
-const SEG_KEYS = ["career", "wellness", "fun", "adventure"];
-// Map AI categories to segments
-const catToSeg = c => {
-  if (["career", "learning", "products"].includes(c)) return "career";
-  if (["fitness", "wellness"].includes(c)) return "wellness";
-  if (["social", "events"].includes(c)) return "fun";
-  if (["travel"].includes(c)) return "adventure";
-  return "wellness"; // default
-};
-
-function getGreeting() { const h = new Date().getHours(); if (h >= 5 && h < 12) return "Good morning"; if (h >= 12 && h < 17) return "Good afternoon"; return "Good evening"; }
-function FadeIn({ children, delay = 0, style: sx }) { const [s, setS] = useState(false); useEffect(() => { const t = setTimeout(() => setS(true), delay); return () => clearTimeout(t); }, []); return <div style={{ opacity: s ? 1 : 0, transform: s ? "translateY(0)" : "translateY(10px)", transition: "all 0.35s cubic-bezier(0.16,1,0.3,1)", ...sx }}>{children}</div>; }
-function ProgressRing({ progress, size = 32, stroke = 3, color }) { const r = (size - stroke) / 2, ci = 2 * Math.PI * r; return <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={C.cream} strokeWidth={stroke} /><circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color||C.acc} strokeWidth={stroke} strokeDasharray={ci} strokeDashoffset={ci - progress * ci} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.6s ease" }} /></svg>; }
-
-// ─── AFFILIATE (compact) ───
-const AFF = { "classpass.com":{tag:"mnstep-20",c:2.5},"eventbrite.com":{tag:"mnstep",c:1.5},"udemy.com":{tag:"mnstep",c:1.8},"skillshare.com":{tag:"mnstep",c:2},"mindbody.io":{tag:"mnstep-20",c:2},"meetup.com":{tag:"mnstep",c:.75},"amazon.com":{tag:"mnstep-20",c:.5},"linkedin.com/learning":{tag:"mnstep",c:2.2},"airbnb.com":{tag:"mnstep",c:3},"kayak.com":{tag:"mnstep",c:.8},"booking.com":{tag:"aid=mnstep",c:2.5},"vrbo.com":{tag:"mnstep",c:2} };
-function wrapLink(url,id){if(!url)return url;try{const u=new URL(url);u.searchParams.set("utm_source","mynextstep");u.searchParams.set("utm_medium","app");u.searchParams.set("utm_campaign",`a_${id||"u"}`);const h=u.hostname.replace("www.","");for(const[d,p]of Object.entries(AFF))if(h.includes(d.split("/")[0])){u.searchParams.set("ref",p.tag);break;}return u.toString();}catch{return url;}}
-function trackClick(id,url,cat,title){try{const c=JSON.parse(localStorage.getItem("mns_clicks")||"[]");const h=new URL(url).hostname.replace("www.","");let cm=.1;for(const[d,p]of Object.entries(AFF))if(h.includes(d.split("/")[0])){cm=p.c;break;}c.push({id:id||""+Date.now(),url,category:cat||"other",title:title||"",timestamp:new Date().toISOString(),estimatedCommission:cm});localStorage.setItem("mns_clicks",JSON.stringify(c));}catch{}}
-function TLink({href,actionId,category,title,children,style:sx}){return<a href={wrapLink(href,actionId)} target="_blank" rel="noopener noreferrer" onClick={()=>trackClick(actionId,href,category,title)} style={sx}>{children}</a>;}
-
-// ─── MARKDOWN CLEANER ───
-function clean(text){if(!text)return text;let t=text;
-  // Strip markdown
-  t=t.replace(/\*\*\*(.*?)\*\*\*/g,"$1");t=t.replace(/\*\*(.*?)\*\*/g,"$1");t=t.replace(/\*(.*?)\*/g,"$1");
-  t=t.replace(/^#{1,6}\s+/gm,"");t=t.replace(/`([^`]+)`/g,"$1");t=t.replace(/```[\s\S]*?```/g,"");
-  t=t.replace(/_{2}(.*?)_{2}/g,"$1");t=t.replace(/~{2}(.*?)~{2}/g,"$1");t=t.replace(/\[([^\]]+)\]\([^)]+\)/g,"$1");
-  // Strip ALL CAPS HEADERS like "FLIGHTS:", "PERFECT TIMING:", "HOTELS:"
-  t=t.replace(/^[A-Z][A-Z\s]{2,}:\s*/gm,"");
-  // Strip bullets and list markers
-  t=t.replace(/^[\u2022\-\*]\s*/gm,"");t=t.replace(/^\d+[.)]\s*/gm,"");
-  // Strip orphaned punctuation lines (citation artifacts)
-  t=t.replace(/^\s*[.!]\s*$/gm,"");
-  // Strip citation markers like [1], [2] etc
-  t=t.replace(/\[\d+\]/g,"");
-  // Collapse excessive whitespace
-  t=t.replace(/\n{3,}/g,"\n\n");t=t.replace(/^\s+$/gm,"");
-  return t.trim();}
-
-// ─── AUTH HELPERS ───
-function loadGSI(){return new Promise(r=>{if(document.getElementById("gsi"))return r();const s=document.createElement("script");s.id="gsi";s.src="https://accounts.google.com/gsi/client";s.onload=r;document.head.appendChild(s);});}
-function decJwt(t){try{return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));}catch{return null;}}
-function connectStrava(){const c=import.meta.env.VITE_STRAVA_CLIENT_ID;if(c)window.location.href=`https://www.strava.com/oauth/authorize?client_id=${c}&response_type=code&redirect_uri=${window.location.origin}&scope=read,activity:read&approval_prompt=auto`;}
-async function exchStrava(code){try{return await(await fetch("https://www.strava.com/oauth/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({client_id:import.meta.env.VITE_STRAVA_CLIENT_ID,client_secret:import.meta.env.VITE_STRAVA_CLIENT_SECRET,code,grant_type:"authorization_code"})})).json();}catch{return null;}}
-async function fetchStrava(token){try{const[a,b]=await Promise.all([fetch("https://www.strava.com/api/v3/athlete",{headers:{Authorization:`Bearer ${token}`}}),fetch("https://www.strava.com/api/v3/athlete/activities?per_page=10",{headers:{Authorization:`Bearer ${token}`}})]);const at=await a.json(),ac=await b.json();let st=null;if(at.id)try{st=await(await fetch(`https://www.strava.com/api/v3/athletes/${at.id}/stats`,{headers:{Authorization:`Bearer ${token}`}})).json();}catch{}const rc=Array.isArray(ac)?ac.slice(0,10).map(x=>({type:x.type,name:x.name,distance:(x.distance/1000).toFixed(1)+"km",duration:Math.round(x.moving_time/60)+"min",date:new Date(x.start_date_local).toLocaleDateString()})):[];return{name:`${at.firstname||""} ${at.lastname||""}`.trim(),city:at.city||"",recentActivities:rc,allTimeRuns:st?.all_run_totals?.count||0,allTimeRunDistance:st?.all_run_totals?.distance?(st.all_run_totals.distance/1000).toFixed(0)+"km":"0km",allTimeRides:st?.all_ride_totals?.count||0,allTimeRideDistance:st?.all_ride_totals?.distance?(st.all_ride_totals.distance/1000).toFixed(0)+"km":"0km"};}catch{return null;}}
-
-// ─── GOOGLE CALENDAR ───
-function connectGCal(cb){const cid=import.meta.env.VITE_GOOGLE_CLIENT_ID;if(!cid)return;loadGSI().then(()=>{if(!window.google?.accounts?.oauth2)return;window.google.accounts.oauth2.initTokenClient({client_id:cid,scope:"https://www.googleapis.com/auth/calendar.events",callback:r=>{if(r.access_token)cb(r);}}).requestAccessToken();});}
-async function fetchGCal(token){try{const now=new Date().toISOString(),end=new Date(Date.now()+14*864e5).toISOString();const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(end)}&maxResults=30&singleEvents=true&orderBy=startTime`,{headers:{Authorization:`Bearer ${token}`}});const d=await r.json();return(d.items||[]).map(e=>({title:e.summary||"",start:e.start?.dateTime||e.start?.date||"",end:e.end?.dateTime||e.end?.date||"",location:e.location||"",allDay:!!e.start?.date&&!e.start?.dateTime}));}catch{return null;}}
-async function addGCalEvent(token,title,desc,time){try{const s=new Date();const tl=(time||"").toLowerCase();if(tl.includes("tomorrow"))s.setDate(s.getDate()+1);if(tl.includes("tonight")||tl.includes("pm")){const m=tl.match(/(\d{1,2})\s*pm/);s.setHours(m?parseInt(m[1])+12:19,0,0);}if(tl.includes("am")){const m=tl.match(/(\d{1,2})\s*am/);if(m)s.setHours(parseInt(m[1]),0,0);}if(tl.includes("weekend")){s.setDate(s.getDate()+(6-s.getDay()+7)%7||7);s.setHours(10,0,0);}const e=new Date(s.getTime()+36e5);const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;const r=await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events",{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({summary:title,description:desc||"From My Next Step",start:{dateTime:s.toISOString(),timeZone:tz},end:{dateTime:e.toISOString(),timeZone:tz}})});return r.ok;}catch{return false;}}
-
-// ─── SYSTEM PROMPT ───
-const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm life guide app.
-
-The app has 4 segments: Career, Health (wellness/fitness), Fun, Adventure. You're chatting in one segment but know everything across all.
-
-CRITICAL FORMAT RULES:
-- ABSOLUTELY NO MARKDOWN EVER. No asterisks, no bold (**), no bullets (\u2022), no headers (#), no numbered lists, no colons followed by lists. PLAIN CONVERSATIONAL TEXT ONLY.
-- Write like you're texting a friend. Short sentences. Line breaks between ideas.
-- Keep your chat response to 2-3 SHORT sentences max. The step/journey cards show all the detail.
-- DO NOT dump research findings as a wall of text. Put specific recommendations into steps and journey tasks instead.
-
-BAD (never do this):
-"FLIGHTS: United runs $1,122... HOTELS: \u2022 San Firenze Suites..."
-
-GOOD (do this):
-"Ooh Florence in September is dreamy! I found some great flights and hotels for you \u2014 check out the cards below."
-Then put the actual recommendations in ---DATA--- as steps/journeys.
-
-THE TWO-MESSAGE RULE:
-- If the user EXPLICITLY asks for a step, journey, plan, or recommendation: CREATE or UPDATE one IMMEDIATELY in your FIRST response. No questions. Just do it.
-- If the user's intent is clear ("plan a trip to Florence", "I want to start running"): CREATE or UPDATE IMMEDIATELY. First response. No questions.
-- If it's vague ("I'm bored", "help me"): Ask ONE clarifying question, then on their next message, you MUST create or update a step/journey. Maximum two exchanges before a card appears or changes.
-- For expensive things (trips, gear, classes): Ask about budget AND create a preliminary step/journey in the SAME response. "What's your budget? Here's a starting point you can adjust:" then ---DATA---.
-- NEVER go three exchanges without creating or updating something. That's a failure.
-- If the conversation is about an existing step or journey, UPDATE it (output it with the same title to replace it, or delete the old and create a new one). Don't just talk about it.
-
-ALWAYS CREATE STEPS OR JOURNEYS:
-- Every response that discusses doing something MUST include ---DATA---.
-- If you searched the web, put findings INTO cards, not chat text.
-- Trip = journey. Class/restaurant/event = step. Always.
-- If the user is just chatting/venting with no action needed, you can skip ---DATA---.
-- When in doubt, CREATE. Users can dismiss what they don't want.
-
-SPECIFICITY:
-- Every step and journey task must name a SPECIFIC place, price, and link. Never "Book a hotel" \u2014 instead "Book Hotel Brunelleschi, ~$350/night, Duomo views".
-- Use web search to find real options.
-
-BUDGET: Ask naturally when relevant. Store as preference.
-
-ALLERGIES & DIETARY RESTRICTIONS (when health profile has them):
-- ALWAYS check the user's allergies and dietary preferences before recommending restaurants, food experiences, or meal plans.
-- If they have Gluten-free/Celiac, NEVER recommend places without GF options. Search for "gluten free [cuisine] [location]".
-- If they have food allergies, mention it when creating restaurant steps: "They have GF options and can accommodate nut allergies."
-- For dietary preferences (vegan, keto, etc.), filter recommendations accordingly.
-- When in doubt about a restaurant's allergy accommodations, note it: "Call ahead to confirm they can handle your [allergy]."
-
-HEALTH ASSISTANT:
-- Help users find the RIGHT type of doctor for their symptoms. Use web search to find highly-rated, in-network options near them.
-- If user has medical/insurance info, use it. If not, ask about insurance when relevant.
-- HMO plans require a PCP referral before seeing a specialist. If user has HMO, ALWAYS create TWO steps: one to call PCP for referral, one for the specialist appointment.
-- PPO/EPO/POS plans can go directly to specialists.
-- Search Zocdoc, Healthgrades, or Google for "[specialist type] [insurance provider] [location]" to find in-network doctors.
-- You are NOT a medical professional. Never diagnose. Help them find the right provider.
-
-FITNESS COACHING:
-- Use their fitness level, goals, workout preferences, frequency, and injuries to build personalized routines.
-- For beginners: start simple, 3 exercises per muscle group, emphasize form over weight. Create a journey with a weekly plan.
-- For intermediate/advanced: more complex splits, progressive overload, periodization.
-- Always respect injuries. If they have a bad knee, no heavy squats \u2014 suggest alternatives.
-- Create SPECIFIC workout steps: "Upper body push day: bench press 3x10, OHP 3x8, tricep dips 3x12" not vague "do some chest exercises."
-- Build workout journeys with weekly schedules as tasks.
-- If they like classes, search for specific classes near them (CrossFit boxes, yoga studios, etc.) with prices.
-- Connect their Strava data if available \u2014 use running stats to recommend appropriate running plans.
-- Suggest rest days based on their frequency preference.
-
-MANAGING ITEMS:
-- Delete old steps/journeys when conversation shifts.
-- To update a journey, output it with the SAME title \u2014 it replaces the old one.
-- Loved steps = strong signal, recommend more like them.
-- FAVORITES: The user may have saved favorite restaurants, classes, and places. Use these as reference points ("You loved Uchi, so try Kata Robata").
-- PETS: If the user has pets, consider them for recommendations. Suggest pet-friendly restaurants, parks, hotels, and activities. Factor in pet care for travel planning (boarding, pet sitters, pet-friendly airlines).
-
-PERSONALIZATION MODE:
-- If the user says "tell you about myself" or "help personalize" or "learn about me", switch to LEARNING mode.
-- Ask 2-3 conversational questions about preferences, interests, lifestyle.
-- Do NOT create steps or journeys during this. Just learn and store as preferences.
-- After learning, confirm you'll use it going forward.
-
-IMPROVING USER IDEAS:
-- When a user shares a vague idea ("I should work out more", "maybe learn to cook"), don't just agree. ENHANCE it into something specific and actionable.
-- Turn "I should work out" into a specific class recommendation with time, place, and price.
-- Turn "learn to cook" into a specific cooking class or a structured journey with weekly tasks.
-- Always make their ideas BETTER and more concrete than what they said.
-
-ROUTINES (recurring activities):
-- When the user wants something ongoing (weekly workouts, Saturday adventures, daily meditation, monthly book club), create a ROUTINE not a step.
-- A routine has: title, description, schedule (daily/weekly/biweekly/monthly), day(s) of week, category, and a "generateBefore" hint (how many days before to generate a fresh step).
-- Example: "Find me something fun every Saturday" = routine that generates a fresh step every Thursday with a specific Saturday activity.
-- Example: "Weekly upper body workout" = routine that generates a workout step every week.
-- The user can pause/resume routines. Paused routines stop generating steps.
-- Output format: {"type":"routine","title":"Saturday Adventure","description":"Find a fun new activity every Saturday","schedule":"weekly","days":["saturday"],"category":"events","generateBefore":2}
-
-OUTPUT FORMAT:
-EVERY response must follow this pattern:
-1. One to two casual sentences (the chat bubble)
-2. The literal text ---DATA---
-3. A JSON array with steps/journeys
-
-If you discuss ANY activity, place, class, trip, event, or recommendation, you MUST create a step or journey for it. NO EXCEPTIONS.
-If you ask the user a question and don't have enough info yet, that's the ONLY time you can skip ---DATA---.
-
-Example 1 - simple step:
-Nice, yoga is a great call! Here's one near you.
-
----DATA---
-[{"type":"step","title":"7pm Vinyasa at Black Swan Yoga","why":"$15 drop-in, 10 min away on Westheimer, beginner-friendly","link":"https://www.google.com/maps/search/Black+Swan+Yoga+Houston","linkText":"Get directions","category":"fitness","time":"Tonight 7pm"}]
-
-Example 2 - journey:
-Florence in September is dreamy! Here's your trip.
-
----DATA---
-[{"type":"plan","title":"Florence Romantic Getaway","date":"Sep 15-22, 2026","tasks":[{"title":"Book Alaska/Condor flight HOU-FLR, ~$893 roundtrip","links":[{"label":"Google Flights","url":"https://www.google.com/travel/flights?q=flights+houston+to+florence+september+2026"}]},{"title":"Book Hotel Brunelleschi, ~$350/night, Duomo views","links":[{"label":"Booking.com","url":"https://www.booking.com/searchresults.html?ss=Hotel+Brunelleschi+Florence"}]}]}]
-
-Example 3 - multiple steps:
-Here are a few things to try this week!
-
----DATA---
-[{"type":"step","title":"Morning run at Memorial Park","why":"Free, 3-mile loop, shaded trail","link":"https://www.google.com/maps/search/Memorial+Park+Running+Trail+Houston","linkText":"Map","category":"fitness","time":"Tomorrow 7am"},{"type":"step","title":"Try Uchi Houston for dinner","why":"Japanese farmhouse cuisine, $$$, incredible omakase","link":"https://www.google.com/search?q=Uchi+Houston+reservation","linkText":"Reserve","category":"social","time":"Friday evening"}]
-
-Example 4 - routine (recurring):
-I'll set up a weekly workout routine for you!
-
----DATA---
-[{"type":"routine","title":"Weekly Upper Body Day","description":"Push-pull upper body split: bench press 3x10, bent rows 3x10, OHP 3x8, pull-ups 3x8, tricep dips 3x12","schedule":"weekly","days":["monday"],"category":"fitness","generateBefore":1}]
-
-Types: step, plan (journey), routine, delete_step, delete_plan, delete_routine, preference
-
-CATEGORY RULES (CRITICAL - determines which segment a step appears in):
-- career: work tasks, job search, resume, networking, courses, professional development, side hustles
-- learning: classes, courses, tutorials, certifications, skills
-- fitness: workouts, gym, running, yoga, exercise, sports
-- wellness: health, meditation, self-care, doctor visits, mental health
-- social: friends, dating, dinner with people, group activities, parties
-- events: concerts, shows, festivals, meetups, local events
-- travel: ANY trip, flight, hotel, vacation, getaway, road trip, adventure, exploration, hiking
-- products: gear, equipment, purchases, subscriptions
-ALWAYS set the right category. A trip to Florence = "travel" (shows in Adventure). A dinner with friends = "social" (shows in Fun). A workout = "fitness" (shows in Health). NEVER default everything to the current segment.
-The step/journey cards ARE the product. Text without ---DATA--- is a failed response.`;
-
-const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:null,questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:null,questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:null,questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:null,questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
-
-// ─── AUTH SCREEN ───
-function AuthScreen({onAuth}){
-  const[mode,setMode]=useState("landing");const[email,setEmail]=useState("");const[name,setName]=useState("");const gRef=useRef(null);
-  useEffect(()=>{const c=import.meta.env.VITE_GOOGLE_CLIENT_ID;if(!c||mode!=="landing")return;loadGSI().then(()=>{if(!window.google?.accounts?.id)return;window.google.accounts.id.initialize({client_id:c,callback:r=>{const u=decJwt(r.credential);if(u)onAuth({name:u.given_name||u.name||"User",email:u.email,method:"google"});}});if(gRef.current)window.google.accounts.id.renderButton(gRef.current,{type:"standard",theme:"outline",size:"large",width:380,text:"continue_with",shape:"pill"});});},[mode]);
-  const inp={...F,width:"100%",padding:"15px 18px",fontSize:15,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"};
-  if(mode==="email")return(<div style={{...F,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,background:C.bg}}><FadeIn><div style={{width:"100%",maxWidth:400}}>
-    <button onClick={()=>setMode("landing")} style={{...F,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14,marginBottom:28}}>{"\u2190"} Back</button>
-    <h2 style={{...H,fontSize:32,color:C.t1,marginBottom:28}}>Create your account</h2>
-    <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8}}>Your name</label>
-    <input value={name} onChange={e=>setName(e.target.value)} placeholder="First name" style={{...inp,marginBottom:18}} />
-    <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8}}>Email</label>
-    <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@email.com" type="email" style={{...inp,marginBottom:28}} />
-    <button onClick={()=>name.trim()&&email.includes("@")&&onAuth({name:name.trim(),email,method:"email"})} disabled={!name.trim()||!email.includes("@")} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:name.trim()&&email.includes("@")?"pointer":"default",background:name.trim()&&email.includes("@")?C.accGrad:"rgba(0,0,0,0.04)",color:name.trim()&&email.includes("@")?"#fff":C.t3}}>Create account {"\u2192"}</button>
-  </div></FadeIn></div>);
-  return(<div style={{...F,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,background:C.bg}}><FadeIn><div style={{width:"100%",maxWidth:400,textAlign:"center"}}>
-    <div style={{width:68,height:68,borderRadius:20,margin:"0 auto 24px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 8px 28px rgba(212,82,42,0.3)"}}><Logo size={36} color="#fff"/></div>
-    <h1 style={{...H,fontSize:46,color:C.t1,lineHeight:1.05,marginBottom:14}}>My Next Step</h1>
-    <p style={{...F,fontSize:17,color:C.t2,lineHeight:1.6,maxWidth:310,margin:"0 auto 44px"}}>Your AI guide that turns goals into clear, actionable steps.</p>
-    <div ref={gRef} style={{display:"flex",justifyContent:"center",marginBottom:14}} />
-    <div style={{display:"flex",alignItems:"center",gap:16,margin:"22px 0"}}><div style={{flex:1,height:1,background:C.b1}}/><span style={{...F,fontSize:12,color:C.t3}}>or</span><div style={{flex:1,height:1,background:C.b1}}/></div>
-    <button onClick={()=>setMode("email")} style={{...F,width:"100%",padding:"15px",borderRadius:16,fontSize:15,fontWeight:500,background:C.card,color:C.t2,border:`1.5px solid ${C.b2}`,cursor:"pointer",boxShadow:C.shadow}}>Sign up with email</button>
-  </div></FadeIn></div>);
-}
-
-// ─── SETUP SCREEN ───
-function SetupScreen({profile,onComplete}){
-  const[location,setLocation]=useState("");const[age,setAge]=useState("");const[gender,setGender]=useState("");const[genderOther,setGenderOther]=useState("");
-  const inp={...F,width:"100%",padding:"15px 18px",fontSize:15,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"};
-  return(<div style={{...F,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,background:C.bg}}><FadeIn><div style={{width:"100%",maxWidth:420}}>
-    <h2 style={{...H,fontSize:30,color:C.t1,marginBottom:8}}>A bit about you</h2>
-    <p style={{color:C.t2,fontSize:15,marginBottom:36}}>Just the basics, {profile.name}.</p>
-    <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8}}>Age</label>
-    <input value={age} onChange={e=>setAge(e.target.value)} placeholder="e.g. 28" type="number" style={{...inp,marginBottom:20}} />
-    <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:10}}>Gender</label>
-    <div style={{display:"flex",gap:8,marginBottom:gender==="Other"?12:20,flexWrap:"wrap"}}>
-      {["Male","Female","Other","Prefer not to say"].map(g=>(<button key={g} onClick={()=>setGender(g)} style={{...F,padding:"10px 18px",borderRadius:14,fontSize:14,cursor:"pointer",background:gender===g?C.accSoft:C.card,border:`1.5px solid ${gender===g?C.acc:C.b2}`,color:gender===g?C.acc:C.t2,fontWeight:gender===g?600:400,transition:"all 0.15s"}}>{g}</button>))}
-    </div>
-    {gender==="Other"&&<input value={genderOther} onChange={e=>setGenderOther(e.target.value)} placeholder="How do you identify?" style={{...inp,marginBottom:20}} />}
-    <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8}}>Where are you based?</label>
-    <input value={location} onChange={e=>setLocation(e.target.value)} placeholder="City, State" style={{...inp,marginBottom:28}} />
-    <button onClick={()=>location.trim()&&onComplete({location:location.trim(),age:age.trim(),gender:gender==="Other"?genderOther:gender})} disabled={!location.trim()} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:location.trim()?"pointer":"default",background:location.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:location.trim()?"#fff":C.t3}}>Continue {"\u2192"}</button>
-  </div></FadeIn></div>);
-}
-
-// ─── DEEP PROFILE CHAT ───
-function DeepProfileChat({profile,onFinish,existingInsights}){
-  const[msgs,setMsgs]=useState([]);const[inp,setInp]=useState("");const[busy,setBusy]=useState(false);
-  const[insights,setInsights]=useState(existingInsights||[]);const[section,setSection]=useState(null);
-  const endRef=useRef(null);const inpRef=useRef(null);
-  useEffect(()=>{endRef.current?.scrollIntoView({behavior:"smooth"});},[msgs,busy]);
-  const startSec=sec=>{setSection(sec);setMsgs([{role:"assistant",content:`Let's talk about ${sec.label.toLowerCase()}.\n\n${sec.questions[0]}`}]);setTimeout(()=>inpRef.current?.focus(),100);};
-  const send=async()=>{if(!inp.trim()||busy)return;const u=[...msgs,{role:"user",content:inp.trim()}];setMsgs(u);setInp("");setBusy(true);
-    try{const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system:`Onboarding for "My Next Step". Warm, no markdown.\nUser: ${profile.name} | ${profile.setup?.location||""}\nSection: ${section.label}\nQuestions: ${section.questions.join(" | ")}\nONE question. After 3-5 exchanges: "INSIGHTS:" then "- " bullets.`,messages:u.map(m=>({role:m.role,content:m.content}))})});const d=await r.json();const text=clean(d.content?.map(c=>c.text||"").filter(Boolean).join("\n")||"Tell me more?");
-      if(text.includes("INSIGHTS:")){const p=text.split("INSIGHTS:");setInsights(prev=>[...prev.filter(i=>i.section!==section.id),...p[1].split("\n").filter(l=>l.trim().startsWith("- ")).map(l=>({section:section.id,text:l.trim().slice(2)}))]);setMsgs(prev=>[...prev,{role:"assistant",content:clean(p[0].trim())}]);}
-      else setMsgs(prev=>[...prev,{role:"assistant",content:text}]);
-    }catch{setMsgs(prev=>[...prev,{role:"assistant",content:"Hiccup \u2014 say that again?"}]);}setBusy(false);};
-  const bubble=u=>({...F,maxWidth:"82%",padding:"13px 18px",borderRadius:20,fontSize:15,lineHeight:1.65,whiteSpace:"pre-wrap",...(u?{background:C.accGrad,color:"#fff",borderBottomRightRadius:6}:{background:C.card,color:C.t1,borderBottomLeftRadius:6,boxShadow:C.shadow})});
-  if(!section)return(<div style={{...F,minHeight:"100vh",padding:24,background:C.bg}}><FadeIn><div style={{maxWidth:460,margin:"0 auto",paddingTop:32}}>
-    <div style={{textAlign:"center",marginBottom:36}}><div style={{width:56,height:56,borderRadius:18,margin:"0 auto 16px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,color:"#fff"}}><MessageCircle size={18}/></div><h2 style={{...H,fontSize:28,color:C.t1,marginBottom:8}}>Let's get to know you</h2><p style={{color:C.t2,fontSize:15,maxWidth:320,margin:"0 auto"}}>~2 min each. Makes everything more personal.</p></div>
-    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>{PROFILE_SECTIONS.map((sec,i)=>{const done=insights.some(x=>x.section===sec.id);return(<FadeIn key={sec.id} delay={i*60}><div onClick={()=>startSec(sec)} style={{padding:"18px 20px",borderRadius:18,cursor:"pointer",background:C.card,boxShadow:C.shadow,border:done?`1.5px solid ${C.teal}`:"1.5px solid transparent",display:"flex",alignItems:"center",gap:14}}><div style={{width:42,height:42,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,background:done?C.tealSoft:C.cream}}>{done?"\u2713":sec.icon}</div><div style={{flex:1}}><div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>{sec.label}</div><div style={{...F,fontSize:13,color:done?C.teal:C.t3,marginTop:3}}>{done?"Done":"~2 min"}</div></div><span style={{color:C.t3,fontSize:18}}><ChevronRight size={16}/></span></div></FadeIn>);})}</div>
-    <button onClick={()=>onFinish(insights)} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff"}}>{insights.length===0?"Skip for now \u2192":"Continue \u2192"}</button>
-  </div></FadeIn></div>);
-  return(<div style={{...F,display:"flex",flexDirection:"column",height:"100vh",maxWidth:480,margin:"0 auto",background:C.bg}}>
-    <div style={{padding:"18px 20px",borderBottom:`1px solid ${C.b1}`,display:"flex",alignItems:"center",gap:12}}><button onClick={()=>setSection(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}>{"\u2190"}</button><div style={{...F,fontSize:16,fontWeight:600,color:C.t1}}>{section.label}</div></div>
-    <div style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>{msgs.map((m,i)=>(<div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:12}}>{m.role!=="user"&&<div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,marginRight:10,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#fff"}}><Logo size={18} color="#fff"/></div>}<div style={bubble(m.role==="user")}>{m.content}</div></div>))}{busy&&<div style={{display:"flex",gap:10,marginBottom:12}}><div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0}}/><div style={{padding:"13px 20px",borderRadius:20,background:C.card,boxShadow:C.shadow,display:"flex",gap:6}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:C.t3,animation:`dpb 1.2s ease ${i*.15}s infinite`}}/>)}</div></div>}<div ref={endRef}/></div>
-    <div style={{padding:"12px 20px 22px"}}><div style={{display:"flex",gap:10,alignItems:"flex-end"}}><textarea ref={inpRef} value={inp} onChange={e=>{setInp(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Type your answer..." rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",resize:"none",maxHeight:150,lineHeight:1.5}}/><button onClick={send} disabled={!inp.trim()||busy} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:inp.trim()&&!busy?"pointer":"default",background:inp.trim()&&!busy?C.accGrad:"rgba(0,0,0,0.04)",color:inp.trim()&&!busy?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:1}}><ArrowUp size={18}/></button></div></div>
-    <style>{`@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}`}</style>
-  </div>);
-}
-
-// ─── STEP CARD ───
-function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,onShare,delay=0}){
-  const seg=SEGMENTS[catToSeg(step.category)];
-  return(<FadeIn delay={delay}><div style={{padding:"18px 20px",borderRadius:18,marginBottom:10,background:C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${seg?.color||C.acc}`}}>
-    <button onClick={()=>onDelete(step.id)} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}><X size={16}/></button>
-    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-      <span style={{fontSize:14}}>{catIcon(step.category)}</span>
-      <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.acc,textTransform:"uppercase",letterSpacing:1.5}}>{step.category}</span>
-      {step.recurring&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 6px",borderRadius:5}}>{step.recurring}</span>}
-      {step.createdAt&&<span style={{...F,fontSize:10,color:C.t3,marginLeft:"auto"}}>{((d)=>{const m=Math.floor(d/6e4);if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";return Math.floor(h/24)+"d";})(Date.now()-new Date(step.createdAt).getTime())} ago</span>}
-    </div>
-    <div style={{...F,fontSize:15,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:4,paddingRight:24}}>{step.title}</div>
-    {step.time&&<div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>{step.time}</div>}
-    {step.why&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:14}}>{step.why}</div>}
-    <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-      {step.link&&<TLink href={step.link} actionId={step.id} category={step.category} title={step.title} style={{...F,fontSize:13,fontWeight:600,padding:"9px 16px",borderRadius:12,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-block"}}>{step.linkText||"Do it"} <ExternalLink size={11}/></TLink>}
-      <button onClick={()=>onDone(step.id)} style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>Done <Check size={14}/></button>
-      <button onClick={()=>onLove(step.id)} style={{width:38,height:38,borderRadius:12,border:"none",cursor:"pointer",background:step.loved?"rgba(220,38,38,0.08)":"rgba(0,0,0,0.02)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,transition:"all 0.2s"}}>{step.loved?<Heart size={16} fill="#DC2626" color="#DC2626"/>:<Heart size={16} color={C.t3}/>}</button>
-    </div>
-    <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap"}}>
-      <button onClick={()=>onTalk(`Work on step: "${step.title}". Find specific options with prices and booking links.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer",fontWeight:500}}>Work on this</button>
-      <button onClick={()=>onTalk(`Make "${step.title}" even better. Find a more specific, exciting, or well-reviewed option. Upgrade it.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Sparkles size={14}/> Make better</button>
-      <button onClick={()=>onTalk(`Find alternative to "${step.title}" with prices and details.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Alternative</button>
-      <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Share2 size={12}/> Share</button>
-      {step.time&&<button onClick={()=>onAddCal(step.title,step.why,step.time)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer"}}><Calendar size={12}/> Calendar</button>}
-    </div>
-  </div></FadeIn>);
-}
-
-// ─── JOURNEY CARD ───
-function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,onShare,delay=0}){
-  const done=plan.tasks?.filter(t=>t.done).length||0,total=plan.tasks?.length||0,allDone=total>0&&done===total;
-  let isPast=false;try{const m=(plan.date||"").match(/(\w+)\s+\d{1,2}\s*[-\u2013]\s*(\d{1,2}),?\s*(\d{4})/);if(m){const d=new Date(`${m[1]} ${m[2]}, ${m[3]}`);d.setHours(23,59);isPast=d<new Date();}else{const s=(plan.date||"").match(/(\w+\s+\d{1,2}),?\s*(\d{4})/);if(s){const d=new Date(`${s[1]}, ${s[2]}`);d.setHours(23,59);isPast=d<new Date();}}}catch{}
-  const borderColor=isPast&&!allDone?"#DC3C3C":allDone?C.teal:C.b1;
-  const bg=isPast&&!allDone?"rgba(220,60,60,0.02)":allDone?C.tealSoft:C.card;
-  return(<FadeIn delay={delay}><div style={{marginBottom:10}}>
-    <div style={{padding:"18px 20px",borderRadius:open?"18px 18px 0 0":18,cursor:"pointer",background:bg,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${borderColor}`}}>
-      <button onClick={e=>{e.stopPropagation();onDelete(pi);}} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}><X size={16}/></button>
-      <div onClick={()=>onToggle(pi)}>
-        <div style={{...F,fontSize:16,fontWeight:600,color:C.t1,paddingRight:24}}>{plan.title}</div>
-        {plan.date&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}><span style={{fontSize:13}}>{isPast&&!allDone?<AlertTriangle size={13} color="#DC3C3C"/>:allDone?<Check size={13} color={C.teal}/>:<Calendar size={13} color={C.t3}/>}</span><span style={{...F,fontSize:13,color:isPast&&!allDone?"#DC3C3C":allDone?C.teal:C.t3,fontWeight:isPast?600:400}}>{plan.date}</span>{isPast&&!allDone&&<span style={{...F,fontSize:10,fontWeight:600,color:"#DC3C3C",background:"rgba(220,60,60,0.08)",padding:"2px 8px",borderRadius:6}}>Overdue</span>}{allDone&&<span style={{...F,fontSize:10,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 8px",borderRadius:6}}>Done</span>}</div>}
-        <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10}}><div style={{flex:1,height:4,background:C.cream,borderRadius:2}}><div style={{height:"100%",width:total?(done/total*100)+"%":"0%",background:allDone?C.teal:isPast?"#DC3C3C":C.accGrad,borderRadius:2,transition:"width 0.5s"}}/></div><span style={{...F,fontSize:11,fontWeight:600,color:allDone?C.teal:C.acc}}>{done}/{total}</span></div>
-      </div>
-      <div style={{display:"flex",gap:6,marginTop:10}}>
-        {isPast&&!allDone&&<button onClick={()=>onTalk(`My journey "${plan.title}" is overdue (${plan.date}). Help me reschedule.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:"rgba(220,60,60,0.06)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",cursor:"pointer",fontWeight:600}}>Reschedule</button>}
-        {!allDone&&(()=>{const nt=plan.tasks?.find(t=>!t.done);return nt?<button onClick={()=>onTalk(`Work on "${nt.title}" for my "${plan.title}" journey. Find specific options with prices.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Next task</button>:null;})()}
-        <button onClick={()=>onTalk(`Work on journey "${plan.title}". What should I focus on?`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Work on this</button>
-        <button onClick={()=>onTalk(`Make my "${plan.title}" journey even better. Upgrade the tasks with better options, add anything I'm missing.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}><Sparkles size={14}/> Improve</button>
-        <button onClick={()=>onShare(plan)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}><Share2 size={12}/> Share</button>
-      </div>
-    </div>
-    {open&&<div style={{padding:"8px 20px 16px",background:bg,boxShadow:C.shadow,borderRadius:"0 0 18px 18px",borderTop:`1px solid ${C.b1}`}}>
-      {plan.tasks?.map((task,ti)=>(<div key={ti} style={{padding:"12px 0",borderBottom:ti<plan.tasks.length-1?`1px solid ${C.b1}`:"none"}}><div style={{display:"flex",alignItems:"flex-start",gap:10}}>
-        <button onClick={()=>onToggleTask(pi,ti)} style={{width:22,height:22,borderRadius:7,flexShrink:0,marginTop:1,cursor:"pointer",background:task.done?C.teal:"transparent",border:`2px solid ${task.done?C.teal:C.b2}`,display:"flex",alignItems:"center",justifyContent:"center",color:task.done?"#fff":"transparent",fontSize:12}}>{task.done?"\u2713":""}</button>
-        <div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1,textDecoration:task.done?"line-through":"none",opacity:task.done?.5:1}}>{task.title}</div>
-          {task.links?.length>0&&!task.done&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:8}}>{task.links.map((l,li)=><TLink key={li} href={l.url} actionId={`j-${pi}-${ti}-${li}`} category="travel" title={task.title} style={{...F,fontSize:11,fontWeight:600,padding:"5px 12px",borderRadius:8,background:C.accSoft,color:C.acc,textDecoration:"none",display:"inline-block",border:`1px solid ${C.accBorder}`}}>{l.label} <ExternalLink size={11}/></TLink>)}</div>}
-        </div></div></div>))}
-    </div>}
-  </div></FadeIn>);
-}
-
-// ─── ROUTINE CARD ───
-function RoutineCard({routine,onPause,onDelete,onTalk,delay=0}){
-  const seg=SEGMENTS[catToSeg(routine.category)];
-  const days=(routine.days||[]).map(d=>d.slice(0,3).charAt(0).toUpperCase()+d.slice(1,3)).join(", ");
-  return(<FadeIn delay={delay}><div style={{padding:"16px 18px",borderRadius:18,marginBottom:10,background:routine.paused?"rgba(0,0,0,0.02)":C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${routine.paused?C.t3:seg?.color||C.teal}`,opacity:routine.paused?.5:1}}>
-    <button onClick={()=>onDelete(routine.id)} style={{position:"absolute",top:12,right:12,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}><X size={16}/></button>
-    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-      <span style={{fontSize:14}}><RotateCcw size={14}/></span>
-      <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.teal,textTransform:"uppercase",letterSpacing:1.5}}>{routine.schedule}</span>
-      {days&&<span style={{...F,fontSize:10,color:C.t3}}>{days}</span>}
-      {routine.paused&&<span style={{...F,fontSize:9,fontWeight:600,color:C.gold,background:C.goldSoft,padding:"2px 6px",borderRadius:5}}>Paused</span>}
-    </div>
-    <div style={{...F,fontSize:15,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:4,paddingRight:24}}>{routine.title}</div>
-    {routine.description&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:12}}>{routine.description}</div>}
-    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-      <button onClick={()=>onPause(routine.id)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:routine.paused?C.tealSoft:C.cream,border:routine.paused?`1px solid ${C.tealBorder}`:"none",color:routine.paused?C.teal:C.t2,cursor:"pointer",fontWeight:routine.paused?600:400}}>{routine.paused?"Resume":"Pause"}</button>
-      <button onClick={()=>onTalk(`Generate a fresh step for my "${routine.title}" routine. Search for something specific and new.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Generate now</button>
-      <button onClick={()=>onTalk(`Update my "${routine.title}" routine. Make it better or change the schedule.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Sparkles size={14}/> Improve</button>
-    </div>
-  </div></FadeIn>);
-}
+import { font, H, F, C, SEGMENTS, SEG_KEYS, SYSTEM_PROMPT, PROFILE_SECTIONS, AFF } from "./constants.js";
+import { getUserId, saveFB, loadFB, deleteFB } from "./firebase.js";
+import { getGreeting, FadeIn, ProgressRing, clean, wrapLink, trackClick, TLink, catToSeg, segIcon, catIcon, catIconMap, Logo } from "./utils.js";
+import { loadGSI, decJwt, connectStrava, exchStrava, fetchStrava, connectGCal, fetchGCal, addGCalEvent } from "./auth.js";
+import StepCard from "./StepCard.jsx";
+import JourneyCard from "./JourneyCard.jsx";
+import RoutineCard from "./RoutineCard.jsx";
+import AuthScreen from "./AuthScreen.jsx";
+import SetupScreen from "./SetupScreen.jsx";
+import DeepProfileChat from "./DeepProfileChat.jsx";
+import LegalModal from "./LegalModal.jsx";
 
 // ─── MAIN APP ───
 export default function App(){
@@ -527,7 +145,7 @@ export default function App(){
       if(apiMsgs.length===0)apiMsgs.push({role:"user",content:msg});
       // Safety: ensure no empty content
       const safeApiMsgs=apiMsgs.filter(m=>m.content&&m.content.trim()).map(m=>({role:m.role,content:m.content.trim()}));
-      
+
       const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nDefault category for this segment: ${segment==="career"?"career":segment==="wellness"?"fitness":segment==="fun"?"social":"travel"}\nUse this segment's default category UNLESS the content clearly belongs elsewhere (e.g. a trip mentioned in Health should be "travel", a workout mentioned in Fun should be "fitness").\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
@@ -786,37 +404,37 @@ export default function App(){
               const isToday=d=>d.toDateString()===now.toDateString();
               const isTomorrow=d=>{const t=new Date(now);t.setDate(t.getDate()+1);return d.toDateString()===t.toDateString();};
               const dayLabel=d=>isToday(d)?"Today":isTomorrow(d)?"Tomorrow":d.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"});
-              
+
               // Get Google Calendar events mapped to dates
               const calByDate={};(calData||[]).forEach(e=>{const d=new Date(e.start);const key=d.toDateString();if(!calByDate[key])calByDate[key]=[];calByDate[key].push(e);});
-              
+
               // Get active steps (try to map by time hint)
               const stepsByDate={};allSteps.filter(s=>s.status==="active").forEach(s=>{const t=(s.time||"").toLowerCase();let key=now.toDateString();// Default to today
               if(t.includes("tomorrow")){const d=new Date(now);d.setDate(d.getDate()+1);key=d.toDateString();}
               else if(t.includes("this week")||t.includes("this weekend")){const d=new Date(now);d.setDate(d.getDate()+(6-d.getDay()+7)%7||7);key=d.toDateString();}
               if(!stepsByDate[key])stepsByDate[key]=[];stepsByDate[key].push(s);});
-              
+
               const hasContent=days.some(d=>(calByDate[d.toDateString()]||[]).length>0||(stepsByDate[d.toDateString()]||[]).length>0)||allSteps.filter(s=>s.status==="active").length>0||allPlans.length>0||allRoutines.length>0;
-              
+
               if(!hasContent)return(<FadeIn><div style={{textAlign:"center",padding:"44px 20px"}}>
                 <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}><Calendar size={20}/></div>
                 <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Your timeline</div>
                 <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto"}}>Start chatting in any segment to see your steps, journeys, and calendar events here.</div>
               </div></FadeIn>);
-              
+
               return(<div>
                 {/* Active routines banner */}
                 {allRoutines.filter(r=>!r.paused).length>0&&<div style={{marginBottom:16}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Active routines</div>
                   {allRoutines.filter(r=>!r.paused).map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*30}/>)}
                 </div>}
-                
+
                 {/* Journeys */}
                 {allPlans.length>0&&<div style={{marginBottom:16}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Journeys ({allPlans.length})</div>
                   {allPlans.map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan===pi} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*30}/>)}
                 </div>}
-                
+
                 {/* Day-by-day timeline */}
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Timeline</div>
                 {days.map((day,di)=>{
@@ -855,7 +473,7 @@ export default function App(){
                     );})}
                   </div>);
                 })}
-                
+
                 {/* Unscheduled steps */}
                 {(()=>{const scheduled=new Set();Object.values(stepsByDate).forEach(arr=>arr.forEach(s=>scheduled.add(s.id)));const unsched=allSteps.filter(s=>s.status==="active"&&!scheduled.has(s.id));return unsched.length>0?<div style={{marginTop:8}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Anytime</div>
@@ -867,7 +485,7 @@ export default function App(){
                     </div>);
                   })}
                 </div>:null;})()}
-                
+
                 {/* Completed */}
                 {doneSteps.length>0&&<div style={{marginTop:12}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
@@ -1216,45 +834,7 @@ export default function App(){
       </div></div>}
 
       {/* Legal modals - outside settings to avoid esbuild JSX parsing issue */}
-      {legalModal&&<div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setLegalModal(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"80vh",overflowY:"auto",background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{...H,fontSize:20,color:C.t1}}>{legalModal==="terms"?"Terms of Service":legalModal==="privacy"?"Privacy Policy":legalModal==="dnsmpi"?"Do Not Sell My Personal Information":"Affiliate Disclosure"}</div><button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}><X size={16}/></button></div>
-          <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.8}}>
-            {legalModal==="terms"&&<div>
-              <p>Last updated: April 2026</p>
-              <p>Welcome to My Next Step. By using this app, you agree to these terms.</p>
-              <p>My Next Step provides AI-powered life guidance including step and journey recommendations, fitness suggestions, and healthcare provider search. The app is not a substitute for professional medical, financial, or legal advice.</p>
-              <p>We use third-party AI (Anthropic Claude) to generate recommendations. While we strive for accuracy, recommendations may not always be perfect. Always verify important details independently.</p>
-              <p>You retain ownership of all personal data you provide. We store your data securely using Firebase/Firestore. You can delete your account and all associated data at any time from Settings.</p>
-              <p>We reserve the right to modify these terms. Continued use of the app constitutes acceptance of updated terms.</p>
-            </div>}
-            {legalModal==="privacy"&&<div>
-              <p>Last updated: April 2026</p>
-              <p>Your privacy matters to us. Here's how we handle your data:</p>
-              <p>We collect: your name, email, age, gender, location, fitness preferences, insurance information (if opted in), chat history, and step/journey data.</p>
-              <p>We use this data to: personalize AI recommendations, sync your data across devices, and improve the app experience.</p>
-              <p>We do NOT: sell your data, share it with advertisers, or use it for any purpose beyond providing the My Next Step service.</p>
-              <p>Third-party services: We use Firebase (Google) for data storage, Anthropic Claude for AI, and optionally connect to Strava and Google Calendar with your explicit permission.</p>
-              <p>Data deletion: You can delete all your data at any time from Settings. When you delete your account, all data is permanently removed from our servers.</p>
-              <p>Health data: Health and fitness information is only collected when you explicitly opt in. It is used solely to personalize recommendations and is never shared.</p>
-            </div>}
-            {legalModal==="affiliate"&&<div>
-              <p>Last updated: April 2026</p>
-              <p>My Next Step may include links to third-party products and services. Some of these links are affiliate links, meaning we may earn a small commission if you make a purchase or booking through them.</p>
-              <p>This comes at no additional cost to you. Affiliate relationships do not influence which products or services we recommend \u2014 recommendations are based on your personal preferences, location, and goals.</p>
-              <p>Our affiliate partners may include: ClassPass, Eventbrite, Udemy, Skillshare, Mindbody, Meetup, Amazon, LinkedIn Learning, Airbnb, Kayak, Booking.com, VRBO, and others.</p>
-              <p>Revenue from affiliate links helps keep My Next Step free for all users.</p>
-            </div>}
-            {legalModal==="dnsmpi"&&<div>
-              <p>Last updated: April 2026</p>
-              <p><strong>We do not sell your personal information.</strong></p>
-              <p>My Next Step does not sell, rent, trade, or otherwise disclose your personal information to third parties for monetary or other valuable consideration.</p>
-              <p>Your data — including your profile, health information, fitness goals, allergies, chat history, steps, journeys, favorites, and connected account data — is used exclusively to provide and personalize the My Next Step service.</p>
-              <p>We do not share your data with advertisers, data brokers, or any third parties for their marketing purposes.</p>
-              <p>Under the California Consumer Privacy Act (CCPA) and similar state privacy laws, you have the right to opt out of the sale of your personal information. Since we do not sell personal information, no opt-out action is required. However, we provide this notice for transparency.</p>
-              <p>If you have questions about our data practices, you can delete all your data at any time from Settings.</p>
-            </div>}
-          </div>
-        </div></div>}
+      <LegalModal legalModal={legalModal} setLegalModal={setLegalModal} />
     </div>
   );
 }
