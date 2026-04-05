@@ -1,4 +1,4 @@
-import { X, ChevronDown, MessageCircle, Plus, Heart, Dumbbell, UtensilsCrossed, Building2, TrendingUp, Calendar, Briefcase, Sparkles, Star, Shield } from "lucide-react";
+import { X, ChevronDown, MessageCircle, Plus, Heart, Dumbbell, UtensilsCrossed, Building2, TrendingUp, Calendar, Briefcase, Sparkles, Star, Shield, Globe } from "lucide-react";
 import { H, F, C } from "./constants.js";
 import { catIcon, Logo } from "./utils.jsx";
 import { getUserId, saveFB, deleteFB } from "./firebase.js";
@@ -132,7 +132,13 @@ export default function Settings({
   }
 
   function renderConnectionsTab() {
+    const travel=profile?.travel||{};
+    const loyaltyPrograms=travel.loyalty||[];
+    const saveLoyalty=(programs)=>{const p={...profile,travel:{...travel,loyalty:programs}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);};
+    const sectionLabel=(text)=>(<div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginTop:16,marginBottom:8}}>{text}</div>);
+    const comingSoon=(items)=>items.map(s=>(<div key={s.l} style={{padding:14,borderRadius:14,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} \u00B7 Coming soon</div></div></div>));
     return (<div style={{display:"flex",flexDirection:"column",gap:8}}>
+      {sectionLabel("Fitness & Calendar")}
       <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
         <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}><TrendingUp size={20}/></span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
         {stravaData?.profile&&<div style={{padding:"10px 14px",borderRadius:12,background:C.bg,marginTop:10,display:"flex",gap:16}}><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRuns}</div><div style={{...F,fontSize:10,color:C.t3}}>Runs</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRunDistance}</div><div style={{...F,fontSize:10,color:C.t3}}>Distance</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRides}</div><div style={{...F,fontSize:10,color:C.t3}}>Rides</div></div></div>}{null}
@@ -141,7 +147,49 @@ export default function Settings({
         <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}><Calendar size={20}/></span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:12,color:calData?"#4285F4":C.t3}}>{calData?`Connected \u00B7 ${calData.length} events`:"Not connected"}</div></div>{calData?<button onClick={async()=>{deleteFB(getUserId(profile),"calendar");setCalData(null);setCalToken(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={()=>connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);saveFB(getUserId(profile),"calendar",{token:r.access_token,events:ev});})} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:"rgba(66,133,244,0.06)",color:"#4285F4",border:"1px solid rgba(66,133,244,0.1)",cursor:"pointer"}}>Connect</button>}</div>
         {calData?.length>0&&<div style={{marginTop:10}}>{calData.slice(0,4).map((e,i)=>{const d=new Date(e.start);return<div key={i} style={{display:"flex",gap:8,padding:"6px 14px",borderRadius:10,background:C.bg,marginBottom:4,alignItems:"center"}}><span style={{...F,fontSize:11,fontWeight:600,color:"#4285F4",minWidth:55}}>{d.toLocaleDateString([],{month:"short",day:"numeric"})}</span><span style={{...F,fontSize:12,color:C.t2,flex:1}}>{e.title}</span></div>;})}{calData.length>4&&<div style={{...F,fontSize:11,color:C.t3,textAlign:"center",marginTop:4}}>+{calData.length-4} more</div>}</div>}{null}
       </div>
-      {[{icon:<UtensilsCrossed size={20} color="#DA3743"/>,l:"OpenTable",d:"Restaurant reservations"},{icon:<UtensilsCrossed size={20} color="#1A1A1A"/>,l:"Resy",d:"Restaurant reservations"},{icon:<Briefcase size={20} color="#1877F2"/>,l:"Facebook",d:"Events & social"},{icon:<Briefcase size={20} color="#0A66C2"/>,l:"LinkedIn",d:"Professional network"},{icon:<Sparkles size={20} color="#E4405F"/>,l:"Instagram",d:"Photos & social"},{icon:<Star size={20} color="#1DB954"/>,l:"Spotify",d:"Music & podcasts"}].map(s=>(<div key={s.l} style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} \u00B7 Coming soon</div></div></div>))}{null}
+
+      {sectionLabel("Travel & Loyalty Programs")}
+      <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+        <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.5,marginBottom:12}}>Add your preferred airlines, hotels, and loyalty numbers so your guide can book smarter.</div>
+        {loyaltyPrograms.map((lp,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<loyaltyPrograms.length-1?`1px solid ${C.b1}`:"none"}}>
+          <div style={{width:36,height:36,borderRadius:10,background:lp.type==="airline"?C.accSoft:lp.type==="hotel"?"#EDE9FE":C.tealSoft,display:"flex",alignItems:"center",justifyContent:"center"}}>{lp.type==="airline"?<Globe size={16} color={C.acc}/>:lp.type==="hotel"?<Building2 size={16} color="#6D28D9"/>:<Star size={16} color={C.teal}/>}</div>
+          <div style={{flex:1}}>
+            <div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>{lp.name}</div>
+            <div style={{...F,fontSize:12,color:C.t3}}>{lp.type==="airline"?"Airline":lp.type==="hotel"?"Hotel":lp.type==="car"?"Car rental":"Other"}{lp.number?` \u00B7 ${lp.number}`:""}</div>
+          </div>
+          <button onClick={()=>{saveLoyalty(loyaltyPrograms.filter((_,j)=>j!==i));}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer"}}><X size={14}/></button>
+        </div>))}
+        {editField==="add_loyalty"?(<div style={{padding:14,borderRadius:14,background:C.bg,marginTop:8}}>
+          <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Type</div>
+          <div style={{display:"flex",gap:6,marginBottom:10}}>{["airline","hotel","car","other"].map(t=>(<button key={t} onClick={()=>setGenderEdit(t)} style={{...F,padding:"6px 12px",borderRadius:10,fontSize:12,cursor:"pointer",textTransform:"capitalize",background:genderEdit===t?C.accSoft:C.cream,border:`1.5px solid ${genderEdit===t?C.acc:C.b2}`,color:genderEdit===t?C.acc:C.t2,fontWeight:genderEdit===t?600:400}}>{t}</button>))}</div>
+          <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Name (e.g. United, Marriott, Hertz)</div>
+          <input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Program name" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",marginBottom:8}}/>
+          <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Membership / frequent flyer number (optional)</div>
+          <input value={genderOtherEdit} onChange={e=>setGenderOtherEdit(e.target.value)} placeholder="e.g. FF123456789" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",marginBottom:10}}/>
+          <div style={{display:"flex",gap:8}}>
+            <button onClick={()=>{setEditField(null);setEditVal("");setGenderEdit("");setGenderOtherEdit("");}} style={{...F,flex:1,padding:8,borderRadius:10,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
+            <button onClick={()=>{if(editVal.trim()){saveLoyalty([...loyaltyPrograms,{name:editVal.trim(),type:genderEdit||"airline",number:genderOtherEdit.trim()}]);setEditField(null);setEditVal("");setGenderEdit("");setGenderOtherEdit("");}}} style={{...F,flex:1,padding:8,borderRadius:10,border:"none",background:C.accGrad,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add</button>
+          </div>
+        </div>):(<button onClick={()=>{setEditField("add_loyalty");setEditVal("");setGenderEdit("airline");setGenderOtherEdit("");}} style={{...F,width:"100%",padding:"12px",borderRadius:12,background:C.bg,border:`1.5px dashed ${C.b2}`,color:C.acc,fontSize:13,fontWeight:600,cursor:"pointer",marginTop:8}}><Plus size={14}/> Add airline, hotel, or program</button>)}{null}
+      </div>
+
+      {sectionLabel("Dining")}
+      {comingSoon([
+        {icon:<UtensilsCrossed size={20} color="#DA3743"/>,l:"OpenTable",d:"Restaurant reservations"},
+        {icon:<UtensilsCrossed size={20} color="#1A1A1A"/>,l:"Resy",d:"Restaurant reservations"},
+      ])}
+
+      {sectionLabel("Social")}
+      {comingSoon([
+        {icon:<Briefcase size={20} color="#1877F2"/>,l:"Facebook",d:"Events & social"},
+        {icon:<Briefcase size={20} color="#0A66C2"/>,l:"LinkedIn",d:"Professional network"},
+        {icon:<Sparkles size={20} color="#E4405F"/>,l:"Instagram",d:"Photos & social"},
+      ])}
+
+      {sectionLabel("Entertainment")}
+      {comingSoon([
+        {icon:<Star size={20} color="#1DB954"/>,l:"Spotify",d:"Music & podcasts"},
+      ])}
     </div>);
   }
 
