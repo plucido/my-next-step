@@ -176,7 +176,7 @@ export default function App(){
 
       const raw=finalText.trim()||"Let me think...";
       console.log("Raw AI response:", raw.slice(0, 300));
-      let displayText=raw,newSteps=[...allSteps],newPlans=[...allPlans],newPrefs=[...preferences];
+      let displayText=raw,newSteps=[...allSteps],newPlans=[...allPlans],newPrefs=[...preferences],newRoutines=[...allRoutines];
       let jsonStr=null;
       if(raw.includes("---DATA---")){const p=raw.split("---DATA---");displayText=p[0].trim();jsonStr=p[1]?.trim();}
       else{
@@ -187,7 +187,7 @@ export default function App(){
       if(jsonStr){try{
         jsonStr=jsonStr.replace(/```json\s*/g,"").replace(/```\s*/g,"").replace(/,\s*\]/g,"]").trim();
         console.log("Parsing JSON:", jsonStr.slice(0, 200));
-        const items=JSON.parse(jsonStr);let newRoutines=[...allRoutines];
+        const items=JSON.parse(jsonStr);
         for(const item of(Array.isArray(items)?items:[items])){
           const defaultCat=segment==="career"?"career":segment==="wellness"?"fitness":segment==="fun"?"social":"travel";
           if(item.type==="step")newSteps=[{...item,title:clean(item.title),why:clean(item.why),category:item.category||defaultCat,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
