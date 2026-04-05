@@ -1215,7 +1215,46 @@ export default function App(){
 
       </div></div>}
 
-      {null}
+      {/* Legal modals - outside settings to avoid esbuild JSX parsing issue */}
+      {legalModal&&<div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setLegalModal(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"80vh",overflowY:"auto",background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{...H,fontSize:20,color:C.t1}}>{legalModal==="terms"?"Terms of Service":legalModal==="privacy"?"Privacy Policy":legalModal==="dnsmpi"?"Do Not Sell My Personal Information":"Affiliate Disclosure"}</div><button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}><X size={16}/></button></div>
+          <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.8}}>
+            {legalModal==="terms"&&<div>
+              <p>Last updated: April 2026</p>
+              <p>Welcome to My Next Step. By using this app, you agree to these terms.</p>
+              <p>My Next Step provides AI-powered life guidance including step and journey recommendations, fitness suggestions, and healthcare provider search. The app is not a substitute for professional medical, financial, or legal advice.</p>
+              <p>We use third-party AI (Anthropic Claude) to generate recommendations. While we strive for accuracy, recommendations may not always be perfect. Always verify important details independently.</p>
+              <p>You retain ownership of all personal data you provide. We store your data securely using Firebase/Firestore. You can delete your account and all associated data at any time from Settings.</p>
+              <p>We reserve the right to modify these terms. Continued use of the app constitutes acceptance of updated terms.</p>
+            </div>}
+            {legalModal==="privacy"&&<div>
+              <p>Last updated: April 2026</p>
+              <p>Your privacy matters to us. Here's how we handle your data:</p>
+              <p>We collect: your name, email, age, gender, location, fitness preferences, insurance information (if opted in), chat history, and step/journey data.</p>
+              <p>We use this data to: personalize AI recommendations, sync your data across devices, and improve the app experience.</p>
+              <p>We do NOT: sell your data, share it with advertisers, or use it for any purpose beyond providing the My Next Step service.</p>
+              <p>Third-party services: We use Firebase (Google) for data storage, Anthropic Claude for AI, and optionally connect to Strava and Google Calendar with your explicit permission.</p>
+              <p>Data deletion: You can delete all your data at any time from Settings. When you delete your account, all data is permanently removed from our servers.</p>
+              <p>Health data: Health and fitness information is only collected when you explicitly opt in. It is used solely to personalize recommendations and is never shared.</p>
+            </div>}
+            {legalModal==="affiliate"&&<div>
+              <p>Last updated: April 2026</p>
+              <p>My Next Step may include links to third-party products and services. Some of these links are affiliate links, meaning we may earn a small commission if you make a purchase or booking through them.</p>
+              <p>This comes at no additional cost to you. Affiliate relationships do not influence which products or services we recommend \u2014 recommendations are based on your personal preferences, location, and goals.</p>
+              <p>Our affiliate partners may include: ClassPass, Eventbrite, Udemy, Skillshare, Mindbody, Meetup, Amazon, LinkedIn Learning, Airbnb, Kayak, Booking.com, VRBO, and others.</p>
+              <p>Revenue from affiliate links helps keep My Next Step free for all users.</p>
+            </div>}
+            {legalModal==="dnsmpi"&&<div>
+              <p>Last updated: April 2026</p>
+              <p><strong>We do not sell your personal information.</strong></p>
+              <p>My Next Step does not sell, rent, trade, or otherwise disclose your personal information to third parties for monetary or other valuable consideration.</p>
+              <p>Your data — including your profile, health information, fitness goals, allergies, chat history, steps, journeys, favorites, and connected account data — is used exclusively to provide and personalize the My Next Step service.</p>
+              <p>We do not share your data with advertisers, data brokers, or any third parties for their marketing purposes.</p>
+              <p>Under the California Consumer Privacy Act (CCPA) and similar state privacy laws, you have the right to opt out of the sale of your personal information. Since we do not sell personal information, no opt-out action is required. However, we provide this notice for transparency.</p>
+              <p>If you have questions about our data practices, you can delete all your data at any time from Settings.</p>
+            </div>}
+          </div>
+        </div></div>}
     </div>
   );
 }
