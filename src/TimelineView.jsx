@@ -14,8 +14,28 @@ export default function TimelineView({
   talkAbout, shareItem, handleAddCal
 }) {
   const [calMonth, setCalMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
   const now = new Date();
   const todayStr = now.toDateString();
+
+  var dayNameMap = {sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
+  var routinesByDate = {};
+  allRoutines.filter(function(r){return !r.paused;}).forEach(function(r){
+    var days = r.days || [];
+    if(days.length===0 && r.schedule==="daily") days=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+    days.forEach(function(dayName){
+      var dayNum = dayNameMap[dayName.toLowerCase()];
+      if(dayNum===undefined) return;
+      for(var i=0;i<60;i++){
+        var d=new Date(now);d.setDate(d.getDate()+i);
+        if(d.getDay()===dayNum){
+          var key=d.toDateString();
+          if(!routinesByDate[key])routinesByDate[key]=[];
+          if(!routinesByDate[key].find(function(x){return x.id===r.id;}))routinesByDate[key].push(r);
+        }
+      }
+    });
+  });
 
   var calByDate = {};
   (calData || []).forEach(function(e) {
@@ -230,46 +250,114 @@ export default function TimelineView({
       var cellKey = cellDate.toDateString();
       var hasSteps = (stepsByDate[cellKey] || []).length > 0;
       var hasCal = (calByDate[cellKey] || []).length > 0;
+      var hasRoutine = (routinesByDate[cellKey] || []).length > 0;
       var isToday = cellKey === todayStr;
+      var isSelected = selectedDate && cellKey === selectedDate.toDateString();
       var isPast = cellDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      cells.push({ num: d, key: "d-" + d, hasSteps: hasSteps, hasCal: hasCal, isToday: isToday, isPast: isPast });
+      var hasContent = hasSteps || hasCal || hasRoutine;
+      cells.push({ num: d, key: "d-" + d, date: cellDate, dateKey: cellKey, hasSteps: hasSteps, hasCal: hasCal, hasRoutine: hasRoutine, isToday: isToday, isSelected: isSelected, isPast: isPast, hasContent: hasContent });
     }
 
     function prevMonth() {
-      var m = new Date(calMonth);
-      m.setMonth(m.getMonth() - 1);
-      setCalMonth(m);
+      var m = new Date(calMonth); m.setMonth(m.getMonth() - 1); setCalMonth(m); setSelectedDate(null);
     }
     function nextMonth() {
-      var m = new Date(calMonth);
-      m.setMonth(m.getMonth() + 1);
-      setCalMonth(m);
+      var m = new Date(calMonth); m.setMonth(m.getMonth() + 1); setCalMonth(m); setSelectedDate(null);
     }
+    function selectDay(cell) {
+      if (cell.isSelected) { setSelectedDate(null); return; }
+      setSelectedDate(cell.date);
+    }
+
+    var sel = selectedDate ? selectedDate.toDateString() : null;
+    var selSteps = sel ? (stepsByDate[sel] || []) : [];
+    var selCal = sel ? (calByDate[sel] || []) : [];
+    var selRoutines = sel ? (routinesByDate[sel] || []) : [];
+    var selUnscheduled = sel && sel === todayStr ? unscheduledSteps : [];
 
     return (
       <div style={{ width: 280, flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <button onClick={prevMonth} style={{ background: "none", border: "none", cursor: "pointer", color: C.t3, padding: 4 }}><ChevronLeft size={16} /></button>
-          <span style={{ ...F, fontSize: 13, fontWeight: 600, color: C.t1 }}>{monthNames[month]} {year}</span>
-          <button onClick={nextMonth} style={{ background: "none", border: "none", cursor: "pointer", color: C.t3, padding: 4 }}><ChevronRight size={16} /></button>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
-          {dayLabels.map(function(label, i) {
-            return <div key={"lbl-" + i} style={{ ...F, fontSize: 10, fontWeight: 600, color: C.t3, padding: "4px 0" }}>{label}</div>;
-          })}
-          {cells.map(function(cell) {
-            if (cell.num === null) return <div key={cell.key}>{null}</div>;
-            return (
-              <div key={cell.key} style={{ padding: "4px 0", display: "flex", flexDirection: "column", alignItems: "center", opacity: cell.isPast ? 0.4 : 1 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: cell.isToday ? C.acc : "transparent", color: cell.isToday ? "#fff" : C.t1, ...F, fontSize: 12, fontWeight: cell.isToday ? 700 : 400 }}>{cell.num}</div>
-                <div style={{ display: "flex", gap: 2, marginTop: 2, height: 4 }}>
-                  {cell.hasSteps ? <div style={{ width: 4, height: 4, borderRadius: 2, background: C.acc }}>{null}</div> : null}
-                  {cell.hasCal ? <div style={{ width: 4, height: 4, borderRadius: 2, background: "#4285F4" }}>{null}</div> : null}
+        <div style={{ padding: 16, borderRadius: 16, background: C.card, boxShadow: C.shadow }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <button onClick={prevMonth} style={{ background: "none", border: "none", cursor: "pointer", color: C.t3, padding: 4 }}><ChevronLeft size={16} /></button>
+            <span style={{ ...F, fontSize: 13, fontWeight: 600, color: C.t1 }}>{monthNames[month]} {year}</span>
+            <button onClick={nextMonth} style={{ background: "none", border: "none", cursor: "pointer", color: C.t3, padding: 4 }}><ChevronRight size={16} /></button>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
+            {dayLabels.map(function(label, i) {
+              return <div key={"lbl-" + i} style={{ ...F, fontSize: 10, fontWeight: 600, color: C.t3, padding: "4px 0" }}>{label}</div>;
+            })}
+            {cells.map(function(cell) {
+              if (cell.num === null) return <div key={cell.key}>{null}</div>;
+              var bg = cell.isSelected ? C.acc : cell.isToday ? C.accSoft : "transparent";
+              var fg = cell.isSelected ? "#fff" : cell.isToday ? C.acc : C.t1;
+              return (
+                <div key={cell.key} onClick={function(){selectDay(cell);}} style={{ padding: "3px 0", display: "flex", flexDirection: "column", alignItems: "center", opacity: cell.isPast && !cell.isToday ? 0.35 : 1, cursor: "pointer" }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: bg, color: fg, ...F, fontSize: 12, fontWeight: cell.isToday || cell.isSelected ? 700 : 400, transition: "all 0.15s" }}>{cell.num}</div>
+                  <div style={{ display: "flex", gap: 2, marginTop: 2, height: 4 }}>
+                    {cell.hasSteps ? <div style={{ width: 4, height: 4, borderRadius: 2, background: cell.isSelected ? C.acc : C.acc }}>{null}</div> : null}
+                    {cell.hasCal ? <div style={{ width: 4, height: 4, borderRadius: 2, background: "#4285F4" }}>{null}</div> : null}
+                    {cell.hasRoutine && !cell.hasSteps ? <div style={{ width: 4, height: 4, borderRadius: 2, background: C.teal }}>{null}</div> : null}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: 12, marginTop: 12, padding: "8px 0 0", borderTop: "1px solid " + C.b1 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: C.acc }}>{null}</div><span style={{ ...F, fontSize: 10, color: C.t3 }}>Steps</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: "#4285F4" }}>{null}</div><span style={{ ...F, fontSize: 10, color: C.t3 }}>Calendar</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: C.teal }}>{null}</div><span style={{ ...F, fontSize: 10, color: C.t3 }}>Routines</span></div>
+          </div>
         </div>
+        {selectedDate ? renderSelectedDay(selectedDate, selSteps, selCal, selRoutines, selUnscheduled) : null}
+      </div>
+    );
+  }
+
+  function renderSelectedDay(date, steps, calEvents, routines, unsched) {
+    var label = date.toDateString() === todayStr ? "Today" : date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+    var allItems = steps.length + calEvents.length + routines.length + unsched.length;
+    return (
+      <div style={{ marginTop: 12, padding: 16, borderRadius: 16, background: C.card, boxShadow: C.shadow }}>
+        <div style={{ ...F, fontSize: 14, fontWeight: 600, color: C.t1, marginBottom: 10 }}>{label}</div>
+        {allItems === 0 ? <div style={{ ...F, fontSize: 13, color: C.t3, fontStyle: "italic" }}>Nothing scheduled</div> : null}
+        {calEvents.map(function(e, i) {
+          var d = new Date(e.start);
+          return <div key={"ce-" + i} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: "rgba(66,133,244,0.04)", borderLeft: "3px solid #4285F4", display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ ...F, fontSize: 11, color: "#4285F4", fontWeight: 600, minWidth: 50 }}>{e.allDay ? "All day" : d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ ...F, fontSize: 13, color: C.t1 }}>{e.title}</div>
+              {e.location ? <div style={{ ...F, fontSize: 11, color: C.t3, marginTop: 1 }}>{e.location}</div> : null}
+            </div>
+          </div>;
+        })}
+        {routines.map(function(r, i) {
+          var seg = SEGMENTS[catToSeg(r.category)];
+          return <div key={"rt-" + i} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: C.tealSoft, borderLeft: "3px solid " + C.teal, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ ...F, fontSize: 11, color: C.teal, fontWeight: 600, minWidth: 50 }}>{r.time || r.schedule}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1 }}>{r.title}</div>
+              <div style={{ ...F, fontSize: 11, color: C.t3 }}>{r.schedule} routine</div>
+            </div>
+          </div>;
+        })}
+        {steps.map(function(s, i) {
+          var seg = SEGMENTS[catToSeg(s.category)];
+          return <div key={s.id} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: s.booked ? C.tealSoft : C.cream, borderLeft: "3px solid " + (s.booked ? C.teal : (seg ? seg.color : C.acc)), display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ ...F, fontSize: 11, color: seg ? seg.color : C.acc, fontWeight: 600, minWidth: 50 }}>{s.time || "Anytime"}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1 }}>{s.title}</div>
+              {s.booked ? <span style={{ ...F, fontSize: 10, color: C.teal }}>Booked</span> : null}
+            </div>
+          </div>;
+        })}
+        {unsched.map(function(s, i) {
+          var seg = SEGMENTS[catToSeg(s.category)];
+          return <div key={s.id} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: C.cream, borderLeft: "3px solid " + (seg ? seg.color : C.acc), display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 12 }}>{catIcon(s.category)}</span>
+            <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1, flex: 1 }}>{s.title}</div>
+          </div>;
+        })}
       </div>
     );
   }
