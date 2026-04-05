@@ -535,7 +535,7 @@ export default function App(){
         persist={persist} resetAll={resetAll} setScreen={setScreen}
         doneSteps={doneSteps} totalCompleted={totalCompleted} thisWeekDone={thisWeekDone} completedByCategory={completedByCategory}
       />}
-      <LegalModal legalModal={legalModal} setLegalModal={setLegalModal} />
+      <LegalModal legalModal={legalModal} setLegalModal={setLegalModal} profile={profile} setProfile={setProfile} persist={persist} allSteps={allSteps} allPlans={allPlans} chats={chats} preferences={preferences} />
     </div>
   );
 }

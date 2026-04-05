@@ -274,9 +274,9 @@ export default function Settings({
       </div>
       <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
         <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Data & Privacy</div>
-        <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:14,padding:"10px 14px",background:C.cream,borderRadius:12}}>Your data is stored securely and never shared with third parties. We do not sell, rent, or trade your personal information.</div>
+        <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:14,padding:"10px 14px",background:C.cream,borderRadius:12}}>Your data is stored securely. We may share data with selected partners for marketing and personalization. You can opt out anytime.</div>
         <div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <button onClick={()=>setLegalModal("dnsmpi")} style={{...F,width:"100%",padding:"12px 16px",borderRadius:12,background:C.bg,border:`1px solid ${C.b2}`,color:C.t1,fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}><Shield size={16} color={C.teal}/> Don't sell my personal information</button>
+          <button onClick={()=>setLegalModal("dnsmpi")} style={{...F,width:"100%",padding:"12px 16px",borderRadius:12,background:C.bg,border:`1px solid ${C.b2}`,color:C.t1,fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}><Shield size={16} color={C.teal}/> Manage data sharing preferences</button>
           {!deleteConfirm?<button onClick={()=>{setDeleteConfirm(true);setDeleteText("");}} style={{...F,width:"100%",padding:"12px 16px",borderRadius:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:13,cursor:"pointer",textAlign:"left"}}>Delete my account and all data</button>
           :<div>
             <div style={{...F,fontSize:14,color:"#DC3C3C",fontWeight:600,marginBottom:8}}>This is permanent</div>
