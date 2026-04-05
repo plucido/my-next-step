@@ -385,14 +385,14 @@ export default function App(){
         var upNext=null;var items=[];
         (calData||[]).forEach(e=>{var d=new Date(e.start);if(d>new Date())items.push({title:e.title,time:d,type:"cal"});});
         allSteps.filter(s=>s.status==="active").forEach(s=>{var t=(s.time||"").toLowerCase();var d=new Date();if(t.includes("tonight")||t.includes("pm")){var m=t.match(/(\d{1,2})\s*pm/);d.setHours(m?parseInt(m[1])+12:19,0,0);}else if(t.includes("am")){var m2=t.match(/(\d{1,2})\s*am/);if(m2)d.setHours(parseInt(m2[1]),0,0);}else if(t.includes("tomorrow")){d.setDate(d.getDate()+1);d.setHours(9,0,0);}else{d=null;}if(d&&d>new Date())items.push({title:s.title,time:d,type:"step",cat:s.category,seg:catToSeg(s.category)});});
-        allRoutines.filter(r=>!r.paused&&r.days?.length>0).forEach(r=>{for(var i=0;i<7;i++){var d=new Date();d.setDate(d.getDate()+i);var dn=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][d.getDay()];if(r.days.map(x=>x.toLowerCase()).includes(dn)){var rt=new Date(d);var tp=(r.time||"").toLowerCase();var pm=tp.match(/(\d{1,2})\s*pm/);var am=tp.match(/(\d{1,2})\s*am/);if(pm)rt.setHours(parseInt(pm[1])+(parseInt(pm[1])===12?0:12),0,0);else if(am)rt.setHours(parseInt(am[1])===12?0:parseInt(am[1]),0,0);else rt.setHours(9,0,0);if(rt>new Date()){items.push({title:r.title,time:rt,type:"routine"});break;}}}});
+        allRoutines.filter(r=>!r.paused&&r.days?.length>0).forEach(r=>{for(var i=0;i<7;i++){var d=new Date();d.setDate(d.getDate()+i);var dn=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][d.getDay()];if(r.days.map(x=>x.toLowerCase()).includes(dn)){var rt=new Date(d);var tp=(r.time||"").toLowerCase();var pm=tp.match(/(\d{1,2})\s*pm/);var am=tp.match(/(\d{1,2})\s*am/);if(pm)rt.setHours(parseInt(pm[1])+(parseInt(pm[1])===12?0:12),0,0);else if(am)rt.setHours(parseInt(am[1])===12?0:parseInt(am[1]),0,0);else rt.setHours(9,0,0);if(rt>new Date()){items.push({title:r.title,time:rt,type:"routine",cat:r.category,seg:catToSeg(r.category)});break;}}}});
         items.sort((a,b)=>a.time-b.time);
         upNext=items[0]||null;
         var withinWeek=upNext&&(upNext.time-new Date())<7*864e5;
         if(!withinWeek||!upNext)return null;
         var diff=upNext.time-new Date();var mins=Math.floor(diff/6e4);var label="";
         if(mins<60)label="in "+mins+" min";else if(mins<1440)label="in "+Math.floor(mins/60)+"h";else if(mins<2880)label="Tomorrow";else label=upNext.time.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});
-        var color=upNext.type==="cal"?"#4285F4":upNext.type==="routine"?C.teal:SEGMENTS[upNext.seg]?.color||C.acc;
+        var color=upNext.type==="cal"?"#4285F4":SEGMENTS[upNext.seg]?.color||C.acc;
         return <div style={{padding:"0 20px 6px",flexShrink:0}}>
           <div onClick={()=>{setSegment("everything");setView("steps");}} style={{...F,padding:"10px 16px",borderRadius:14,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:6,height:6,borderRadius:3,background:color,flexShrink:0}}>{null}</div>

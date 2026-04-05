@@ -280,7 +280,7 @@ export default function TimelineView({
       var isPast = cellDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
       var segColors = {};
       daySteps.forEach(function(s){var seg=catToSeg(s.category);segColors[seg]=SEGMENTS[seg]?.color||C.acc;});
-      dayRoutines.forEach(function(r){var seg=catToSeg(r.category);segColors[seg]=SEGMENTS[seg]?.color||C.teal;});
+      dayRoutines.forEach(function(r){var seg=catToSeg(r.category);segColors[seg]=SEGMENTS[seg]?.color||C.acc;});
       var dots = Object.values(segColors);
       if(hasCal) dots.push("#4285F4");
       cells.push({ num: d, key: "d-" + d, date: cellDate, dateKey: cellKey, dots: dots, isToday: isToday, isSelected: isSelected, isPast: isPast });
@@ -358,8 +358,9 @@ export default function TimelineView({
         })}
         {routines.map(function(r, i) {
           var seg = SEGMENTS[catToSeg(r.category)];
-          return <div key={"rt-" + i} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: C.tealSoft, borderLeft: "3px solid " + C.teal, display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ ...F, fontSize: 11, color: C.teal, fontWeight: 600, minWidth: 50 }}>{r.time || r.schedule}</span>
+          var segColor = seg ? seg.color : C.acc;
+          return <div key={"rt-" + i} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: (seg?.soft||C.accSoft), borderLeft: "3px solid " + segColor, display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ ...F, fontSize: 11, color: segColor, fontWeight: 600, minWidth: 50 }}>{r.time || r.schedule}</span>
             <div style={{ flex: 1 }}>
               <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1 }}>{r.title}</div>
               <div style={{ ...F, fontSize: 11, color: C.t3 }}>{r.schedule} routine</div>
@@ -477,7 +478,7 @@ export default function TimelineView({
           if(pm)rt.setHours(parseInt(pm[1])+(parseInt(pm[1])===12?0:12),0,0);
           else if(am)rt.setHours(parseInt(am[1])===12?0:parseInt(am[1]),0,0);
           else rt.setHours(9,0,0);
-          if (rt > now) {items.push({title:r.title,time:rt,type:"routine"}); break;}
+          if (rt > now) {items.push({title:r.title,time:rt,type:"routine",cat:r.category}); break;}
         }
       }
     });
@@ -504,7 +505,7 @@ export default function TimelineView({
         </div>
         <div style={{display:"flex",gap:8}}>
           {next.map(function(item,i){
-            var color = item.type==="cal"?"#4285F4":item.type==="routine"?C.teal:C.acc;
+            var color = item.type==="cal"?"#4285F4":(item.cat?SEGMENTS[catToSeg(item.cat)]?.color:null)||C.acc;
             var typeLabel = item.type==="cal"?"Calendar":item.type==="routine"?"Routine":"Step";
             return (
               <div key={i} style={{flex:1,padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,borderLeft:"3px solid "+color,minWidth:0}}>
