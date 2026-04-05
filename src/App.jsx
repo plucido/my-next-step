@@ -357,12 +357,10 @@ export default function App(){
         <textarea value={missedReason} onChange={e=>setMissedReason(e.target.value)} rows={2} placeholder="Or tell us more..." style={{...F,width:"100%",padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:14}}/>
         <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell guide</button></div>
       </div></div>)}
-      <div style={{padding:"14px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-        <div style={{textAlign:"center",flex:1}}>
-          <div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()}, {profile?.name}</div>
-          <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...H,fontSize:22,fontWeight:700,color:C.t1,cursor:"pointer"}}>Take your next step!</div>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
+      <div style={{padding:"14px 20px 4px",flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div><div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div><div style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</div></div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
           {(()=>{
             const now=new Date();const weekAgo=new Date(now-7*864e5);
             const thisWeek=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;
@@ -378,6 +376,10 @@ export default function App(){
             </div>);
           })()}
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
+          </div>
+        </div>
+        <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{textAlign:"center",padding:"6px 0 2px",cursor:"pointer"}}>
+          <span style={{...H,fontSize:22,fontWeight:700,color:C.t1}}>Take your next step!</span>
         </div>
       </div>
       {(()=>{
@@ -415,6 +417,10 @@ export default function App(){
           </button>);
         })}
       </div>
+      {(()=>{const wk=new Date(Date.now()-7*864e5);const perSeg=SEG_KEYS.map(s=>{const info=SEGMENTS[s];const done=allSteps.filter(x=>x.status==="done"&&x.createdAt&&new Date(x.createdAt)>=wk&&catToSeg(x.category)===s).length;return{key:s,label:info.label,color:info.color,done:done};});const total=perSeg.reduce((a,b)=>a+b.done,0);if(total===0)return null;return <div style={{display:"flex",padding:"2px 20px 6px",gap:12,flexShrink:0,justifyContent:"center"}}>
+        <span style={{...F,fontSize:11,color:C.t3}}>This week:</span>
+        {perSeg.filter(s=>s.done>0).map(s=><span key={s.key} style={{...F,fontSize:11,fontWeight:600,color:s.color}}>{s.done} {s.label}</span>)}
+      </div>;})()}
       {segment!=="everything"&&<div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
         {[{id:"steps",label:"Steps & Journeys"},{id:"routines",label:"Routines",count:segRoutines.length},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>{t.label}{t.count>0?<span style={{fontSize:9,background:view===t.id?C.teal+"15":C.cream,color:C.teal,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{t.count}</span>:null}</button>))}
       </div>}
