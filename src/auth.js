@@ -9,3 +9,19 @@ export async function fetchStrava(token){try{const[a,b]=await Promise.all([fetch
 export function connectGCal(cb){const cid=import.meta.env.VITE_GOOGLE_CLIENT_ID;if(!cid)return;loadGSI().then(()=>{if(!window.google?.accounts?.oauth2)return;window.google.accounts.oauth2.initTokenClient({client_id:cid,scope:"https://www.googleapis.com/auth/calendar.events",callback:r=>{if(r.access_token)cb(r);}}).requestAccessToken();});}
 export async function fetchGCal(token){try{const now=new Date().toISOString(),end=new Date(Date.now()+14*864e5).toISOString();const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(end)}&maxResults=30&singleEvents=true&orderBy=startTime`,{headers:{Authorization:`Bearer ${token}`}});const d=await r.json();return(d.items||[]).map(e=>({title:e.summary||"",start:e.start?.dateTime||e.start?.date||"",end:e.end?.dateTime||e.end?.date||"",location:e.location||"",allDay:!!e.start?.date&&!e.start?.dateTime}));}catch{return null;}}
 export async function addGCalEvent(token,title,desc,time){try{const s=new Date();const tl=(time||"").toLowerCase();if(tl.includes("tomorrow"))s.setDate(s.getDate()+1);if(tl.includes("tonight")||tl.includes("pm")){const m=tl.match(/(\d{1,2})\s*pm/);s.setHours(m?parseInt(m[1])+12:19,0,0);}if(tl.includes("am")){const m=tl.match(/(\d{1,2})\s*am/);if(m)s.setHours(parseInt(m[1]),0,0);}if(tl.includes("weekend")){s.setDate(s.getDate()+(6-s.getDay()+7)%7||7);s.setHours(10,0,0);}const e=new Date(s.getTime()+36e5);const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;const r=await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events",{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({summary:title,description:desc||"From My Next Step",start:{dateTime:s.toISOString(),timeZone:tz},end:{dateTime:e.toISOString(),timeZone:tz}})});return r.ok;}catch{return false;}}
+export async function addGCalRecurring(token,title,desc,schedule,days){try{
+  const dayMap={sunday:"SU",monday:"MO",tuesday:"TU",wednesday:"WE",thursday:"TH",friday:"FR",saturday:"SA"};
+  const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Find the next occurrence of the first specified day
+  const s=new Date();s.setHours(9,0,0,0);
+  if(days&&days.length>0){const targetDay=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"].indexOf(days[0].toLowerCase());if(targetDay>=0){while(s.getDay()!==targetDay)s.setDate(s.getDate()+1);}}
+  const e=new Date(s.getTime()+36e5);
+  // Build RRULE
+  let rrule="";const freq=schedule?.toLowerCase()||"weekly";
+  if(freq==="daily")rrule="RRULE:FREQ=DAILY";
+  else if(freq==="biweekly")rrule="RRULE:FREQ=WEEKLY;INTERVAL=2";
+  else if(freq==="monthly")rrule="RRULE:FREQ=MONTHLY";
+  else rrule="RRULE:FREQ=WEEKLY";
+  if(days&&days.length>0&&freq!=="daily"){const byDay=days.map(d=>dayMap[d.toLowerCase()]||"").filter(Boolean).join(",");if(byDay)rrule+=";BYDAY="+byDay;}
+  const r=await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events",{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({summary:title,description:desc||"From My Next Step",start:{dateTime:s.toISOString(),timeZone:tz},end:{dateTime:e.toISOString(),timeZone:tz},recurrence:[rrule]})});
+  return r.ok;}catch{return false;}}
