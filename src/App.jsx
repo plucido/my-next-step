@@ -361,7 +361,13 @@ export default function App(){
         <div style={{...F,fontSize:12,color:C.t3,marginBottom:2}}>{getGreeting()},</div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</div>
-          <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...H,fontSize:22,fontWeight:700,color:C.t1,cursor:"pointer"}}>Take your next step!</div>
+          <div style={{textAlign:"center"}}>
+            <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...H,fontSize:22,fontWeight:700,color:C.t1,cursor:"pointer"}}>Take your next step!</div>
+            {(()=>{const wk=new Date(Date.now()-7*864e5);const perSeg=SEG_KEYS.map(s=>{const info=SEGMENTS[s];const done=allSteps.filter(x=>x.status==="done"&&x.createdAt&&new Date(x.createdAt)>=wk&&catToSeg(x.category)===s).length;return{key:s,label:info.label,color:info.color,done:done};});const total=perSeg.reduce((a,b)=>a+b.done,0);if(total===0)return null;return <div style={{display:"flex",gap:10,justifyContent:"center",marginTop:2}}>
+              {perSeg.filter(s=>s.done>0).map(s=><span key={s.key} style={{...F,fontSize:10,fontWeight:600,color:s.color}}>{s.done} {s.label}</span>)}
+              <span style={{...F,fontSize:10,color:C.t3}}>{total} steps this week</span>
+            </div>;})()}
+          </div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
           {(()=>{
             const now=new Date();const weekAgo=new Date(now-7*864e5);
@@ -416,10 +422,6 @@ export default function App(){
           </button>);
         })}
       </div>
-      {(()=>{const wk=new Date(Date.now()-7*864e5);const perSeg=SEG_KEYS.map(s=>{const info=SEGMENTS[s];const done=allSteps.filter(x=>x.status==="done"&&x.createdAt&&new Date(x.createdAt)>=wk&&catToSeg(x.category)===s).length;return{key:s,label:info.label,color:info.color,done:done};});const total=perSeg.reduce((a,b)=>a+b.done,0);if(total===0)return null;return <div style={{display:"flex",padding:"2px 20px 6px",gap:12,flexShrink:0,justifyContent:"center"}}>
-        <span style={{...F,fontSize:11,color:C.t3}}>This week:</span>
-        {perSeg.filter(s=>s.done>0).map(s=><span key={s.key} style={{...F,fontSize:11,fontWeight:600,color:s.color}}>{s.done} {s.label}</span>)}
-      </div>;})()}
       {segment!=="everything"&&<div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
         {[{id:"steps",label:"Steps & Journeys"},{id:"routines",label:"Routines",count:segRoutines.length},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>{t.label}{t.count>0?<span style={{fontSize:9,background:view===t.id?C.teal+"15":C.cream,color:C.teal,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{t.count}</span>:null}</button>))}
       </div>}
