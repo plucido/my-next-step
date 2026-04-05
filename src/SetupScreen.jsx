@@ -13,7 +13,6 @@ export default function SetupScreen({profile,onComplete}){
     <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:10}}>Gender</label>
     <div style={{display:"flex",gap:8,marginBottom:gender==="Other"?12:20,flexWrap:"wrap"}}>
       {["Male","Female","Other","Prefer not to say"].map(g=>(<button key={g} onClick={()=>setGender(g)} style={{...F,padding:"10px 18px",borderRadius:14,fontSize:14,cursor:"pointer",background:gender===g?C.accSoft:C.card,border:`1.5px solid ${gender===g?C.acc:C.b2}`,color:gender===g?C.acc:C.t2,fontWeight:gender===g?600:400,transition:"all 0.15s"}}>{g}</button>))}
-    {null}
     </div>
     {gender==="Other"&&<input value={genderOther} onChange={e=>setGenderOther(e.target.value)} placeholder="How do you identify?" style={{...inp,marginBottom:20}} />}
     <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8}}>Where are you based?</label>

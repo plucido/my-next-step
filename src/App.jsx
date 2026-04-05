@@ -280,7 +280,6 @@ export default function App(){
             <span style={{color:info.color,fontSize:20}}><ChevronRight size={16}/></span>
           </button>
         );})}
-      {null}
       </div>
       <div style={{textAlign:"center"}}>
         <button onClick={()=>setScreen("main")} style={{...F,fontSize:14,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"12px 24px"}}>Skip for now {"\u2192"}</button>
@@ -358,7 +357,6 @@ export default function App(){
             return(<div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:12,background:streak>=3?C.goldSoft:C.cream}}>
               {streak>0&&<><span style={{fontSize:14}}><Flame size={14} color={streak>=7?"#EF4444":C.gold}/></span><span style={{...F,fontSize:12,fontWeight:700,color:streak>=3?C.gold:C.t2}}>{streak}d</span></>}
               {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} this week</span>}
-            {null}
             </div>);
           })()}
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
@@ -375,14 +373,11 @@ export default function App(){
         {[...SEG_KEYS,"everything"].map(s=>{const info=SEGMENTS[s]||{label:"Timeline",color:C.acc};const active=segment===s;const count=s==="everything"?allSteps.filter(x=>x.status==="active").length:allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
           return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
             <span style={{fontSize:14}}>{segIcon(s)}</span>{info.label}{count>0&&<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>}
-          {null}
           </button>);
         })}
-      {null}
       </div>
       {segment!=="everything"&&<div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
         {[{id:"steps",label:"Steps & Journeys"},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s"}}>{t.label}</button>))}
-      {null}
       </div>}
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -417,12 +412,10 @@ export default function App(){
                 {allRoutines.filter(r=>!r.paused).length>0&&<div style={{marginBottom:16}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Active routines</div>
                   {allRoutines.filter(r=>!r.paused).map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*30}/>)}
-                {null}
                 </div>}
                 {allPlans.length>0&&<div style={{marginBottom:16}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Journeys ({allPlans.length})</div>
                   {allPlans.map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan===pi} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*30}/>)}
-                {null}
                 </div>}
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Timeline</div>
                 {days.map((day,di)=>{
@@ -435,7 +428,6 @@ export default function App(){
                     <div style={{...F,fontSize:13,fontWeight:600,color:today?C.acc:C.t1,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
                       {today&&<div style={{width:8,height:8,borderRadius:4,background:C.acc}}/>}
                       {dayLabel(day)}
-                    {null}
                     </div>
                     {calEvents.length===0&&daySteps.length===0&&<div style={{...F,fontSize:13,color:C.t3,padding:"8px 0",fontStyle:"italic"}}>Nothing scheduled</div>}
                     {calEvents.map((e,i)=>{const d=new Date(e.start);return(
@@ -444,7 +436,6 @@ export default function App(){
                         <div style={{flex:1}}>
                           <div style={{...F,fontSize:13,color:"#737373"}}>{e.title}</div>
                           {e.location&&<div style={{...F,fontSize:11,color:"#A3A3A3",marginTop:2}}>{e.location}</div>}
-                        {null}
                         </div>
                         <span style={{...F,fontSize:10,color:"#A3A3A3"}}>GCal</span>
                       </div>
@@ -455,12 +446,10 @@ export default function App(){
                         <div style={{flex:1}}>
                           <div style={{...F,fontSize:13,fontWeight:600,color:C.t1}}>{s.title}</div>
                           {s.why&&<div style={{...F,fontSize:11,color:C.t2,marginTop:2}}>{s.why}</div>}
-                        {null}
                         </div>
                         <span style={{fontSize:12}}>{catIcon(s.category)}</span>
                       </div>
                     );})}
-                  {null}
                   </div>);
                 })}
                 {(()=>{const scheduled=new Set();Object.values(stepsByDate).forEach(arr=>arr.forEach(s=>scheduled.add(s.id)));const unsched=allSteps.filter(s=>s.status==="active"&&!scheduled.has(s.id));return unsched.length>0?<div style={{marginTop:8}}>
@@ -472,17 +461,13 @@ export default function App(){
                       <span style={{...F,fontSize:10,color:seg?.color,fontWeight:600,textTransform:"capitalize"}}>{catToSeg(s.category)}</span>
                     </div>);
                   })}
-                {null}
                 </div>:null;})()}
                 {doneSteps.length>0&&<div style={{marginTop:12}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
                   {doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span></div>))}
-                {null}
                 </div>}
-              {null}
               </div>);
             })()}
-          {null}
           </div>
         )}
         {view==="steps"&&segment!=="everything"&&(<>
@@ -495,7 +480,6 @@ export default function App(){
                 <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Talk to your guide {"\u2192"}</button>
                 <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap",marginTop:8}}>
                   {(segment==="career"?["Help me grow my career","Find a course","Networking events"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway"]:["What should I do today?","Build a workout routine","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
-                {null}
                 </div>
               </div></FadeIn>
             ):(<>
@@ -517,7 +501,6 @@ export default function App(){
                       <div style={{...F,fontSize:10,color:d.today?C.t1:C.t3,fontWeight:d.today?700:400,marginBottom:4}}>{d.label}</div>
                       <div style={{width:24,height:24,borderRadius:8,margin:"0 auto",background:d.done?C.teal:d.active?C.accSoft:d.today?C.cream:"transparent",border:d.today&&!d.done?`2px solid ${C.acc}`:`2px solid ${d.done?C.teal:d.active?C.accBorder:"transparent"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:d.done?"#fff":"transparent"}}>{d.done?"\u2713":""}</div>
                     </div>))}
-                  {null}
                   </div>
                 </div></FadeIn>);
               })()}
@@ -525,18 +508,15 @@ export default function App(){
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
                 {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*50}/>)}
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
-              {null}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Journeys ({segPlans.length})</div>
                 {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*50}/>)}
                 {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all journeys</button>}
-              {null}
               </div>}
               {segRoutines.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Routines ({segRoutines.length})</div>
                 {segRoutines.map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*50}/>)}
-              {null}
               </div>}
               {(()=>{const segDone=segment==="everything"?doneSteps:doneSteps.filter(s=>catToSeg(s.category)===segment);return segDone.length>0?<div style={{marginBottom:20}}><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({segDone.length})</div>{segDone.slice(0,segment==="everything"?5:3).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Heart size={14} color={C.t3}/>}</button><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}><X size={16}/></button></div>))}{segDone.length>(segment==="everything"?5:3)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:4}}>+{segDone.length-(segment==="everything"?5:3)} more</div>}</div>:null;})()}
               {expiredSteps.length>0&&(segment==="everything"||expiredSteps.some(s=>catToSeg(s.category)===segment))&&<div style={{marginBottom:20}}>
@@ -547,9 +527,7 @@ export default function App(){
                   <button onClick={()=>{setMissedStep(s);setMissedReason("");}} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.card,border:`1px solid ${C.b2}`,color:C.t2,cursor:"pointer"}}>Why?</button>
                   <button onClick={()=>dismissMissed(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}><X size={16}/></button>
                 </div>))}
-              {null}
               </div>}
-            {null}
             </>)}
             {doneSteps.length>=3&&!profile?.insights?.length&&segment!=="everything"&&(
               <FadeIn delay={200}><div style={{padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,marginBottom:16}}>
@@ -563,7 +541,6 @@ export default function App(){
                 </div>
               </div></FadeIn>
             )}
-          {null}
           </div>
           {segment!=="everything"&&(view==="steps")&&(
             <div style={{padding:"8px 20px 16px",flexShrink:0,borderTop:`1px solid ${C.b1}`}}>
@@ -573,7 +550,6 @@ export default function App(){
               </div>
             </div>
           )}
-        {null}
         </>)}
         {view==="chat"&&segment!=="everything"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"10px 20px"}}>
@@ -599,7 +575,6 @@ export default function App(){
           {(chats[segment]||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
             <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
               {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities near me"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway ideas"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
-            {null}
             </div>
           </div>}
           {(chats[segment]||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
@@ -611,10 +586,8 @@ export default function App(){
               <button onClick={()=>sendMessage()} disabled={!input.trim()||loading} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:input.trim()&&!loading?"pointer":"default",background:input.trim()&&!loading?C.accGrad:"rgba(0,0,0,0.04)",color:input.trim()&&!loading?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:1}}><ArrowUp size={18}/></button>
             </div>
             {input.length>50&&<div style={{...F,fontSize:11,color:C.t3,marginTop:6,textAlign:"right"}}>Shift+Enter for new line</div>}
-          {null}
           </div>
         </>)}
-      {null}
       </div>
 
       {transitionMsg&&<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:150,padding:"14px 28px",borderRadius:20,background:C.accGrad,color:"#fff",boxShadow:"0 8px 32px rgba(212,82,42,0.3)",display:"flex",alignItems:"center",gap:10,animation:"fadeUp 0.4s ease"}}><Check size={18}/><span style={{...F,fontSize:14,fontWeight:600}}>{transitionMsg}</span></div>}

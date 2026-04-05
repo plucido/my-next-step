@@ -28,10 +28,7 @@ export default function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onTog
         <button onClick={()=>onToggleTask(pi,ti)} style={{width:22,height:22,borderRadius:7,flexShrink:0,marginTop:1,cursor:"pointer",background:task.done?C.teal:"transparent",border:`2px solid ${task.done?C.teal:C.b2}`,display:"flex",alignItems:"center",justifyContent:"center",color:task.done?"#fff":"transparent",fontSize:12}}>{task.done?"\u2713":""}</button>
         <div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1,textDecoration:task.done?"line-through":"none",opacity:task.done?.5:1}}>{task.title}</div>
           {task.links?.length>0&&!task.done&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:8}}>{task.links.map((l,li)=><TLink key={li} href={l.url} actionId={`j-${pi}-${ti}-${li}`} category="travel" title={task.title} style={{...F,fontSize:11,fontWeight:600,padding:"5px 12px",borderRadius:8,background:C.accSoft,color:C.acc,textDecoration:"none",display:"inline-block",border:`1px solid ${C.accBorder}`}}>{l.label} <ExternalLink size={11}/></TLink>)}</div>}
-        {null}
         </div></div></div>))}
-    {null}
     </div>}
-  {null}
   </div></FadeIn>);
 }
