@@ -190,8 +190,8 @@ export default function App(){
         const items=JSON.parse(jsonStr);let newRoutines=[...allRoutines];
         for(const item of(Array.isArray(items)?items:[items])){
           const defaultCat=segment==="career"?"career":segment==="wellness"?"fitness":segment==="fun"?"social":"travel";
-          if(item.type==="step")newSteps=[{...item,category:item.category||defaultCat,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
-          else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false,category:t.category||item.category||defaultCat}))},...newPlans.filter(p=>p.title!==item.title)];
+          if(item.type==="step")newSteps=[{...item,title:clean(item.title),why:clean(item.why),category:item.category||defaultCat,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
+          else if(item.type==="plan")newPlans=[{...item,title:clean(item.title),tasks:(item.tasks||[]).map(t=>({...t,title:clean(t.title),done:false,category:t.category||item.category||defaultCat}))},...newPlans.filter(p=>p.title!==item.title)];
           else if(item.type==="routine"){newRoutines=[{...item,category:item.category||defaultCat,id:Date.now()+Math.random(),createdAt:new Date().toISOString(),paused:false},...newRoutines.filter(r=>r.title!==item.title)];if(calToken)addGCalRecurring(calToken,item.title,item.description,item.schedule,item.days,item.time).catch(()=>{});}
           else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
           else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
