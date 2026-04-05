@@ -95,8 +95,8 @@ export default function App(){
   const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
   const handleAuth=auth=>{const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);persist(full,[],[],chats,[]); setScreen("quickprofile");};
-  const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[]}};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. I know a bit about you now \u2014 let's put it to work!\n\nPick a segment above and tell me what's on your mind.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); if(data.deepProfile){setScreen("deepprofile");}else{setView("steps");setScreen("welcome");}};
+  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("welcome");};
+  const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[]}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
     if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
@@ -386,10 +386,10 @@ export default function App(){
           </div>
         </div>;
       })()}
-      {!profile?.insights?.length&&allSteps.filter(s=>s.status==="active").length>0&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
-        <button onClick={()=>{setSegment("wellness");setView("chat");setTimeout(()=>sendMessage("I'd like to tell you more about myself so you can personalize better. Ask me a few questions — don't create any steps, just learn about me."),100);}} style={{...F,width:"100%",padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
+      {!profile?.quickProfile&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
+        <button onClick={()=>setScreen("quickprofile")} style={{...F,width:"100%",padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
           <span style={{fontSize:16}}><Sparkles size={14}/></span>
-          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:C.t1}}>Help me personalize</div><div style={{fontSize:11,color:C.t3}}>Tell your guide about your preferences</div></div>
+          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:C.t1}}>Help me personalize</div><div style={{fontSize:11,color:C.t3}}>Quick checklist to tailor your experience</div></div>
           <span style={{fontSize:12,color:C.t3}}><ChevronRight size={16}/></span>
         </button>
       </div>}

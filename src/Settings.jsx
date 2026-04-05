@@ -50,6 +50,14 @@ export default function Settings({
           </div>)}
         </div>
       ))}
+      <div style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
+        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Relationship</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Just me","Me + partner","Family with kids","It's complicated"].map(function(o){var on=profile?.quickProfile?.relationship===o;return <button key={o} onClick={function(){var p={...profile,quickProfile:{...(profile?.quickProfile||{}),relationship:o}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:on?C.accSoft:C.cream,border:"1.5px solid "+(on?C.acc:C.b2),color:on?C.acc:C.t2,fontWeight:on?600:400}}>{o}</button>;})}</div>
+      </div>
+      <div style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
+        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Work situation</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Student","Employed (office)","Remote / hybrid","Self-employed","Between jobs","Retired"].map(function(o){var on=profile?.quickProfile?.work===o;return <button key={o} onClick={function(){var p={...profile,quickProfile:{...(profile?.quickProfile||{}),work:o}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:on?C.accSoft:C.cream,border:"1.5px solid "+(on?C.acc:C.b2),color:on?C.acc:C.t2,fontWeight:on?600:400}}>{o}</button>;})}</div>
+      </div>
       <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}><MessageCircle size={18}/></span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
       <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
