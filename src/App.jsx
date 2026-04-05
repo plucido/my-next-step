@@ -275,10 +275,21 @@ export default function App(){
   const[genderOtherEdit,setGenderOtherEdit]=useState("");
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
+  // Normalize chats from old format (work/me/social) to new (career/wellness/fun/adventure)
+  const normalizeChats = (ch) => {
+    if (!ch) return {career:[],wellness:[],fun:[],adventure:[]};
+    return {
+      career: ch.career || ch.work || [],
+      wellness: ch.wellness || ch.me || [],
+      fun: ch.fun || ch.social || [],
+      adventure: ch.adventure || [],
+    };
+  };
+
   // Current segment's data
   const segSteps=segment==="everything"?allSteps.filter(s=>s.status==="active"):allSteps.filter(s=>s.status==="active"&&catToSeg(s.category)===segment);
   const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(["career","work","job","interview","resume","linkedin"].some(w=>title.includes(w)))return segment==="career";if(["gym","yoga","run","health","diet","meditation"].some(w=>title.includes(w)))return segment==="wellness";if(["friend","party","dinner","concert","group","date"].some(w=>title.includes(w)))return segment==="fun";if(["trip","travel","flight","hotel","vacation","hike","explore"].some(w=>title.includes(w)))return segment==="adventure";return segment==="wellness";});
-  const segMessages=segment==="everything"?[...chats.career,...chats.wellness,...chats.fun,...chats.adventure].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
+  const segMessages=segment==="everything"?[...(chats.career||[]),...(chats.wellness||[]),...(chats.fun||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
   const doneSteps=allSteps.filter(s=>s.status==="done");
   const expiredSteps=allSteps.filter(s=>s.status==="expired");
 
@@ -291,7 +302,7 @@ export default function App(){
   useEffect(()=>{(async()=>{
     try{const hint=localStorage.getItem("mns_last_user");if(hint){
       const data=await loadFB(hint,"appdata");
-      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setChats(data.chats||{career:[],wellness:[],fun:[],adventure:[]});setPreferences(data.preferences||[]);setScreen("main");}
+      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);setScreen("main");}
       const sv=await loadFB(hint,"strava");if(sv)setStravaData(sv);
       const cv=await loadFB(hint,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}
     }}catch{}
@@ -320,7 +331,7 @@ export default function App(){
     if(inputRef.current)inputRef.current.style.height="auto";
 
     // Build full profile context from ALL segments
-    const allMsgs=[...chats.career,...chats.wellness,...chats.fun,...chats.adventure].sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const allMsgs=[...(chats.career||[]),...(chats.wellness||[]),...(chats.fun||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0));
     const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
     const stepsCtx=allSteps.filter(s=>s.status==="active").length>0?"\n\nALL ACTIVE STEPS:\n"+allSteps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
@@ -503,73 +514,66 @@ export default function App(){
       </div>
 
       {/* Full settings overlay */}
-      {showSettings&&(()=>{
-        const saveField=(key)=>{const p={...profile};if(key==="name")p.name=editVal.trim();else if(key==="age")p.setup={...p.setup,age:editVal.trim()};else if(key==="gender")p.setup={...p.setup,gender:genderEdit==="Other"?genderOtherEdit:genderEdit};else if(key==="location")p.setup={...p.setup,location:editVal.trim()};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);};
-        const fieldRow=(key,label,icon,value)=>(<div style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
-          {editField===key?(<div><label style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,display:"block",marginBottom:8}}>{label}</label>
-            {key==="gender"?<div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Male","Female","Other","Prefer not to say"].map(g=><button key={g} onClick={()=>setGenderEdit(g)} style={{...F,padding:"7px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:genderEdit===g?C.accSoft:C.card,border:`1.5px solid ${genderEdit===g?C.acc:C.b2}`,color:genderEdit===g?C.acc:C.t2}}>{g}</button>)}</div>{genderEdit==="Other"&&<input value={genderOtherEdit} onChange={e=>setGenderOtherEdit(e.target.value)} placeholder="How do you identify?" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:10,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box",marginTop:8}}/>}</div>
-            :<input value={editVal} onChange={e=>setEditVal(e.target.value)} style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/>}
-            <div style={{display:"flex",gap:8,marginTop:10}}><button onClick={()=>setEditField(null)} style={{...F,flex:1,padding:9,borderRadius:12,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:13,cursor:"pointer"}}>Cancel</button><button onClick={()=>saveField(key)} style={{...F,flex:1,padding:9,borderRadius:12,border:"none",background:C.accGrad,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
-          </div>):(<div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-            <span style={{fontSize:16,marginTop:2}}>{icon}</span>
-            <div style={{flex:1}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:3}}>{label}</div><div style={{...F,fontSize:15,color:C.t1}}>{value||"Not set"}</div></div>
-            <button onClick={()=>{setEditField(key);setEditVal(value||"");if(key==="gender")setGenderEdit(value||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button>
-          </div>)}
-        </div>);
+      {showSettings&&<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}><div style={{maxWidth:480,margin:"0 auto"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}><h2 style={{...H,fontSize:26,color:C.t1,margin:0}}>Settings</h2><button onClick={()=>setShowSettings(false)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.t3}}>{"\u00D7"}</button></div>
 
-        return(<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}><div style={{maxWidth:480,margin:"0 auto"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}><h2 style={{...H,fontSize:26,color:C.t1,margin:0}}>Settings</h2><button onClick={()=>setShowSettings(false)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.t3}}>{"\u00D7"}</button></div>
+        <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow,marginBottom:20,display:"flex",alignItems:"center",gap:16}}>
+          <div style={{width:52,height:52,borderRadius:16,background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,color:"#fff",fontWeight:700}}>{profile?.name?.charAt(0)?.toUpperCase()}</div>
+          <div><div style={{...H,fontSize:18,color:C.t1}}>{profile?.name}</div><div style={{...F,fontSize:13,color:C.t3}}>{profile?.email}</div></div>
+        </div>
 
-          {/* Profile card */}
-          <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow,marginBottom:20,display:"flex",alignItems:"center",gap:16}}>
-            <div style={{width:52,height:52,borderRadius:16,background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,color:"#fff",fontWeight:700}}>{profile?.name?.charAt(0)?.toUpperCase()}</div>
-            <div><div style={{...H,fontSize:18,color:C.t1}}>{profile?.name}</div><div style={{...F,fontSize:13,color:C.t3}}>{profile?.email}</div></div>
-          </div>
+        <div style={{display:"flex",gap:6,marginBottom:20}}>
+          {[{id:"profile",l:"Profile"},{id:"connections",l:"Connected"},{id:"insights",l:"AI Insights"},{id:"about",l:"About"}].map(t=>(<button key={t.id} onClick={()=>setSettingsTab(t.id)} style={{...F,flex:1,padding:"9px 4px",background:settingsTab===t.id?C.card:"transparent",border:settingsTab===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:11,fontWeight:settingsTab===t.id?600:400,color:settingsTab===t.id?C.t1:C.t3,boxShadow:settingsTab===t.id?C.shadow:"none"}}>{t.l}</button>))}
+        </div>
 
-          {/* Settings tabs */}
-          <div style={{display:"flex",gap:6,marginBottom:20}}>
-            {[{id:"profile",l:"Profile"},{id:"connections",l:"Connected"},{id:"insights",l:"AI Insights"},{id:"about",l:"About"}].map(t=>(<button key={t.id} onClick={()=>setSettingsTab(t.id)} style={{...F,flex:1,padding:"9px 4px",background:settingsTab===t.id?C.card:"transparent",border:settingsTab===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:11,fontWeight:settingsTab===t.id?600:400,color:settingsTab===t.id?C.t1:C.t3,boxShadow:settingsTab===t.id?C.shadow:"none"}}>{t.l}</button>))}
-          </div>
-
-          {settingsTab==="profile"&&<div>
-            {fieldRow("name","Name","\u{1F464}",profile?.name)}
-            {fieldRow("age","Age","\u{1F382}",profile?.setup?.age)}
-            {fieldRow("gender","Gender","\u2728",profile?.setup?.gender)}
-            {fieldRow("location","Location","\u{1F4CD}",profile?.setup?.location)}
-            <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}>{"\u{1F4AC}"}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with coach</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
-            <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:20,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
-          </div>}
-
-          {settingsTab==="connections"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
-            {/* Strava - real */}
-            <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F3C3}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
-            {/* Google Calendar - real */}
-            <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F4C5}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:12,color:calData?"#4285F4":C.t3}}>{calData?`Connected \u00B7 ${calData.length} events`:"Not connected"}</div></div>{calData?<button onClick={async()=>{deleteFB(getUserId(profile),"calendar");setCalData(null);setCalToken(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={()=>connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);saveFB(getUserId(profile),"calendar",{token:r.access_token,events:ev});})} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:"rgba(66,133,244,0.06)",color:"#4285F4",border:"1px solid rgba(66,133,244,0.1)",cursor:"pointer"}}>Connect</button>}</div>
-            {/* Coming soon socials */}
-            {[{icon:"in",label:"LinkedIn",color:"#0A66C2"},{icon:"\u{1F4F7}",label:"Instagram",color:"#E4405F"},{icon:"\u{1F3B5}",label:"Spotify",color:"#1DB954"}].map(s=>(<div key={s.label} style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{fontSize:20,width:24,textAlign:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.label}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>))}
-          </div>}
-
-          {settingsTab==="insights"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {profile?.insights?.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Profile insights ({profile.insights.length})</div>{profile.insights.map((ins,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<profile.insights.length-1?`1px solid ${C.b1}`:"none"}}>{"\u2022"} {ins.text}</div>))}</div>}
-            {preferences.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Learned preferences</div>{preferences.map((p,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<preferences.length-1?`1px solid ${C.b1}`:"none"}}><span style={{fontWeight:600,color:C.t1,textTransform:"capitalize"}}>{p.key?.replace(/_/g," ")}:</span> {p.value}</div>))}</div>}
-            {!profile?.insights?.length&&!preferences.length&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:28,marginBottom:8}}>{"\u{1F9E0}"}</div><div style={{...F,fontSize:14,color:C.t2}}>No insights yet. Chat more to build your profile.</div></div>}
-          </div>}
-
-          {settingsTab==="about"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
-            <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
-              <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}><div style={{width:40,height:40,borderRadius:12,background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:"#fff"}}>{"\u{1F463}"}</div><div><div style={{...H,fontSize:16,color:C.t1}}>My Next Step</div><div style={{...F,fontSize:12,color:C.t3}}>v1.0 Beta</div></div></div>
-              <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6}}>Your AI coach that turns goals into actionable steps.</div>
+        {settingsTab==="profile"&&<div>
+          {[{k:"name",l:"Name",i:"\u{1F464}",v:profile?.name},{k:"age",l:"Age",i:"\u{1F382}",v:profile?.setup?.age},{k:"gender",l:"Gender",i:"\u2728",v:profile?.setup?.gender},{k:"location",l:"Location",i:"\u{1F4CD}",v:profile?.setup?.location}].map(f=>(
+            <div key={f.k} style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
+              {editField===f.k?(<div>
+                <label style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,display:"block",marginBottom:8}}>{f.l}</label>
+                {f.k==="gender"?<div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Male","Female","Other","Prefer not to say"].map(g=><button key={g} onClick={()=>setGenderEdit(g)} style={{...F,padding:"7px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:genderEdit===g?C.accSoft:C.card,border:`1.5px solid ${genderEdit===g?C.acc:C.b2}`,color:genderEdit===g?C.acc:C.t2}}>{g}</button>)}</div>{genderEdit==="Other"&&<input value={genderOtherEdit} onChange={e=>setGenderOtherEdit(e.target.value)} placeholder="How do you identify?" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:10,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box",marginTop:8}}/>}</div>
+                :<input value={editVal} onChange={e=>setEditVal(e.target.value)} style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/>}
+                <div style={{display:"flex",gap:8,marginTop:10}}>
+                  <button onClick={()=>setEditField(null)} style={{...F,flex:1,padding:9,borderRadius:12,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:13,cursor:"pointer"}}>Cancel</button>
+                  <button onClick={()=>{const p={...profile};if(f.k==="name")p.name=editVal.trim();else if(f.k==="age")p.setup={...p.setup,age:editVal.trim()};else if(f.k==="gender")p.setup={...p.setup,gender:genderEdit==="Other"?genderOtherEdit:genderEdit};else if(f.k==="location")p.setup={...p.setup,location:editVal.trim()};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,flex:1,padding:9,borderRadius:12,border:"none",background:C.accGrad,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button>
+                </div>
+              </div>):(<div style={{display:"flex",alignItems:"flex-start",gap:12}}>
+                <span style={{fontSize:16,marginTop:2}}>{f.i}</span>
+                <div style={{flex:1}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:3}}>{f.l}</div><div style={{...F,fontSize:15,color:C.t1}}>{f.v||"Not set"}</div></div>
+                <button onClick={()=>{setEditField(f.k);setEditVal(f.v||"");if(f.k==="gender")setGenderEdit(f.v||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button>
+              </div>)}
             </div>
-            <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
-              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Legal</div>
-              <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Terms of Service</div>
-              <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Privacy Policy</div>
-              <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Affiliate Disclosure</div>
-              <div style={{...F,fontSize:13,color:C.t3,marginTop:8,lineHeight:1.5,padding:"10px 14px",background:C.cream,borderRadius:10}}>Some links may earn us a small commission at no extra cost to you. This helps keep My Next Step free.</div>
-            </div>
-          </div>}
-        </div></div>);
-      })()}
+          ))}
+          <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}>{"\u{1F4AC}"}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with coach</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
+          <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:20,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
+        </div>}
+
+        {settingsTab==="connections"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F3C3}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
+          <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F4C5}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:12,color:calData?"#4285F4":C.t3}}>{calData?`Connected \u00B7 ${calData.length} events`:"Not connected"}</div></div>{calData?<button onClick={async()=>{deleteFB(getUserId(profile),"calendar");setCalData(null);setCalToken(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={()=>connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);saveFB(getUserId(profile),"calendar",{token:r.access_token,events:ev});})} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:"rgba(66,133,244,0.06)",color:"#4285F4",border:"1px solid rgba(66,133,244,0.1)",cursor:"pointer"}}>Connect</button>}</div>
+          {[{i:"in",l:"LinkedIn",c:"#0A66C2"},{i:"\u{1F4F7}",l:"Instagram",c:"#E4405F"},{i:"\u{1F3B5}",l:"Spotify",c:"#1DB954"}].map(s=>(<div key={s.l} style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{fontSize:20,width:24,textAlign:"center"}}>{s.i}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>))}
+        </div>}
+
+        {settingsTab==="insights"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {profile?.insights?.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Profile insights ({profile.insights.length})</div>{profile.insights.map((ins,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<profile.insights.length-1?`1px solid ${C.b1}`:"none"}}>{"\u2022"} {ins.text}</div>))}</div>}
+          {preferences.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Learned preferences</div>{preferences.map((p,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<preferences.length-1?`1px solid ${C.b1}`:"none"}}><span style={{fontWeight:600,color:C.t1,textTransform:"capitalize"}}>{p.key?.replace(/_/g," ")}:</span> {p.value}</div>))}</div>}
+          {!profile?.insights?.length&&!preferences.length&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:28,marginBottom:8}}>{"\u{1F9E0}"}</div><div style={{...F,fontSize:14,color:C.t2}}>No insights yet. Chat more to build your profile.</div></div>}
+        </div>}
+
+        {settingsTab==="about"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}><div style={{width:40,height:40,borderRadius:12,background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:"#fff"}}>{"\u{1F463}"}</div><div><div style={{...H,fontSize:16,color:C.t1}}>My Next Step</div><div style={{...F,fontSize:12,color:C.t3}}>v1.0 Beta</div></div></div>
+            <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6}}>Your AI coach that turns goals into actionable steps.</div>
+          </div>
+          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+            <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Legal</div>
+            <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Terms of Service</div>
+            <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Privacy Policy</div>
+            <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Affiliate Disclosure</div>
+            <div style={{...F,fontSize:13,color:C.t3,marginTop:8,lineHeight:1.5,padding:"10px 14px",background:C.cream,borderRadius:10}}>Some links may earn us a small commission at no extra cost to you. This helps keep My Next Step free.</div>
+          </div>
+        </div>}
+      </div></div>}
     </div>
   );
 }
