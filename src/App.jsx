@@ -252,11 +252,12 @@ export default function App(){
     if(navigator.share){try{await navigator.share({title:isJourney?item.title:item.title,text});}catch{}}
     else{try{await navigator.clipboard.writeText(text);alert("Copied to clipboard!");}catch{}}
   };
+  const handleBooked=(step)=>{handleAddCal(step.title,step.why,step.time);markStep(step.id,"done");};
   // Compute insights for stats
   const completedByCategory={};doneSteps.forEach(s=>{const c=s.category||"other";completedByCategory[c]=(completedByCategory[c]||0)+1;});
   const totalCompleted=doneSteps.length;
   const thisWeekDone=doneSteps.filter(s=>{const d=new Date(s.completedAt||s.createdAt);return(Date.now()-d.getTime())<7*864e5;}).length;
-  const handleAddCal=async(title,why,time)=>{if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});const ok=await addGCalEvent(r.access_token,title,why,time);alert(ok?"Added to Calendar!":"Couldn't add.");});return;}const ok=await addGCalEvent(calToken,title,why,time);alert(ok?"Added to Calendar!":"Try reconnecting calendar.");};
+  const handleAddCal=async(title,why,time)=>{const addWithToken=async(token)=>{const ok=await addGCalEvent(token,title,why,time);if(ok){alert("Added to Calendar!");return true;}return false;};if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});return;}const ok=await addWithToken(calToken);if(!ok){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});}};
   const resetAll=async()=>{const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({career:[],wellness:[],fun:[],adventure:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
 
   // Expiration check
@@ -442,12 +443,12 @@ export default function App(){
                         <span style={{...F,fontSize:10,color:"#A3A3A3"}}>GCal</span>
                       </div>
                     );})}
-                    {daySteps.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
+                    {daySteps.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
                   </div>);
                 })}
                 {(()=>{const scheduled=new Set();Object.values(stepsByDate).forEach(arr=>arr.forEach(s=>scheduled.add(s.id)));const unsched=allSteps.filter(s=>s.status==="active"&&!scheduled.has(s.id));return unsched.length>0?<div style={{marginTop:8}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Anytime</div>
-                  {unsched.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
+                  {unsched.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
                 </div>:null;})()}
                 {doneSteps.length>0&&<div style={{marginTop:12}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
@@ -493,7 +494,7 @@ export default function App(){
               })()}
               {segSteps.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
-                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*50}/>)}
+                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*50}/>)}
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>
