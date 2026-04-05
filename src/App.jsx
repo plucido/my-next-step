@@ -8,6 +8,7 @@ import { loadGSI, decJwt, connectStrava, exchStrava, fetchStrava, connectGCal, f
 import StepCard from "./StepCard.jsx";
 import JourneyCard from "./JourneyCard.jsx";
 import RoutineCard from "./RoutineCard.jsx";
+import TimelineView from "./TimelineView.jsx";
 import AuthScreen from "./AuthScreen.jsx";
 import SetupScreen from "./SetupScreen.jsx";
 import DeepProfileChat from "./DeepProfileChat.jsx";
@@ -384,78 +385,13 @@ export default function App(){
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         {segment==="everything"&&(
-          <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
-            {(()=>{
-              // Build a unified timeline of next 14 days
-              const now=new Date();const days=[];
-              for(let i=0;i<14;i++){const d=new Date(now);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);days.push(d);}
-              const isToday=d=>d.toDateString()===now.toDateString();
-              const isTomorrow=d=>{const t=new Date(now);t.setDate(t.getDate()+1);return d.toDateString()===t.toDateString();};
-              const dayLabel=d=>isToday(d)?"Today":isTomorrow(d)?"Tomorrow":d.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"});
-
-              // Get Google Calendar events mapped to dates
-              const calByDate={};(calData||[]).forEach(e=>{const d=new Date(e.start);const key=d.toDateString();if(!calByDate[key])calByDate[key]=[];calByDate[key].push(e);});
-
-              // Get active steps (try to map by time hint)
-              const stepsByDate={};allSteps.filter(s=>s.status==="active").forEach(s=>{const t=(s.time||"").toLowerCase();let key=now.toDateString();// Default to today
-              if(t.includes("tomorrow")){const d=new Date(now);d.setDate(d.getDate()+1);key=d.toDateString();}
-              else if(t.includes("this week")||t.includes("this weekend")){const d=new Date(now);d.setDate(d.getDate()+(6-d.getDay()+7)%7||7);key=d.toDateString();}
-              if(!stepsByDate[key])stepsByDate[key]=[];stepsByDate[key].push(s);});
-
-              const hasContent=days.some(d=>(calByDate[d.toDateString()]||[]).length>0||(stepsByDate[d.toDateString()]||[]).length>0)||allSteps.filter(s=>s.status==="active").length>0||allPlans.length>0||allRoutines.length>0;
-
-              if(!hasContent)return(<FadeIn><div style={{textAlign:"center",padding:"44px 20px"}}>
-                <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}><Calendar size={20}/></div>
-                <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Your timeline</div>
-                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto"}}>Start chatting in any segment to see your steps, journeys, and calendar events here.</div>
-              </div></FadeIn>);
-
-              return(<div>
-                {allRoutines.filter(r=>!r.paused).length>0&&<div style={{marginBottom:16}}>
-                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Active routines</div>
-                  {allRoutines.filter(r=>!r.paused).map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*30}/>)}
-                </div>}
-                {allPlans.length>0&&<div style={{marginBottom:16}}>
-                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Journeys ({allPlans.length})</div>
-                  {allPlans.map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan===pi} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*30}/>)}
-                </div>}
-                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Timeline</div>
-                {days.map((day,di)=>{
-                  const key=day.toDateString();
-                  const calEvents=calByDate[key]||[];
-                  const daySteps=stepsByDate[key]||[];
-                  if(calEvents.length===0&&daySteps.length===0&&di>1)return null;// Skip empty days after tomorrow
-                  const today=isToday(day);
-                  return(<div key={key} style={{marginBottom:12}}>
-                    <div style={{...F,fontSize:13,fontWeight:600,color:today?C.acc:C.t1,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
-                      {today&&<div style={{width:8,height:8,borderRadius:4,background:C.acc}}/>}
-                      {dayLabel(day)}
-                    </div>
-                    {calEvents.length===0&&daySteps.length===0&&<div style={{...F,fontSize:13,color:C.t3,padding:"8px 0",fontStyle:"italic"}}>Nothing scheduled</div>}
-                    {calEvents.map((e,i)=>{const d=new Date(e.start);return(
-                      <div key={`cal-${i}`} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:"#F5F5F4",borderLeft:"4px solid #D4D4D4",display:"flex",alignItems:"center",gap:10}}>
-                        <span style={{...F,fontSize:11,color:"#A3A3A3",minWidth:50,fontWeight:600}}>{e.allDay?"All day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}</span>
-                        <div style={{flex:1}}>
-                          <div style={{...F,fontSize:13,color:"#737373"}}>{e.title}</div>
-                          {e.location&&<div style={{...F,fontSize:11,color:"#A3A3A3",marginTop:2}}>{e.location}</div>}
-                        </div>
-                        <span style={{...F,fontSize:10,color:"#A3A3A3"}}>GCal</span>
-                      </div>
-                    );})}
-                    {daySteps.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
-                  </div>);
-                })}
-                {(()=>{const scheduled=new Set();Object.values(stepsByDate).forEach(arr=>arr.forEach(s=>scheduled.add(s.id)));const unsched=allSteps.filter(s=>s.status==="active"&&!scheduled.has(s.id));return unsched.length>0?<div style={{marginTop:8}}>
-                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Anytime</div>
-                  {unsched.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
-                </div>:null;})()}
-                {doneSteps.length>0&&<div style={{marginTop:12}}>
-                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
-                  {doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span></div>))}
-                </div>}
-              </div>);
-            })()}
-          </div>
+          <TimelineView
+            allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} doneSteps={doneSteps} calData={calData}
+            expandedPlan={expandedPlan} setExpandedPlan={setExpandedPlan}
+            markStep={markStep} deleteStep={deleteStep} loveStep={loveStep} dislikeStep={dislikeStep} handleBooked={handleBooked}
+            deletePlan={deletePlan} toggleTask={toggleTask} pauseRoutine={pauseRoutine} deleteRoutine={deleteRoutine}
+            talkAbout={talkAbout} shareItem={shareItem} handleAddCal={handleAddCal}
+          />
         )}
         {view==="steps"&&segment!=="everything"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
