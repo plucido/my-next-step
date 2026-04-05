@@ -22,6 +22,15 @@ export default function Settings({
   showSettings
 }) {
 
+  const saveTravel=(key,val)=>{const t={...(profile?.travel||{}),[key]:val};const p={...profile,travel:t};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);};
+
+  function renderTravelPrefRow(label,key,options,current) {
+    return (<div style={{marginBottom:14}}>
+      <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>{label}</div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{options.map(o=>(<button key={o} onClick={()=>saveTravel(key,o)} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:current===o?C.accSoft:C.cream,border:`1.5px solid ${current===o?C.acc:C.b2}`,color:current===o?C.acc:C.t2,fontWeight:current===o?600:400}}>{o}</button>))}</div>
+    </div>);
+  }
+
   function renderProfileTab() {
     return (<div>
       {[{k:"name",l:"Name",i:null,v:profile?.name},{k:"age",l:"Age",i:null,v:profile?.setup?.age},{k:"gender",l:"Gender",i:null,v:profile?.setup?.gender},{k:"location",l:"Location",i:null,v:profile?.setup?.location}].map(f=>(
@@ -88,6 +97,18 @@ export default function Settings({
           </div>
           <button onClick={()=>{const pets=(profile?.pets||[]).filter((_,j)=>j!==i);const p={...profile,pets};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer"}}><X size={14}/></button>
         </div>))}{null}
+      </div>
+
+      <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
+        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Travel Preferences</div>
+        <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.5,marginBottom:14}}>Your guide uses these to find flights and hotels that match your style.</div>
+        {renderTravelPrefRow("Cabin class","flightClass",["Economy","Premium Economy","Business","First"],profile?.travel?.flightClass)}
+        {renderTravelPrefRow("Stops","flightStops",["Nonstop only","1 stop max","Any"],profile?.travel?.flightStops)}
+        {renderTravelPrefRow("Seat preference","flightSeat",["Window","Aisle","No preference"],profile?.travel?.flightSeat)}
+        {renderTravelPrefRow("Room type","hotelRoom",["Standard","Suite","Studio / Apartment"],profile?.travel?.hotelRoom)}
+        {renderTravelPrefRow("Hotel budget","hotelBudget",["Budget ($)","Mid-range ($$)","Upscale ($$$)","Luxury ($$$$)"],profile?.travel?.hotelBudget)}
+        {renderTravelPrefRow("Hotel style","hotelStyle",["Chain / Brand","Boutique","Resort","Hostel / Airbnb","No preference"],profile?.travel?.hotelStyle)}
+        {editField&&editField.startsWith("tp_")?null:null}{null}
       </div>
 
       <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
