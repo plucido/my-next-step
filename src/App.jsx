@@ -1212,7 +1212,6 @@ export default function App(){
             </div>}
           </div>
         </div>}
-
       </div></div>}
 
       {/* Legal modals - outside settings to avoid esbuild JSX parsing issue */}
