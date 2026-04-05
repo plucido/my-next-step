@@ -47,7 +47,7 @@ export default function App(){
   const[legalModal,setLegalModal]=useState(null);
   const[deleteConfirm,setDeleteConfirm]=useState(false);
   const[deleteText,setDeleteText]=useState("");
-  const[healthSection,setHealthSection]=useState({fitness:true,food:true,medical:false});
+  const[healthSection,setHealthSection]=useState({fitness:true,food:true,medical:false,travel:false});
   const[petType,setPetType]=useState("Dog");
   const[petBreed,setPetBreed]=useState("");
   const[petAge,setPetAge]=useState("");

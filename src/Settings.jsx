@@ -99,16 +99,22 @@ export default function Settings({
         </div>))}{null}
       </div>
 
-      <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
-        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Travel Preferences</div>
-        <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.5,marginBottom:14}}>Your guide uses these to find flights and hotels that match your style.</div>
-        {renderTravelPrefRow("Cabin class","flightClass",["Economy","Premium Economy","Business","First"],profile?.travel?.flightClass)}
-        {renderTravelPrefRow("Stops","flightStops",["Nonstop only","1 stop max","Any"],profile?.travel?.flightStops)}
-        {renderTravelPrefRow("Seat preference","flightSeat",["Window","Aisle","No preference"],profile?.travel?.flightSeat)}
-        {renderTravelPrefRow("Room type","hotelRoom",["Standard","Suite","Studio / Apartment"],profile?.travel?.hotelRoom)}
-        {renderTravelPrefRow("Hotel budget","hotelBudget",["Budget ($)","Mid-range ($$)","Upscale ($$$)","Luxury ($$$$)"],profile?.travel?.hotelBudget)}
-        {renderTravelPrefRow("Hotel style","hotelStyle",["Chain / Brand","Boutique","Resort","Hostel / Airbnb","No preference"],profile?.travel?.hotelStyle)}
-        {editField&&editField.startsWith("tp_")?null:null}{null}
+      <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,marginTop:12,overflow:"hidden"}}>
+        <button onClick={()=>setHealthSection(p=>({...p,travel:!p.travel}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}><Globe size={20}/></span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Travel Preferences</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Flights, hotels, style</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.travel?"rotate(180deg)":"rotate(0)"}}><ChevronDown size={16}/></span></button>
+        {healthSection.travel?<div style={{padding:"0 20px 20px"}}>
+          <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.5,marginBottom:14}}>Your guide uses these to find flights and hotels that match your style.</div>
+          {renderTravelPrefRow("Cabin class","flightClass",["Economy","Premium Economy","Business","First"],profile?.travel?.flightClass)}
+          {renderTravelPrefRow("Stops","flightStops",["Nonstop only","1 stop max","Any"],profile?.travel?.flightStops)}
+          {renderTravelPrefRow("Seat preference","flightSeat",["Window","Aisle","No preference"],profile?.travel?.flightSeat)}
+          {renderTravelPrefRow("Room type","hotelRoom",["Standard","Suite","Studio / Apartment"],profile?.travel?.hotelRoom)}
+          {renderTravelPrefRow("Hotel budget","hotelBudget",["Budget ($)","Mid-range ($$)","Upscale ($$$)","Luxury ($$$$)"],profile?.travel?.hotelBudget)}
+          {renderTravelPrefRow("Hotel style","hotelStyle",["Chain / Brand","Boutique","Resort","Hostel / Airbnb","No preference"],profile?.travel?.hotelStyle)}
+          {profile?.travel?.hotelStyle==="Chain / Brand"?<div style={{marginBottom:14}}>
+            <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Preferred brand(s)</div>
+            {editField==="hotelBrand"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. Marriott, Hilton, Hyatt" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{saveTravel("hotelBrand",editVal.trim());setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>Save</button></div>
+            :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.travel?.hotelBrand||"Not set"}</div><button onClick={()=>{setEditField("hotelBrand");setEditVal(profile?.travel?.hotelBrand||"");}} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}{null}
+          </div>:null}
+        </div>:null}{null}
       </div>
 
       <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
