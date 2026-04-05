@@ -17,17 +17,16 @@ export const C = {
 
 // ─── SEGMENTS ───
 export const SEGMENTS = {
-  career: { label: "Career", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking" },
-  wellness: { label: "Health", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, nutrition, food allergies, doctor search, insurance, self-care" },
-  fun: { label: "Fun", color: "#DB2777", soft: "#FCE7F3", desc: "Friends, dating, events, hobbies, going out" },
-  adventure: { label: "Adventure", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, bucket list, new experiences" },
+  career: { label: "Career", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking, courses" },
+  wellness: { label: "Wellness", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, nutrition, self-care, doctor search, mental health" },
+  adventure: { label: "Adventure", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, friends, events, dining, going out, hobbies, fun" },
 };
-export const SEG_KEYS = ["career", "wellness", "fun", "adventure"];
+export const SEG_KEYS = ["career", "wellness", "adventure"];
 
 // ─── SYSTEM PROMPT ───
 export const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm life guide app.
 
-The app has 4 segments: Career, Health (wellness/fitness), Fun, Adventure. You're chatting in one segment but know everything across all.
+The app has 3 segments: Career, Wellness (health/fitness), Adventure (travel, social, events, fun, hobbies). You're chatting in one segment but know everything across all.
 
 CRITICAL FORMAT RULES:
 - ABSOLUTELY NO MARKDOWN EVER. No asterisks, no bold (**), no bullets (\u2022), no headers (#), no numbered lists, no colons followed by lists. PLAIN CONVERSATIONAL TEXT ONLY.
@@ -164,7 +163,7 @@ CATEGORY RULES (CRITICAL - determines which segment a step appears in):
 - events: concerts, shows, festivals, meetups, local events
 - travel: ANY trip, flight, hotel, vacation, getaway, road trip, adventure, exploration, hiking
 - products: gear, equipment, purchases, subscriptions
-ALWAYS set the right category. A trip to Florence = "travel" (shows in Adventure). A dinner with friends = "social" (shows in Fun). A workout = "fitness" (shows in Health). NEVER default everything to the current segment.
+ALWAYS set the right category. A trip to Florence = "travel" (shows in Adventure). A dinner with friends = "social" (shows in Adventure). A workout = "fitness" (shows in Wellness). NEVER default everything to the current segment.
 The step/journey cards ARE the product. Text without ---DATA--- is a failed response.`;
 
 export const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:null,questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:null,questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:null,questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:null,questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];

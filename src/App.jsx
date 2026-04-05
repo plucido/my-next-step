@@ -28,7 +28,7 @@ export default function App(){
   const[allRoutines,setAllRoutines]=useState([]);
   const[preferences,setPreferences]=useState([]);
   // Per-segment chat histories
-  const[chats,setChats]=useState({career:[],wellness:[],fun:[],adventure:[]});
+  const[chats,setChats]=useState({career:[],wellness:[],adventure:[]});
   const[input,setInput]=useState("");
   const[loading,setLoading]=useState(false);
   const[expandedPlan,setExpandedPlan]=useState(null);
@@ -56,22 +56,20 @@ export default function App(){
   const[transitionMsg,setTransitionMsg]=useState(null); // {text, targetSeg, count, type}
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
-  // Normalize chats from old format (work/me/social) to new (career/wellness/fun/adventure)
   const normalizeChats = (ch) => {
-    if (!ch) return {career:[],wellness:[],fun:[],adventure:[]};
+    if (!ch) return {career:[],wellness:[],adventure:[]};
     return {
       career: ch.career || ch.work || [],
       wellness: ch.wellness || ch.me || [],
-      fun: ch.fun || ch.social || [],
-      adventure: ch.adventure || [],
+      adventure: [...(ch.adventure || []), ...(ch.fun || []), ...(ch.social || [])].sort((a,b)=>(a.ts||0)-(b.ts||0)),
     };
   };
 
   // Current segment's data
   const segSteps=segment==="everything"?allSteps.filter(s=>s.status==="active"):allSteps.filter(s=>s.status==="active"&&catToSeg(s.category)===segment);
-  const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(["career","work","job","interview","resume","linkedin"].some(w=>title.includes(w)))return segment==="career";if(["gym","yoga","run","health","diet","meditation"].some(w=>title.includes(w)))return segment==="wellness";if(["friend","party","dinner","concert","group","date"].some(w=>title.includes(w)))return segment==="fun";if(["trip","travel","flight","hotel","vacation","hike","explore"].some(w=>title.includes(w)))return segment==="adventure";return segment==="wellness";});
+  const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(["career","work","job","interview","resume","linkedin"].some(w=>title.includes(w)))return segment==="career";if(["gym","yoga","run","health","diet","meditation"].some(w=>title.includes(w)))return segment==="wellness";if(["friend","party","dinner","concert","group","date","trip","travel","flight","hotel","vacation","hike","explore","fun","event"].some(w=>title.includes(w)))return segment==="adventure";return segment==="wellness";});
   const segRoutines=segment==="everything"?allRoutines:allRoutines.filter(r=>catToSeg(r.category)===segment);
-  const segMessages=segment==="everything"?[...(chats.career||[]),...(chats.wellness||[]),...(chats.fun||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
+  const segMessages=segment==="everything"?[...(chats.career||[]),...(chats.wellness||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
   const doneSteps=allSteps.filter(s=>s.status==="done");
   const expiredSteps=allSteps.filter(s=>s.status==="expired");
 
@@ -95,11 +93,11 @@ export default function App(){
   const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
   const handleAuth=auth=>{const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("welcome");};
+  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); setScreen("welcome");};
   const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
+    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); }
     else persist(full,allSteps,allPlans,chats,preferences);
     setView("steps");setScreen("main");
   };
@@ -153,7 +151,7 @@ export default function App(){
       // Safety: ensure no empty content
       const safeApiMsgs=apiMsgs.filter(m=>m.content&&m.content.trim()).map(m=>({role:m.role,content:m.content.trim()}));
 
-      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nDefault category for this segment: ${segment==="career"?"career":segment==="wellness"?"fitness":segment==="fun"?"social":"travel"}\nUse this segment's default category UNLESS the content clearly belongs elsewhere (e.g. a trip mentioned in Health should be "travel", a workout mentioned in Fun should be "fitness").\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${quickCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${travelCtx}${crossCtx}`;
+      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nDefault category for this segment: ${segment==="career"?"career":segment==="wellness"?"fitness":"travel"}\nUse this segment's default category UNLESS the content clearly belongs elsewhere (e.g. a trip mentioned in Wellness should be "travel", a workout mentioned in Adventure should be "fitness").\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${quickCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${travelCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
@@ -193,7 +191,7 @@ export default function App(){
         console.log("Parsing JSON:", jsonStr.slice(0, 200));
         const items=JSON.parse(jsonStr);
         for(const item of(Array.isArray(items)?items:[items])){
-          const defaultCat=segment==="career"?"career":segment==="wellness"?"fitness":segment==="fun"?"social":"travel";
+          const defaultCat=segment==="career"?"career":segment==="wellness"?"fitness":segment==="adventure"?"social":"travel";
           if(item.type==="step")newSteps=[{...item,title:clean(item.title),why:clean(item.why),category:item.category||defaultCat,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
           else if(item.type==="plan")newPlans=[{...item,title:clean(item.title),tasks:(item.tasks||[]).map(t=>({...t,title:clean(t.title),done:false,category:t.category||item.category||defaultCat}))},...newPlans.filter(p=>p.title!==item.title)];
           else if(item.type==="routine"){newRoutines=[{...item,category:item.category||defaultCat,id:Date.now()+Math.random(),createdAt:new Date().toISOString(),paused:false},...newRoutines.filter(r=>r.title!==item.title)];if(calToken)addGCalRecurring(calToken,item.title,item.description,item.schedule,item.days,item.time).catch(()=>{});}
@@ -257,7 +255,7 @@ export default function App(){
   const totalCompleted=doneSteps.length;
   const thisWeekDone=doneSteps.filter(s=>{const d=new Date(s.completedAt||s.createdAt);return(Date.now()-d.getTime())<7*864e5;}).length;
   const handleAddCal=async(title,why,time)=>{const addWithToken=async(token)=>{const ok=await addGCalEvent(token,title,why,time);if(ok){alert("Added to Calendar!");return true;}return false;};if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});return;}const ok=await addWithToken(calToken);if(!ok){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});}};
-  const resetAll=async()=>{const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({career:[],wellness:[],fun:[],adventure:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
+  const resetAll=async()=>{const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({career:[],wellness:[],adventure:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
 
   // Expiration check
   useEffect(()=>{const now=new Date(),h=now.getHours();let changed=false;const u=allSteps.map(s=>{if(s.status!=="active")return s;const t=(s.time||"").toLowerCase(),age=s.createdAt?(Date.now()-new Date(s.createdAt).getTime())/36e5:0;if((age>48)||(t.includes("tonight")&&age>14)||(t.includes("today")&&age>24)){changed=true;return{...s,status:"expired"};}return s;});if(changed){setAllSteps(u);persist(profile,u,allPlans,chats,preferences);}},[allSteps.length]);
@@ -410,11 +408,12 @@ export default function App(){
         </button>
       </div>}
       <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
-        {[...SEG_KEYS,"everything"].map(s=>{const info=SEGMENTS[s]||{label:"Timeline",color:C.acc};const active=segment===s;const count=s==="everything"?allSteps.filter(x=>x.status==="active").length:allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
-          return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
-            <span style={{fontSize:14}}>{segIcon(s)}</span>{info.label}{count>0&&<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>}
+        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&segment!=="everything";const count=allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
+          return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:13,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
+            {info.label}{count>0?<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>:null}
           </button>);
         })}
+        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,width:40,padding:"10px 0",background:segment==="everything"?C.card:"transparent",border:segment==="everything"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",boxShadow:segment==="everything"?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}><Calendar size={16} color={segment==="everything"?C.acc:C.t3}/></button>
       </div>
       {segment!=="everything"&&<div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
         {[{id:"steps",label:"Steps"},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s"}}>{t.label}</button>))}
@@ -439,7 +438,7 @@ export default function App(){
                 <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto 24px"}}>Tell your guide what you're looking for and I'll create personalized steps and journeys.</div>
                 <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Talk to your guide {"\u2192"}</button>
                 <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap",marginTop:8}}>
-                  {(segment==="career"?["Help me grow my career","Find a course","Networking events"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway"]:["What should I do today?","Build a workout routine","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
+                  {(segment==="career"?["Help me grow my career","Find a course","Networking events"]:segment==="adventure"?["Plan a trip","Find events this weekend","Plan something with friends"]:["What should I do today?","Build a workout routine","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
                 </div>
               </div></FadeIn>
             ):(<>
@@ -519,7 +518,7 @@ export default function App(){
           </div>
           {(chats[segment]||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
             <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
-              {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities near me"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway ideas"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
+              {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="adventure"?["Plan a trip","Find events this weekend","Plan something with friends"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
             </div>
           </div>}
           {(chats[segment]||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>

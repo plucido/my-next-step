@@ -14,8 +14,7 @@ export function catIcon(cat){return catIconMap[cat]||<Zap size={14}/>;}
 export const catToSeg = c => {
   if (["career", "learning", "products"].includes(c)) return "career";
   if (["fitness", "wellness"].includes(c)) return "wellness";
-  if (["social", "events"].includes(c)) return "fun";
-  if (["travel"].includes(c)) return "adventure";
+  if (["social", "events", "travel", "fun"].includes(c)) return "adventure";
   return "wellness"; // default
 };
 
