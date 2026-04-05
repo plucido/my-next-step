@@ -140,16 +140,34 @@ RECURRING STEPS:
 - Only do this when it naturally fits. One-off events don't recur.
 
 OUTPUT FORMAT:
-Your response should be: short casual chat text, then ---DATA---, then a JSON array.
+EVERY response must follow this pattern:
+1. One to two casual sentences (the chat bubble)
+2. The literal text ---DATA---
+3. A JSON array with steps/journeys
 
-Example response:
-"Florence in September is perfect! Warm days, wine harvest season, and way fewer tourists. Here's your trip \u2014 let me know if you want to adjust anything."
+If you discuss ANY activity, place, class, trip, event, or recommendation, you MUST create a step or journey for it. NO EXCEPTIONS.
+If you ask the user a question and don't have enough info yet, that's the ONLY time you can skip ---DATA---.
+
+Example 1 - simple step:
+Nice, yoga is a great call! Here's one near you.
 
 ---DATA---
-[{"type":"plan","title":"Florence Romantic Getaway","date":"Sep 15-22, 2026","tasks":[{"title":"Book Alaska/Condor flight HOU-FLR, ~$893 roundtrip","links":[{"label":"Google Flights","url":"https://www.google.com/travel/flights?q=flights+houston+to+florence+september+2026"}]},{"title":"Book Hotel Brunelleschi, ~$350/night, Duomo views","links":[{"label":"Booking.com","url":"https://www.booking.com/searchresults.html?ss=Hotel+Brunelleschi+Florence&checkin=2026-09-15&checkout=2026-09-22"}]},{"title":"Reserve dinner at Osteria dell'Enoteca, Fri 8pm","links":[{"label":"Search","url":"https://www.google.com/search?q=Osteria+dell+Enoteca+Florence+reservation"}]},{"title":"Book Chianti wine tour, ~$85pp, grape harvest season","links":[{"label":"Viator","url":"https://www.viator.com/Florence-tours/Wine-Tasting/d519-g6-c42"}]}]},{"type":"preference","key":"budget_travel","value":"interested in ~$900 flights, mid-range hotels"}]
+[{"type":"step","title":"7pm Vinyasa at Black Swan Yoga","why":"$15 drop-in, 10 min away on Westheimer, beginner-friendly","link":"https://www.google.com/maps/search/Black+Swan+Yoga+Houston","linkText":"Get directions","category":"fitness","time":"Tonight 7pm"}]
+
+Example 2 - journey:
+Florence in September is dreamy! Here's your trip.
+
+---DATA---
+[{"type":"plan","title":"Florence Romantic Getaway","date":"Sep 15-22, 2026","tasks":[{"title":"Book Alaska/Condor flight HOU-FLR, ~$893 roundtrip","links":[{"label":"Google Flights","url":"https://www.google.com/travel/flights?q=flights+houston+to+florence+september+2026"}]},{"title":"Book Hotel Brunelleschi, ~$350/night, Duomo views","links":[{"label":"Booking.com","url":"https://www.booking.com/searchresults.html?ss=Hotel+Brunelleschi+Florence"}]}]}]
+
+Example 3 - multiple steps:
+Here are a few things to try this week!
+
+---DATA---
+[{"type":"step","title":"Morning run at Memorial Park","why":"Free, 3-mile loop, shaded trail","link":"https://www.google.com/maps/search/Memorial+Park+Running+Trail+Houston","linkText":"Map","category":"fitness","time":"Tomorrow 7am"},{"type":"step","title":"Try Uchi Houston for dinner","why":"Japanese farmhouse cuisine, $$$, incredible omakase","link":"https://www.google.com/search?q=Uchi+Houston+reservation","linkText":"Reserve","category":"social","time":"Friday evening"}]
 
 Categories: fitness, wellness, career, learning, social, events, travel, products
-ALWAYS output ---DATA--- with steps/journeys. The cards ARE the product.`;
+The step/journey cards ARE the product. Text without ---DATA--- is a failed response.`;
 
 const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:"\u{1F464}",questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:"\u{1F31F}",questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:"\u{1F3E0}",questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:"\u{1F525}",questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
 
@@ -416,22 +434,41 @@ export default function App(){
         if(!data.content||data.content.length===0){console.error("Empty content from API:",JSON.stringify(data));finalText="Hmm, I didn't get a response. Try again?";break;}
         for(const block of data.content)if(block.type==="text"&&block.text)finalText+=block.text+"\n";
         if(data.stop_reason==="end_turn"||data.stop_reason==="stop")break;
-        if(data.stop_reason==="tool_use"){currentMsgs.push({role:"assistant",content:data.content});const tr=[];for(const b of data.content)if(b.type==="tool_use")tr.push({type:"tool_result",tool_use_id:b.id,content:"Search done. Create specific steps/journeys with links."});if(tr.length)currentMsgs.push({role:"user",content:tr});finalText="";continue;}
+        if(data.stop_reason==="tool_use"){currentMsgs.push({role:"assistant",content:data.content});const tr=[];for(const b of data.content)if(b.type==="tool_use")tr.push({type:"tool_result",tool_use_id:b.id,content:"Search complete. Now respond with 1-2 casual sentences, then ---DATA--- followed by a JSON array of steps/journeys based on what you found. Remember: the cards are the product, not the chat text."});if(tr.length)currentMsgs.push({role:"user",content:tr});finalText="";continue;}
         break;
       }
 
       const raw=finalText.trim()||"Let me think...";
+      console.log("Raw AI response:", raw.slice(0, 300));
       let displayText=raw,newSteps=[...allSteps],newPlans=[...allPlans],newPrefs=[...preferences];
       let jsonStr=null;
       if(raw.includes("---DATA---")){const p=raw.split("---DATA---");displayText=p[0].trim();jsonStr=p[1]?.trim();}
-      else{const m=raw.match(/\[[\s\S]*?"type"\s*:\s*"(step|plan|preference|delete_step|delete_plan)"[\s\S]*?\]/);if(m){displayText=raw.slice(0,raw.indexOf(m[0])).trim();jsonStr=m[0];}}
-      if(jsonStr){try{jsonStr=jsonStr.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();const items=JSON.parse(jsonStr);for(const item of(Array.isArray(items)?items:[items])){
-        if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
-        else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false}))},...newPlans.filter(p=>p.title!==item.title)];
-        else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
-        else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
-        else if(item.type==="delete_plan")newPlans=newPlans.filter(p=>!p.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
-      }setAllSteps(newSteps);setAllPlans(newPlans);setPreferences(newPrefs);}catch(e){console.error("Parse:",e);}}
+      else{
+        // Try to find JSON array with step/plan type
+        const m=raw.match(/\[[\s\S]*?"type"\s*:\s*"(step|plan|preference|delete_step|delete_plan)"[\s\S]*?\]/);
+        if(m){displayText=raw.slice(0,raw.indexOf(m[0])).trim();jsonStr=m[0];}
+        else{
+          // Try to find a single JSON object
+          const single=raw.match(/\{[\s\S]*?"type"\s*:\s*"(step|plan)"[\s\S]*?\}/);
+          if(single){displayText=raw.slice(0,raw.indexOf(single[0])).trim();jsonStr="["+single[0]+"]";}
+        }
+      }
+      if(jsonStr){try{
+        jsonStr=jsonStr.replace(/```json\s*/g,"").replace(/```\s*/g,"").replace(/,\s*\]/g,"]").trim();
+        console.log("Parsing JSON:", jsonStr.slice(0, 200));
+        const items=JSON.parse(jsonStr);
+        for(const item of(Array.isArray(items)?items:[items])){
+          if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
+          else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false}))},...newPlans.filter(p=>p.title!==item.title)];
+          else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
+          else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
+          else if(item.type==="delete_plan")newPlans=newPlans.filter(p=>!p.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
+        }
+        console.log("Parsed OK. New steps:", newSteps.length-allSteps.length, "New plans:", newPlans.length-allPlans.length);
+        setAllSteps(newSteps);setAllPlans(newPlans);setPreferences(newPrefs);
+      }catch(e){console.error("JSON parse error:",e.message,"Input:",jsonStr?.slice(0,200));}}
+      else{console.log("NO JSON FOUND in response");}
+
 
       displayText=displayText.replace(/\[[\s\S]*?"type"\s*:[\s\S]*?\]/g,"").trim();
       if(!displayText)displayText=newSteps.length>allSteps.length?"Here's what I found!":newPlans.length>allPlans.length?"Journey mapped out!":"Let me know what you think.";
