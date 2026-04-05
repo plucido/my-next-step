@@ -293,8 +293,6 @@ export default function App(){
   return(
     <div style={{...F,height:"100vh",color:C.t1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg}}>
       <style>{font}{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes landIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}@keyframes landFade{from{opacity:0}to{opacity:1}}`}</style>
-
-      {/* Landing overlay */}
       {showLanding&&<div style={{position:"fixed",inset:0,zIndex:250,background:C.bg,display:"flex",flexDirection:"column",overflow:"auto"}}>
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",maxWidth:440,margin:"0 auto",width:"100%"}}>
           <div style={{animation:"landIn 0.6s ease",textAlign:"center",marginBottom:32}}>
@@ -328,8 +326,6 @@ export default function App(){
           <button onClick={()=>setShowLanding(false)} style={{...F,fontSize:13,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"10px 20px",animation:`landFade 0.4s ease 0.8s both`}}>Dismiss</button>
         </div>
       </div>}
-
-      {/* Feedback modal */}
       {feedbackStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
         <div style={{...F,fontSize:12,color:C.acc,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>How did it go?</div>
         <div style={{...H,fontSize:20,color:C.t1,marginBottom:16}}>{feedbackStep.title}</div>
@@ -337,8 +333,6 @@ export default function App(){
         <textarea value={feedbackText} onChange={e=>setFeedbackText(e.target.value)} rows={2} placeholder="Or type..." style={{...F,width:"100%",padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:14}}/>
         <div style={{display:"flex",gap:10}}><button onClick={()=>{setFeedbackStep(null);setFeedbackText("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Skip</button><button onClick={submitFeedback} disabled={!feedbackText.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:feedbackText.trim()?"pointer":"default",background:feedbackText.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:feedbackText.trim()?"#fff":C.t3}}>Submit</button></div>
       </div></div>)}
-
-      {/* Missed step modal */}
       {missedStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
         <div style={{...F,fontSize:12,color:"#B45309",fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Missed step</div>
         <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>{missedStep.title}</div>
@@ -347,8 +341,6 @@ export default function App(){
         <textarea value={missedReason} onChange={e=>setMissedReason(e.target.value)} rows={2} placeholder="Or tell us more..." style={{...F,width:"100%",padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:14}}/>
         <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell guide</button></div>
       </div></div>)}
-
-      {/* Top header with streak */}
       <div style={{padding:"14px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <div><div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div><div style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</div></div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -369,8 +361,6 @@ export default function App(){
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
         </div>
       </div>
-
-      {/* Tell me more - personalization nudge */}
       {!profile?.insights?.length&&allSteps.filter(s=>s.status==="active").length>0&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
         <button onClick={()=>{setSegment("wellness");setView("chat");setTimeout(()=>sendMessage("I'd like to tell you more about myself so you can personalize better. Ask me a few questions — don't create any steps, just learn about me."),100);}} style={{...F,width:"100%",padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
           <span style={{fontSize:16}}><Sparkles size={14}/></span>
@@ -378,8 +368,6 @@ export default function App(){
           <span style={{fontSize:12,color:C.t3}}><ChevronRight size={16}/></span>
         </button>
       </div>}
-
-      {/* Segment selector */}
       <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
         {[...SEG_KEYS,"everything"].map(s=>{const info=SEGMENTS[s]||{label:"Timeline",color:C.acc};const active=segment===s;const count=s==="everything"?allSteps.filter(x=>x.status==="active").length:allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
           return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
@@ -387,14 +375,11 @@ export default function App(){
           </button>);
         })}
       </div>
-
-      {/* Sub-tabs: Steps / Chat */}
       {segment!=="everything"&&<div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
         {[{id:"steps",label:"Steps & Journeys"},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s"}}>{t.label}</button>))}
       </div>}
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        {/* EVERYTHING - Calendar Timeline View */}
         {segment==="everything"&&(
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
             {(()=>{
@@ -423,19 +408,14 @@ export default function App(){
               </div></FadeIn>);
 
               return(<div>
-                {/* Active routines banner */}
                 {allRoutines.filter(r=>!r.paused).length>0&&<div style={{marginBottom:16}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Active routines</div>
                   {allRoutines.filter(r=>!r.paused).map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*30}/>)}
                 </div>}
-
-                {/* Journeys */}
                 {allPlans.length>0&&<div style={{marginBottom:16}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Journeys ({allPlans.length})</div>
                   {allPlans.map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan===pi} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*30}/>)}
                 </div>}
-
-                {/* Day-by-day timeline */}
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Timeline</div>
                 {days.map((day,di)=>{
                   const key=day.toDateString();
@@ -449,7 +429,6 @@ export default function App(){
                       {dayLabel(day)}
                     </div>
                     {calEvents.length===0&&daySteps.length===0&&<div style={{...F,fontSize:13,color:C.t3,padding:"8px 0",fontStyle:"italic"}}>Nothing scheduled</div>}
-                    {/* Google Calendar events - grey */}
                     {calEvents.map((e,i)=>{const d=new Date(e.start);return(
                       <div key={`cal-${i}`} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:"#F5F5F4",borderLeft:"4px solid #D4D4D4",display:"flex",alignItems:"center",gap:10}}>
                         <span style={{...F,fontSize:11,color:"#A3A3A3",minWidth:50,fontWeight:600}}>{e.allDay?"All day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}</span>
@@ -460,7 +439,6 @@ export default function App(){
                         <span style={{...F,fontSize:10,color:"#A3A3A3"}}>GCal</span>
                       </div>
                     );})}
-                    {/* Our steps - colored by segment */}
                     {daySteps.map((s,i)=>{const seg=SEGMENTS[catToSeg(s.category)];return(
                       <div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:C.card,borderLeft:`4px solid ${seg?.color||C.acc}`,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:10}}>
                         <span style={{...F,fontSize:11,color:seg?.color||C.acc,minWidth:50,fontWeight:600}}>{s.time||"Anytime"}</span>
@@ -473,8 +451,6 @@ export default function App(){
                     );})}
                   </div>);
                 })}
-
-                {/* Unscheduled steps */}
                 {(()=>{const scheduled=new Set();Object.values(stepsByDate).forEach(arr=>arr.forEach(s=>scheduled.add(s.id)));const unsched=allSteps.filter(s=>s.status==="active"&&!scheduled.has(s.id));return unsched.length>0?<div style={{marginTop:8}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Anytime</div>
                   {unsched.map(s=>{const seg=SEGMENTS[catToSeg(s.category)];return(
@@ -485,8 +461,6 @@ export default function App(){
                     </div>);
                   })}
                 </div>:null;})()}
-
-                {/* Completed */}
                 {doneSteps.length>0&&<div style={{marginTop:12}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
                   {doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span></div>))}
@@ -495,8 +469,6 @@ export default function App(){
             })()}
           </div>
         )}
-
-        {/* STEPS & JOURNEYS VIEW (non-everything segments) */}
         {view==="steps"&&segment!=="everything"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
             {segSteps.length===0&&segPlans.length===0&&segRoutines.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
@@ -510,7 +482,6 @@ export default function App(){
                 </div>
               </div></FadeIn>
             ):(<>
-              {/* Weekly progress bar */}
               {(()=>{
                 const now=new Date();const weekAgo=new Date(now-7*864e5);
                 const completed=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;
@@ -542,14 +513,11 @@ export default function App(){
                 {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*50}/>)}
                 {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all journeys</button>}
               </div>}
-              {/* Routines */}
               {segRoutines.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Routines ({segRoutines.length})</div>
                 {segRoutines.map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*50}/>)}
               </div>}
-              {/* Completed steps - show in all views */}
               {(()=>{const segDone=segment==="everything"?doneSteps:doneSteps.filter(s=>catToSeg(s.category)===segment);return segDone.length>0?<div style={{marginBottom:20}}><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({segDone.length})</div>{segDone.slice(0,segment==="everything"?5:3).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Heart size={14} color={C.t3}/>}</button><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}><X size={16}/></button></div>))}{segDone.length>(segment==="everything"?5:3)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:4}}>+{segDone.length-(segment==="everything"?5:3)} more</div>}</div>:null;})()}
-              {/* Expired steps */}
               {expiredSteps.length>0&&(segment==="everything"||expiredSteps.some(s=>catToSeg(s.category)===segment))&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#B45309",marginBottom:12}}>Expired ({(segment==="everything"?expiredSteps:expiredSteps.filter(s=>catToSeg(s.category)===segment)).length})</div>
                 {(segment==="everything"?expiredSteps:expiredSteps.filter(s=>catToSeg(s.category)===segment)).map(s=>(<div key={s.id} style={{padding:"14px 16px",borderRadius:14,marginBottom:6,background:C.goldSoft,border:"1px solid rgba(180,83,9,0.08)",display:"flex",alignItems:"center",gap:10}}>
@@ -560,8 +528,6 @@ export default function App(){
                 </div>))}
               </div>}
             </>)}
-
-            {/* Deep profile prompt - shows after 3 completed steps if no insights yet */}
             {doneSteps.length>=3&&!profile?.insights?.length&&segment!=="everything"&&(
               <FadeIn delay={200}><div style={{padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,marginBottom:16}}>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
@@ -575,8 +541,6 @@ export default function App(){
               </div></FadeIn>
             )}
           </div>
-
-          {/* Quick-add bar at bottom of steps view */}
           {segment!=="everything"&&(view==="steps")&&(
             <div style={{padding:"8px 20px 16px",flexShrink:0,borderTop:`1px solid ${C.b1}`}}>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
@@ -586,11 +550,8 @@ export default function App(){
             </div>
           )}
         </>)}
-
-        {/* CHAT VIEW */}
         {view==="chat"&&segment!=="everything"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"10px 20px"}}>
-            {/* Empty chat state */}
             {(chats[segment]||[]).length===0&&!loading&&(
               <div style={{textAlign:"center",padding:"40px 20px"}}>
                 <div style={{width:56,height:56,borderRadius:18,margin:"0 auto 14px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{segIcon(segment)}</div>
@@ -610,7 +571,6 @@ export default function App(){
             </div>}
             <div ref={chatEnd}/>
           </div>
-          {/* Suggestion chips + clear chat */}
           {(chats[segment]||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
             <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
               {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities near me"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway ideas"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
@@ -629,8 +589,6 @@ export default function App(){
         </>)}
       </div>
 
-      {/* Full settings overlay */}
-      {/* Transition toast */}
       {transitionMsg&&<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:150,padding:"14px 28px",borderRadius:20,background:C.accGrad,color:"#fff",boxShadow:"0 8px 32px rgba(212,82,42,0.3)",display:"flex",alignItems:"center",gap:10,animation:"fadeUp 0.4s ease"}}><Check size={18}/><span style={{...F,fontSize:14,fontWeight:600}}>{transitionMsg}</span></div>}
 
       {showSettings&&<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}><div style={{maxWidth:480,margin:"0 auto"}}>
@@ -664,8 +622,6 @@ export default function App(){
             </div>
           ))}
           <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}><MessageCircle size={18}/></span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
-
-          {/* Favorites */}
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5}}>My Favorites ({(profile?.favorites||[]).length})</div>
@@ -688,8 +644,6 @@ export default function App(){
               <button onClick={()=>{const favs=(profile?.favorites||[]).filter((_,j)=>j!==i);const p={...profile,favorites:favs};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}><X size={16}/></button>
             </div>))}
           </div>
-
-          {/* Pets */}
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5}}>My Pets ({(profile?.pets||[]).length})</div>
@@ -720,7 +674,6 @@ export default function App(){
         </div>}
 
         {settingsTab==="health"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {/* FITNESS - always visible */}
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
             <button onClick={()=>setHealthSection(p=>({...p,fitness:!p.fitness}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}><Dumbbell size={20}/></span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Fitness</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Level, goals, preferences, injuries</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.fitness?"rotate(180deg)":"rotate(0)"}}><ChevronDown size={16}/></span></button>
             {healthSection.fitness&&<div style={{padding:"0 20px 20px"}}>
@@ -731,8 +684,6 @@ export default function App(){
               <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Injuries or limitations</div>{editField==="injuries"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. bad knee, lower back" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...(profile?.health||{}),injuries:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.injuries||"None"}</div><button onClick={()=>{setEditField("injuries");setEditVal(profile?.health?.injuries||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
             </div>}
           </div>
-
-          {/* FOOD & ALLERGIES - always visible */}
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
             <button onClick={()=>setHealthSection(p=>({...p,food:!p.food}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}><UtensilsCrossed size={20}/></span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Food & Allergies</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Allergens, dietary preferences{(profile?.health?.allergies||[]).length>0?` \u00B7 ${profile.health.allergies.length} set`:""}</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.food?"rotate(180deg)":"rotate(0)"}}><ChevronDown size={16}/></span></button>
             {healthSection.food&&<div style={{padding:"0 20px 20px"}}>
@@ -741,8 +692,6 @@ export default function App(){
               <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Other allergies</div>{editField==="other_allergies"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. kiwi, latex, medications" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...(profile?.health||{}),otherAllergies:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.otherAllergies||"None"}</div><button onClick={()=>{setEditField("other_allergies");setEditVal(profile?.health?.otherAllergies||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
             </div>}
           </div>
-
-          {/* MEDICAL & INSURANCE - opt-in */}
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
             <div style={{padding:"16px 20px",display:"flex",alignItems:"center",gap:12}}>
               <span style={{fontSize:20}}><Building2 size={20}/></span>
@@ -755,8 +704,6 @@ export default function App(){
               <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Primary Care Physician</div>{editField==="pcp"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Doctor's name or clinic" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,pcp:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.pcp||"Not set"}</div><button onClick={()=>{setEditField("pcp");setEditVal(profile?.health?.pcp||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
             </div>}
           </div>
-
-          {/* Health apps */}
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>{[{icon:<Heart size={18} color="#FF2D55"/>,l:"Apple Health",d:"Steps, heart rate, sleep"},{icon:<Dumbbell size={18} color="#0073CF"/>,l:"MyFitnessPal",d:"Nutrition, calories"},{icon:<Heart size={18} color="#00B0B9"/>,l:"Fitbit",d:"Activity, sleep"},{icon:<Sparkles size={18} color="#F47D31"/>,l:"Headspace",d:"Meditation"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} {"·"} Coming soon</div></div></div>))}</div>
           <div style={{...F,fontSize:12,color:C.t3,lineHeight:1.6,padding:"14px 16px",background:C.cream,borderRadius:14}}>Your guide is not a medical professional. Always consult a licensed physician for medical concerns.</div>
         </div>}
@@ -774,7 +721,6 @@ export default function App(){
         </div>}
 
         {settingsTab==="insights"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {/* Stats overview */}
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
             <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Your activity</div>
             <div style={{display:"flex",gap:12}}>
@@ -783,7 +729,6 @@ export default function App(){
               <div style={{flex:1,padding:14,borderRadius:12,background:C.cream,textAlign:"center"}}><div style={{...H,fontSize:24,color:C.gold}}>{allSteps.filter(s=>s.loved).length}</div><div style={{...F,fontSize:11,color:C.t2,marginTop:2}}>Loved</div></div>
             </div>
           </div>
-          {/* Category breakdown */}
           {Object.keys(completedByCategory).length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
             <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>What you do most</div>
             {Object.entries(completedByCategory).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>{const pct=totalCompleted>0?count/totalCompleted*100:0;return(
@@ -793,9 +738,7 @@ export default function App(){
               </div>
             );})}
           </div>}
-          {/* Profile insights */}
           {profile?.insights?.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Profile insights ({profile.insights.length})</div>{profile.insights.map((ins,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<profile.insights.length-1?`1px solid ${C.b1}`:"none"}}>{ins.text}</div>))}</div>}
-          {/* Learned preferences */}
           {preferences.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Learned preferences</div>{preferences.map((p,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<preferences.length-1?`1px solid ${C.b1}`:"none"}}><span style={{fontWeight:600,color:C.t1,textTransform:"capitalize"}}>{p.key?.replace(/_/g," ")}:</span> {p.value}</div>))}</div>}
           {totalCompleted===0&&!profile?.insights?.length&&!preferences.length&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:28,marginBottom:8}}><Sparkles size={18} color="#F47D31"/></div><div style={{...F,fontSize:14,color:C.t2}}>Complete some steps to see your patterns here.</div></div>}
         </div>}
@@ -831,9 +774,9 @@ export default function App(){
           </div>
         </div>}
 
-      </div></div>}
-
-      {/* Legal modals - outside settings to avoid esbuild JSX parsing issue */}
+      </div>
+      </div>
+      }
       <LegalModal legalModal={legalModal} setLegalModal={setLegalModal} />
     </div>
   );
