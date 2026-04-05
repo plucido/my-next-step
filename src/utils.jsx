@@ -35,8 +35,12 @@ export function clean(text){if(!text)return text;let t=text;
   t=t.replace(/^[\u2022\-\*]\s*/gm,"");t=t.replace(/^\d+[.)]\s*/gm,"");
   // Strip orphaned punctuation lines (citation artifacts)
   t=t.replace(/^\s*[.!]\s*$/gm,"");
-  // Strip citation markers like [1], [2] etc
+  // Strip citation markers like [1], [2], 【1†source】 etc
   t=t.replace(/\[\d+\]/g,"");
+  t=t.replace(/\u3010[^】]*\u3011/g,"");
+  t=t.replace(/\[\d+†[^\]]*\]/g,"");
+  // Strip orphaned special chars left by citation removal
+  t=t.replace(/[†‡§]+/g,"");
   // Collapse excessive whitespace
   t=t.replace(/\n{3,}/g,"\n\n");t=t.replace(/^\s+$/gm,"");
   return t.trim();}

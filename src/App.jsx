@@ -169,7 +169,7 @@ export default function App(){
         if(!data.content||data.content.length===0){console.error("Empty content from API:",JSON.stringify(data));finalText="Hmm, I didn't get a response. Try again?";break;}
         for(const block of data.content)if(block.type==="text"&&block.text)finalText+=block.text+"\n";
         if(data.stop_reason==="end_turn"||data.stop_reason==="stop")break;
-        if(data.stop_reason==="tool_use"){currentMsgs.push({role:"assistant",content:data.content});const tr=[];for(const b of data.content)if(b.type==="tool_use")tr.push({type:"tool_result",tool_use_id:b.id,content:"Search complete. Now respond with 1-2 casual sentences, then ---DATA--- followed by a JSON array of steps/journeys based on what you found. Remember: the cards are the product, not the chat text."});if(tr.length)currentMsgs.push({role:"user",content:tr});finalText="";continue;}
+        if(data.stop_reason==="tool_use"){currentMsgs.push({role:"assistant",content:data.content});const tr=[];for(const b of data.content){if(b.type==="tool_use")tr.push({type:"tool_result",tool_use_id:b.id,content:"Search complete. Now respond with 1-2 casual sentences, then ---DATA--- followed by a JSON array of steps/journeys based on what you found. Remember: the cards are the product, not the chat text."});if(b.type==="server_tool_use")tr.push({type:"tool_result",tool_use_id:b.id,content:""});}if(tr.length)currentMsgs.push({role:"user",content:tr});finalText="";continue;}
         break;
       }
 
