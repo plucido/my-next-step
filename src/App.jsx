@@ -419,17 +419,50 @@ export default function App(){
           messages:updated.slice(-20).map(m=>({role:m.role,content:m.content})),
         }),
       });
-      const data=await res.json();const raw=data.content?.map(c=>c.text||"").filter(Boolean).join("\n")||"Tell me more?";
-      let displayText=raw,newSteps=[...steps],newPlans=[...plans],newPrefs=[...preferences];
-      if(raw.includes("---DATA---")){const parts=raw.split("---DATA---");displayText=parts[0].trim();
-        try{for(const item of JSON.parse(parts[1].trim())){
-          if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
-          else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false}))},...newPlans.filter(p=>p.title!==item.title)];
-          else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
-          else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
-          else if(item.type==="delete_plan")newPlans=newPlans.filter(p=>!p.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
-        }setSteps(newSteps);setPlans(newPlans);setPreferences(newPrefs);}catch(e){console.error("Parse:",e);}
+      const data=await res.json();
+      // Extract all text from response, handling web search tool_use blocks
+      let allText = "";
+      if (data.content) {
+        for (const block of data.content) {
+          if (block.type === "text" && block.text) allText += block.text + "\n";
+        }
       }
+      const raw = allText.trim() || "Tell me more?";
+      let displayText=raw,newSteps=[...steps],newPlans=[...plans],newPrefs=[...preferences];
+
+      // Try multiple ways to find the structured data
+      let jsonStr = null;
+      if(raw.includes("---DATA---")){
+        const parts=raw.split("---DATA---");
+        displayText=parts[0].trim();
+        jsonStr=parts[1]?.trim();
+      } else {
+        // Try to find JSON array anywhere in the response
+        const jsonMatch = raw.match(/\[[\s\S]*?"type"\s*:\s*"(step|plan|preference|delete_step|delete_plan)"[\s\S]*?\]/);
+        if (jsonMatch) {
+          displayText = raw.slice(0, raw.indexOf(jsonMatch[0])).trim();
+          jsonStr = jsonMatch[0];
+        }
+      }
+
+      if (jsonStr) {
+        try{
+          // Clean up common issues
+          jsonStr = jsonStr.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+          const items = JSON.parse(jsonStr);
+          for(const item of (Array.isArray(items) ? items : [items])){
+            if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
+            else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false}))},...newPlans.filter(p=>p.title!==item.title)];
+            else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
+            else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
+            else if(item.type==="delete_plan")newPlans=newPlans.filter(p=>!p.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
+          }
+          setSteps(newSteps);setPlans(newPlans);setPreferences(newPrefs);
+        }catch(e){console.error("Parse error:",e,"JSON was:",jsonStr?.slice(0,200));}
+      }
+      // Clean displayText of any leftover JSON fragments
+      displayText = displayText.replace(/\[[\s\S]*?"type"\s*:[\s\S]*?\]/g, "").trim();
+      if (!displayText) displayText = newSteps.length > steps.length ? "Here's what I found for you!" : newPlans.length > plans.length ? "I put together a plan for you!" : "Let me know what you think!";
       const newMsgs=[...updated,{role:"assistant",content:cleanMarkdown(displayText)}];setMessages(newMsgs);
       persist(profile,newSteps,newPlans,newMsgs,newPrefs);
       if(newSteps.length>steps.length)setTimeout(()=>setMode("steps"),600);
