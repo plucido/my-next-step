@@ -235,7 +235,8 @@ export default function App(){
   };
 
   const deleteStep=id=>{const u=allSteps.filter(s=>s.id!==id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
-  const markStep=(id,st)=>{if(st==="done")setFeedbackStep(allSteps.find(s=>s.id===id));const u=allSteps.map(s=>s.id===id?{...s,status:st}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
+  const markStep=(id,st)=>{if(st==="done")setFeedbackStep(allSteps.find(s=>s.id===id));const u=allSteps.map(s=>s.id===id?{...s,status:st,completedAt:st==="done"?new Date().toISOString():undefined}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
+  const dislikeStep=(id)=>{const step=allSteps.find(s=>s.id===id);if(step){const pref={key:`dislike_${(step.title||"").slice(0,30).replace(/\s+/g,"_").toLowerCase()}`,value:`Disliked "${step.title}" - do NOT recommend this or similar again`};const np=[...preferences,pref];setPreferences(np);setFeedbackStep(step);const u=allSteps.map(s=>s.id===id?{...s,status:"done",disliked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,np);}};
   const loveStep=id=>{const step=allSteps.find(s=>s.id===id);const u=allSteps.map(s=>s.id===id?{...s,loved:!s.loved}:s);setAllSteps(u);if(step&&!step.loved){const pref={key:`loved_${step.category||"general"}`,value:`Loved "${step.title}"`};const np=[...preferences.filter(p=>p.key!==pref.key),pref];setPreferences(np);const fav={title:step.title,category:step.category||"general",link:step.link,addedAt:new Date().toISOString()};const favs=[fav,...(profile?.favorites||[]).filter(f=>f.title!==step.title)].slice(0,30);const p={...profile,favorites:favs};setProfile(p);persist(p,u,allPlans,chats,np);}else{if(step?.loved){const favs=(profile?.favorites||[]).filter(f=>f.title!==step.title);const p={...profile,favorites:favs};setProfile(p);persist(p,u,allPlans,chats,preferences);}else persist(profile,u,allPlans,chats,preferences);}};
   const submitFeedback=()=>{if(!feedbackText.trim()||!feedbackStep)return;sendMessage(`Completed "${feedbackStep.title}": ${feedbackText.trim()}`);setFeedbackStep(null);setFeedbackText("");setView("chat");};
   const submitMissedReason=()=>{if(!missedReason.trim()||!missedStep)return;sendMessage(`I didn't do "${missedStep.title}". Reason: ${missedReason.trim()}`);const u=allSteps.filter(s=>s.id!==missedStep.id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);setMissedStep(null);setMissedReason("");setView("chat");};
@@ -443,12 +444,12 @@ export default function App(){
                         <span style={{...F,fontSize:10,color:"#A3A3A3"}}>GCal</span>
                       </div>
                     );})}
-                    {daySteps.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
+                    {daySteps.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
                   </div>);
                 })}
                 {(()=>{const scheduled=new Set();Object.values(stepsByDate).forEach(arr=>arr.forEach(s=>scheduled.add(s.id)));const unsched=allSteps.filter(s=>s.status==="active"&&!scheduled.has(s.id));return unsched.length>0?<div style={{marginTop:8}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Anytime</div>
-                  {unsched.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
+                  {unsched.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
                 </div>:null;})()}
                 {doneSteps.length>0&&<div style={{marginTop:12}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
@@ -494,7 +495,7 @@ export default function App(){
               })()}
               {segSteps.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
-                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*50}/>)}
+                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*50}/>)}
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>
