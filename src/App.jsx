@@ -4,10 +4,12 @@ const font = `@import url('https://fonts.googleapis.com/css2?family=Newsreader:o
 const S = { fontFamily: "'Newsreader', serif" };
 const F = { fontFamily: "'Manrope', sans-serif" };
 const C = {
-  bg: "#08080C", s1: "rgba(255,255,255,0.04)", s2: "rgba(255,255,255,0.07)",
-  b1: "rgba(255,255,255,0.06)", b2: "rgba(255,255,255,0.12)",
-  t1: "#EDEAE3", t2: "rgba(237,234,227,0.55)", t3: "rgba(237,234,227,0.28)",
-  acc: "#56D4A5", acc2: "#3BB8E8", accDim: "rgba(86,212,165,0.1)",
+  bg: "#FFFAF7", card: "#FFFFFF", s1: "rgba(0,0,0,0.03)", s2: "rgba(0,0,0,0.05)",
+  b1: "rgba(0,0,0,0.06)", b2: "rgba(0,0,0,0.1)",
+  t1: "#1A1A1A", t2: "#666666", t3: "#999999",
+  acc: "#FF6B54", acc2: "#FF8F7A", accDim: "rgba(255,107,84,0.08)", accBorder: "rgba(255,107,84,0.15)",
+  accGrad: "linear-gradient(135deg, #FF6B54, #FF8F7A)",
+  teal: "#2EC4A0", tealDim: "rgba(46,196,160,0.08)",
 };
 
 const SOCIALS = [
@@ -19,33 +21,39 @@ const SOCIALS = [
 ];
 
 const PROFILE_SECTIONS = [
-  { id: "basics", label: "The basics", icon: "\u{1F464}", questions: ["What's your current job or role?", "What's your relationship status?", "Do you have kids?", "What does your typical day look like?"] },
-  { id: "personality", label: "Your personality", icon: "\u{1F31F}", questions: ["Are you more introverted or extroverted?", "How do you handle stress?", "What motivates you most?", "What's your biggest strength?"] },
-  { id: "lifestyle", label: "Lifestyle & habits", icon: "\u{1F3E0}", questions: ["What does a typical weekend look like?", "Do you exercise regularly?", "How's your sleep?", "Do you cook or eat out mostly?"] },
-  { id: "dreams", label: "Dreams & goals", icon: "\u2728", questions: ["Where do you see yourself in 5 years?", "What would you do if money wasn't an issue?", "What have you always wanted to try?", "What's holding you back?"] },
-  { id: "challenges", label: "Current challenges", icon: "\u{1F525}", questions: ["What's your biggest challenge right now?", "What have you tried that hasn't worked?", "What area of life feels most stuck?"] },
+  { id: "basics", label: "The basics", icon: "\u{1F464}", questions: ["What's your current job or role?", "What does your typical day look like?", "What's your living situation?"] },
+  { id: "personality", label: "Your personality", icon: "\u{1F31F}", questions: ["Are you more introverted or extroverted?", "What motivates you most?", "How do you handle stress?"] },
+  { id: "lifestyle", label: "Lifestyle & habits", icon: "\u{1F3E0}", questions: ["What does a typical weekend look like?", "Do you exercise regularly?", "Do you cook or eat out?"] },
+  { id: "dreams", label: "Dreams & goals", icon: "\u2728", questions: ["Where do you see yourself in 5 years?", "What have you always wanted to try?", "What's holding you back?"] },
+  { id: "challenges", label: "Current challenges", icon: "\u{1F525}", questions: ["What's your biggest challenge right now?", "What area of life feels most stuck?"] },
 ];
 
-const SYSTEM_PROMPT = `You are the AI engine behind "My Next Step" \u2014 a life coach app that creates SPECIFIC, ACTIONABLE recommendations with direct links.
+const SYSTEM_PROMPT = `You are the AI engine behind "My Next Step" \u2014 a life coach app.
 
-CORE RULES:
-1. LISTEN before recommending. Ask smart questions first. Better to ask than recommend something irrelevant.
-2. EVERY recommendation must have a CLEAR ACTION with a PRE-FILLED link (not just a homepage).
-3. Two output types: STEPS (immediate actions) and PLANS (multi-step goals with sub-tasks).
-4. PRE-FILLED LINKS ARE CRITICAL. Examples:
-   - Flights: "https://www.kayak.com/flights/HOU-AUS/2026-05-15/2026-05-18"
-   - Hotels: "https://www.airbnb.com/s/Fredericksburg--TX/homes?checkin=2026-05-15&checkout=2026-05-18&adults=2"
-   - Local: "https://www.google.com/maps/search/yoga+studios+near+Houston+TX"
-5. After feedback, ADAPT. Add preference insights.
-6. Be concise. 1-3 sentences. Cards do the heavy lifting.
+CRITICAL RULES:
+1. DO NOT generate steps or plans until you deeply understand what the person wants. Ask 2-3 clarifying questions first. Generic recommendations will cause users to leave.
+2. When the conversation shifts direction (user changes topic, says "actually I want to..." etc), output a DELETE action to remove now-irrelevant steps/plans. Keep the board clean.
+3. EVERY recommendation must have PRE-FILLED links with search parameters (dates, locations, preferences baked into the URL). Never link to just a homepage.
+4. Two output types: STEPS (do now/this week) and PLANS (multi-step projects with sub-tasks and links).
+5. After feedback, ADAPT and store preferences.
+6. Be concise in chat. 1-3 sentences. Cards do the work.
 
-OUTPUT FORMAT: Include structured data after "---DATA---" at the end.
+PRE-FILLED LINK EXAMPLES:
+- "https://www.kayak.com/flights/HOU-AUS/2026-05-15/2026-05-18"
+- "https://www.airbnb.com/s/Fredericksburg--TX/homes?checkin=2026-05-15&checkout=2026-05-18&adults=2"
+- "https://www.google.com/maps/search/yoga+studios+near+Houston+TX"
+
+OUTPUT FORMAT (after "---DATA---"):
 Steps: [{"type":"step","title":"...","why":"...","link":"https://...","linkText":"...","category":"...","time":"..."}]
 Plans: [{"type":"plan","title":"...","date":"...","tasks":[{"title":"...","links":[{"label":"...","url":"https://..."}]}]}]
 Preferences: [{"type":"preference","key":"...","value":"..."}]
-Only output ---DATA--- when you have SPECIFIC recommendations.`;
+Delete items: [{"type":"delete_step","title":"...reason to remove..."},{"type":"delete_plan","title":"...plan title to remove..."}]
 
-// ─── GOOGLE SIGN-IN ───
+WHEN TO DELETE: If the user says something like "actually forget the yoga, I want to try boxing" \u2014 output a delete for the yoga step AND a new boxing step. Keep the board relevant.
+
+Only output ---DATA--- when you have SPECIFIC, well-understood recommendations. When in doubt, ASK MORE QUESTIONS.`;
+
+// ─── GOOGLE & STRAVA AUTH ───
 function loadGoogleScript() {
   return new Promise((resolve) => {
     if (document.getElementById("gsi-script")) return resolve();
@@ -54,213 +62,167 @@ function loadGoogleScript() {
     document.head.appendChild(s);
   });
 }
-function decodeJwt(token) {
-  try { return JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch { return null; }
-}
-
-// ─── STRAVA OAUTH ───
+function decodeJwt(t) { try { return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/"))); } catch { return null; } }
 function connectStrava() {
   const cid = import.meta.env.VITE_STRAVA_CLIENT_ID;
-  if (!cid) return alert("Strava not configured");
+  if (!cid) return;
   window.location.href = `https://www.strava.com/oauth/authorize?client_id=${cid}&response_type=code&redirect_uri=${window.location.origin}&scope=read,activity:read&approval_prompt=auto`;
 }
 async function exchangeStravaCode(code) {
+  try { const r = await fetch("https://www.strava.com/oauth/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client_id: import.meta.env.VITE_STRAVA_CLIENT_ID, client_secret: import.meta.env.VITE_STRAVA_CLIENT_SECRET, code, grant_type: "authorization_code" }) }); return await r.json(); } catch { return null; }
+}
+async function fetchStravaProfile(token) {
   try {
-    const res = await fetch("https://www.strava.com/oauth/token", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ client_id: import.meta.env.VITE_STRAVA_CLIENT_ID, client_secret: import.meta.env.VITE_STRAVA_CLIENT_SECRET, code, grant_type: "authorization_code" }),
-    });
-    return await res.json();
-  } catch (e) { console.error("Strava error:", e); return null; }
+    const [aRes, actRes] = await Promise.all([
+      fetch("https://www.strava.com/api/v3/athlete", { headers: { Authorization: `Bearer ${token}` } }),
+      fetch("https://www.strava.com/api/v3/athlete/activities?per_page=10", { headers: { Authorization: `Bearer ${token}` } }),
+    ]);
+    const athlete = await aRes.json();
+    const activities = await actRes.json();
+    let stats = null;
+    if (athlete.id) { try { const s = await fetch(`https://www.strava.com/api/v3/athletes/${athlete.id}/stats`, { headers: { Authorization: `Bearer ${token}` } }); stats = await s.json(); } catch {} }
+    const recent = Array.isArray(activities) ? activities.slice(0,10).map(a => ({ type: a.type, name: a.name, distance: (a.distance/1000).toFixed(1)+" km", duration: Math.round(a.moving_time/60)+" min", date: new Date(a.start_date_local).toLocaleDateString(), pace: a.type==="Run" ? (a.moving_time/60/(a.distance/1000)).toFixed(1)+" min/km" : null })) : [];
+    return { name: `${athlete.firstname||""} ${athlete.lastname||""}`.trim(), city: athlete.city||"", recentActivities: recent, allTimeRuns: stats?.all_run_totals?.count||0, allTimeRunDistance: stats?.all_run_totals?.distance ? (stats.all_run_totals.distance/1000).toFixed(0)+" km":"0 km", allTimeRides: stats?.all_ride_totals?.count||0, allTimeRideDistance: stats?.all_ride_totals?.distance ? (stats.all_ride_totals.distance/1000).toFixed(0)+" km":"0 km", recentRunCount: stats?.recent_run_totals?.count||0, recentRideCount: stats?.recent_ride_totals?.count||0 };
+  } catch { return null; }
 }
 
 // ─── AUTH SCREEN ───
 function AuthScreen({ onAuth }) {
   const [mode, setMode] = useState("landing");
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
+  const [email, setEmail] = useState(""); const [name, setName] = useState("");
   const gRef = useRef(null);
-
   useEffect(() => {
     const cid = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!cid || mode !== "landing") return;
     loadGoogleScript().then(() => {
       if (!window.google?.accounts?.id) return;
-      window.google.accounts.id.initialize({
-        client_id: cid,
-        callback: (r) => { const u = decodeJwt(r.credential); if (u) onAuth({ name: u.given_name || u.name || "User", email: u.email, method: "google", picture: u.picture }); },
-      });
-      if (gRef.current) window.google.accounts.id.renderButton(gRef.current, { type: "standard", theme: "filled_black", size: "large", width: 380, text: "continue_with", shape: "pill" });
+      window.google.accounts.id.initialize({ client_id: cid, callback: (r) => { const u = decodeJwt(r.credential); if (u) onAuth({ name: u.given_name||u.name||"User", email: u.email, method: "google" }); } });
+      if (gRef.current) window.google.accounts.id.renderButton(gRef.current, { type: "standard", theme: "outline", size: "large", width: 380, text: "continue_with", shape: "pill" });
     });
   }, [mode]);
 
   if (mode === "email") return (
-    <div style={{ ...F, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+    <div style={{ ...F, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: C.bg }}>
       <div style={{ width: "100%", maxWidth: 400 }}>
         <button onClick={() => setMode("landing")} style={{ ...F, background: "none", border: "none", color: C.t3, cursor: "pointer", fontSize: 14, marginBottom: 24 }}>{"\u2190"} Back</button>
-        <h2 style={{ ...S, fontSize: 30, color: C.t1, marginBottom: 8 }}>Create your account</h2>
-        <p style={{ ...F, color: C.t2, fontSize: 14, marginBottom: 28 }}>Get started with personalized recommendations.</p>
+        <h2 style={{ ...S, fontSize: 30, color: C.t1, marginBottom: 24 }}>Create your account</h2>
         <label style={{ ...F, fontSize: 12, color: C.t3, display: "block", marginBottom: 6 }}>Your name</label>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="First name" style={{ ...F, width: "100%", padding: "13px 16px", fontSize: 15, borderRadius: 12, border: `1px solid ${C.b2}`, background: C.s1, color: C.t1, outline: "none", marginBottom: 14, boxSizing: "border-box" }} />
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="First name" style={{ ...F, width: "100%", padding: "13px 16px", fontSize: 15, borderRadius: 12, border: `1.5px solid ${C.b2}`, background: "#fff", color: C.t1, outline: "none", marginBottom: 14, boxSizing: "border-box" }} />
         <label style={{ ...F, fontSize: 12, color: C.t3, display: "block", marginBottom: 6 }}>Email</label>
-        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" type="email" style={{ ...F, width: "100%", padding: "13px 16px", fontSize: 15, borderRadius: 12, border: `1px solid ${C.b2}`, background: C.s1, color: C.t1, outline: "none", marginBottom: 20, boxSizing: "border-box" }} />
-        <button onClick={() => name.trim() && email.includes("@") && onAuth({ name: name.trim(), email, method: "email" })} disabled={!name.trim() || !email.includes("@")} style={{
-          ...F, width: "100%", padding: "14px", borderRadius: 14, fontSize: 15, fontWeight: 600, border: "none",
-          cursor: name.trim() && email.includes("@") ? "pointer" : "default",
-          background: name.trim() && email.includes("@") ? `linear-gradient(135deg, ${C.acc}, ${C.acc2})` : C.s1,
-          color: name.trim() && email.includes("@") ? C.bg : C.t3,
-        }}>Create account {"\u2192"}</button>
+        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" type="email" style={{ ...F, width: "100%", padding: "13px 16px", fontSize: 15, borderRadius: 12, border: `1.5px solid ${C.b2}`, background: "#fff", color: C.t1, outline: "none", marginBottom: 20, boxSizing: "border-box" }} />
+        <button onClick={() => name.trim() && email.includes("@") && onAuth({ name: name.trim(), email, method: "email" })} disabled={!name.trim() || !email.includes("@")} style={{ ...F, width: "100%", padding: "14px", borderRadius: 14, fontSize: 15, fontWeight: 600, border: "none", cursor: name.trim() && email.includes("@") ? "pointer" : "default", background: name.trim() && email.includes("@") ? C.accGrad : C.s1, color: name.trim() && email.includes("@") ? "#fff" : C.t3 }}>Create account {"\u2192"}</button>
       </div>
     </div>
   );
 
   return (
-    <div style={{ ...F, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+    <div style={{ ...F, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: C.bg }}>
       <div style={{ width: "100%", maxWidth: 400, textAlign: "center" }}>
-        <div style={{ width: 52, height: 52, borderRadius: 14, margin: "0 auto 18px", background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: C.bg, fontWeight: 700 }}>{"\u2192"}</div>
+        <div style={{ width: 56, height: 56, borderRadius: 16, margin: "0 auto 18px", background: C.accGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24, color: "#fff" }}>{"\u{1F463}"}</div>
         <h1 style={{ ...S, fontSize: 42, color: C.t1, lineHeight: 1.1, marginBottom: 10 }}>My Next Step</h1>
         <p style={{ ...F, fontSize: 15, color: C.t2, lineHeight: 1.6, maxWidth: 320, margin: "0 auto 36px" }}>Your AI coach that creates clear, actionable steps and makes them easy to do.</p>
         <div ref={gRef} style={{ display: "flex", justifyContent: "center", marginBottom: 10 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 16, margin: "18px 0" }}><div style={{ flex: 1, height: 1, background: C.b1 }} /><span style={{ fontSize: 12, color: C.t3 }}>or</span><div style={{ flex: 1, height: 1, background: C.b1 }} /></div>
-        <button onClick={() => setMode("email")} style={{ ...F, width: "100%", padding: "13px", borderRadius: 14, fontSize: 15, fontWeight: 500, background: "transparent", color: C.t2, border: `1px solid ${C.b1}`, cursor: "pointer" }}>Sign up with email</button>
+        <button onClick={() => setMode("email")} style={{ ...F, width: "100%", padding: "13px", borderRadius: 14, fontSize: 15, fontWeight: 500, background: "#fff", color: C.t2, border: `1.5px solid ${C.b2}`, cursor: "pointer" }}>Sign up with email</button>
       </div>
     </div>
   );
 }
 
-// ─── SOCIAL LINK SCREEN ───
-function SocialLinkScreen({ onContinue, stravaConnected }) {
+// ─── SOCIAL, SETUP, DEEP PROFILE ───
+function SocialLinkScreen({ onContinue, stravaConnected, stravaProfile }) {
   const [linked, setLinked] = useState(stravaConnected ? ["strava"] : []);
-  const handleClick = (s) => {
-    if (s.id === "strava" && !linked.includes("strava")) { connectStrava(); return; }
-    setLinked(p => p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id]);
-  };
+  const handleClick = (s) => { if (s.id === "strava" && !linked.includes("strava")) { connectStrava(); return; } if (s.real || linked.includes(s.id)) setLinked(p => p.includes(s.id) ? p.filter(x => x !== s.id) : [...p, s.id]); };
   return (
-    <div style={{ ...F, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+    <div style={{ ...F, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: C.bg }}>
       <div style={{ width: "100%", maxWidth: 420 }}>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <h2 style={{ ...S, fontSize: 28, color: C.t1, marginBottom: 8 }}>Connect your accounts</h2>
-          <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6 }}>We read your data to personalize \u2014 never post on your behalf.</p>
-        </div>
+        <div style={{ textAlign: "center", marginBottom: 28 }}><h2 style={{ ...S, fontSize: 28, color: C.t1, marginBottom: 8 }}>Connect your accounts</h2><p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6 }}>We read your data to personalize {"\u2014"} never post on your behalf.</p></div>
+        {stravaConnected && stravaProfile && (
+          <div style={{ padding: "14px 16px", borderRadius: 14, background: "rgba(252,76,2,0.04)", border: "1px solid rgba(252,76,2,0.12)", marginBottom: 16 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: "#FC4C02", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>Strava connected</div>
+            <div style={{ fontSize: 14, color: C.t1, fontWeight: 500 }}>{stravaProfile.name}</div>
+            <div style={{ fontSize: 12, color: C.t2, marginTop: 2 }}>{stravaProfile.allTimeRuns} runs ({stravaProfile.allTimeRunDistance}) {"\u2022"} {stravaProfile.allTimeRides} rides ({stravaProfile.allTimeRideDistance})</div>
+          </div>
+        )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 24 }}>
-          {SOCIALS.map(s => {
-            const on = linked.includes(s.id);
-            return (
-              <button key={s.id} onClick={() => handleClick(s)} style={{ ...F, padding: "14px 16px", borderRadius: 14, cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: on ? `${s.color}12` : C.s1, border: `1.5px solid ${on ? s.color : C.b1}`, transition: "all 0.2s", textAlign: "left" }}>
-                <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>{s.icon}</span>
-                <span style={{ flex: 1, color: C.t1, fontSize: 14, fontWeight: 500 }}>{s.label}{s.real && !on && <span style={{ fontSize: 10, color: C.acc, marginLeft: 8, fontWeight: 600 }}>LIVE</span>}</span>
-                {on && <span style={{ color: s.color, fontWeight: 700 }}>{"\u2713"}</span>}
-              </button>
-            );
-          })}
+          {SOCIALS.map(s => { const on = linked.includes(s.id); return (
+            <button key={s.id} onClick={() => handleClick(s)} style={{ ...F, padding: "14px 16px", borderRadius: 14, cursor: s.real ? "pointer" : "default", display: "flex", alignItems: "center", gap: 12, background: on ? `${s.color}08` : "#fff", border: `1.5px solid ${on ? s.color : C.b1}`, textAlign: "left", opacity: s.real ? 1 : 0.55 }}>
+              <span style={{ fontSize: 20, width: 28, textAlign: "center" }}>{s.icon}</span>
+              <span style={{ flex: 1, color: C.t1, fontSize: 14, fontWeight: 500 }}>{s.label}{s.real && !on && <span style={{ fontSize: 10, color: C.acc, marginLeft: 8, fontWeight: 600 }}>LIVE</span>}{!s.real && <span style={{ fontSize: 10, color: C.t3, marginLeft: 8 }}>Soon</span>}</span>
+              {on && <span style={{ color: s.color, fontWeight: 700 }}>{"\u2713"}</span>}
+            </button>
+          ); })}
         </div>
-        <button onClick={() => onContinue(linked)} style={{ ...F, width: "100%", padding: "14px", borderRadius: 14, fontSize: 15, fontWeight: 600, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, color: C.bg }}>{linked.length > 0 ? `Continue with ${linked.length} account${linked.length > 1 ? "s" : ""} \u2192` : "Continue \u2192"}</button>
+        <button onClick={() => onContinue(linked)} style={{ ...F, width: "100%", padding: "14px", borderRadius: 14, fontSize: 15, fontWeight: 600, border: "none", cursor: "pointer", background: C.accGrad, color: "#fff" }}>{linked.length > 0 ? `Continue \u2192` : "Continue \u2192"}</button>
         {linked.length === 0 && <button onClick={() => onContinue([])} style={{ ...F, display: "block", margin: "10px auto 0", background: "none", border: "none", color: C.t3, fontSize: 13, cursor: "pointer" }}>Skip for now</button>}
       </div>
     </div>
   );
 }
 
-// ─── SETUP SCREEN ───
 function SetupScreen({ profile, onComplete }) {
-  const [location, setLocation] = useState("");
-  const [goals, setGoals] = useState("");
+  const [location, setLocation] = useState(""); const [goals, setGoals] = useState("");
   return (
-    <div style={{ ...F, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+    <div style={{ ...F, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, background: C.bg }}>
       <div style={{ width: "100%", maxWidth: 420 }}>
         <h2 style={{ ...S, fontSize: 28, color: C.t1, marginBottom: 6 }}>Almost there, {profile.name}</h2>
-        <p style={{ color: C.t2, fontSize: 14, marginBottom: 28, lineHeight: 1.6 }}>Two quick things so your coach can find real stuff near you.</p>
+        <p style={{ color: C.t2, fontSize: 14, marginBottom: 28 }}>So your coach can find real things near you.</p>
         <label style={{ fontSize: 12, color: C.t3, display: "block", marginBottom: 6 }}>Where are you based?</label>
-        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="City, State (e.g. Houston, TX)" style={{ ...F, width: "100%", padding: "13px 16px", fontSize: 15, borderRadius: 12, border: `1px solid ${C.b2}`, background: C.s1, color: C.t1, outline: "none", marginBottom: 18, boxSizing: "border-box" }} />
-        <label style={{ fontSize: 12, color: C.t3, display: "block", marginBottom: 6 }}>What are you focused on right now?</label>
-        <textarea value={goals} onChange={e => setGoals(e.target.value)} rows={3} placeholder="A trip, a career goal, getting healthier..." style={{ ...F, width: "100%", padding: "13px 16px", fontSize: 14, borderRadius: 12, border: `1px solid ${C.b2}`, background: C.s1, color: C.t1, outline: "none", resize: "vertical", lineHeight: 1.6, boxSizing: "border-box", marginBottom: 20 }} />
-        <button onClick={() => location.trim() && goals.trim() && onComplete({ location: location.trim(), goals: goals.trim() })} disabled={!location.trim() || !goals.trim()} style={{
-          ...F, width: "100%", padding: "14px", borderRadius: 14, fontSize: 15, fontWeight: 600, border: "none",
-          cursor: location.trim() && goals.trim() ? "pointer" : "default",
-          background: location.trim() && goals.trim() ? `linear-gradient(135deg, ${C.acc}, ${C.acc2})` : C.s1,
-          color: location.trim() && goals.trim() ? C.bg : C.t3,
-        }}>Continue {"\u2192"}</button>
+        <input value={location} onChange={e => setLocation(e.target.value)} placeholder="City, State" style={{ ...F, width: "100%", padding: "13px 16px", fontSize: 15, borderRadius: 12, border: `1.5px solid ${C.b2}`, background: "#fff", color: C.t1, outline: "none", marginBottom: 18, boxSizing: "border-box" }} />
+        <label style={{ fontSize: 12, color: C.t3, display: "block", marginBottom: 6 }}>What are you focused on?</label>
+        <textarea value={goals} onChange={e => setGoals(e.target.value)} rows={3} placeholder="A trip, career goal, getting healthier..." style={{ ...F, width: "100%", padding: "13px 16px", fontSize: 14, borderRadius: 12, border: `1.5px solid ${C.b2}`, background: "#fff", color: C.t1, outline: "none", resize: "vertical", lineHeight: 1.6, boxSizing: "border-box", marginBottom: 20 }} />
+        <button onClick={() => location.trim() && goals.trim() && onComplete({ location: location.trim(), goals: goals.trim() })} disabled={!location.trim() || !goals.trim()} style={{ ...F, width: "100%", padding: "14px", borderRadius: 14, fontSize: 15, fontWeight: 600, border: "none", cursor: location.trim() && goals.trim() ? "pointer" : "default", background: location.trim() && goals.trim() ? C.accGrad : C.s1, color: location.trim() && goals.trim() ? "#fff" : C.t3 }}>Continue {"\u2192"}</button>
       </div>
     </div>
   );
 }
 
-// ─── DEEP PROFILE CHAT ───
 function DeepProfileChat({ profile, onFinish, existingInsights }) {
-  const [msgs, setMsgs] = useState([]);
-  const [inp, setInp] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [insights, setInsights] = useState(existingInsights || []);
-  const [section, setSection] = useState(null);
-  const endRef = useRef(null);
-  const inpRef = useRef(null);
+  const [msgs, setMsgs] = useState([]); const [inp, setInp] = useState(""); const [busy, setBusy] = useState(false);
+  const [insights, setInsights] = useState(existingInsights || []); const [section, setSection] = useState(null);
+  const endRef = useRef(null); const inpRef = useRef(null);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs, busy]);
   const completed = PROFILE_SECTIONS.filter(s => insights.some(i => i.section === s.id));
-
-  const startSection = (sec) => {
-    setSection(sec);
-    setMsgs([{ role: "assistant", content: `Let's talk about ${sec.label.toLowerCase()}. I'll ask a few questions to understand you better.\n\n${sec.questions[0]}` }]);
-    setTimeout(() => inpRef.current?.focus(), 100);
-  };
+  const startSection = (sec) => { setSection(sec); setMsgs([{ role: "assistant", content: `Let's talk about ${sec.label.toLowerCase()}.\n\n${sec.questions[0]}` }]); setTimeout(() => inpRef.current?.focus(), 100); };
   const send = async () => {
     if (!inp.trim() || busy) return;
-    const updated = [...msgs, { role: "user", content: inp.trim() }];
-    setMsgs(updated); setInp(""); setBusy(true);
+    const updated = [...msgs, { role: "user", content: inp.trim() }]; setMsgs(updated); setInp(""); setBusy(true);
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 800,
-          system: `You are onboarding a user for "My Next Step". Have a warm conversation.\nUser: ${profile.name} | Location: ${profile.setup?.location || "unknown"} | Goals: ${profile.setup?.goals || ""}\nSection: ${section.label}\nQuestions: ${section.questions.join(" | ")}\n\nRULES: Ask ONE question at a time (2-3 sentences). After 3-5 exchanges, summarize with "INSIGHTS:" then bullet points "- ". Be genuinely curious.`,
-          messages: updated.map(m => ({ role: m.role, content: m.content })),
-        }),
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 800, system: `You're onboarding a user for "My Next Step". Be warm and curious.\nUser: ${profile.name} | ${profile.setup?.location||""} | Goals: ${profile.setup?.goals||""}\nSection: ${section.label}\nQuestions: ${section.questions.join(" | ")}\nRULES: ONE question at a time. After 3-5 exchanges, summarize with "INSIGHTS:" then "- " bullets.`, messages: updated.map(m => ({ role: m.role, content: m.content })) }),
       });
       const data = await res.json();
-      const text = data.content?.map(c => c.text || "").filter(Boolean).join("\n") || "Tell me more?";
-      if (text.includes("INSIGHTS:")) {
-        const parts = text.split("INSIGHTS:");
-        const lines = parts[1].split("\n").filter(l => l.trim().startsWith("- ")).map(l => l.trim().slice(2));
-        setInsights(prev => [...prev.filter(i => i.section !== section.id), ...lines.map(t => ({ section: section.id, text: t }))]);
-        setMsgs(prev => [...prev, { role: "assistant", content: parts[0].trim() + "\n\n" + parts[1].split("\n").filter(l => !l.trim().startsWith("- ") && l.trim() !== "INSIGHTS:").join("\n").trim() }]);
-      } else setMsgs(prev => [...prev, { role: "assistant", content: text }]);
-    } catch (e) { setMsgs(prev => [...prev, { role: "assistant", content: "Hiccup \u2014 say that again?" }]); }
+      const text = data.content?.map(c => c.text||"").filter(Boolean).join("\n") || "Tell me more?";
+      if (text.includes("INSIGHTS:")) { const parts = text.split("INSIGHTS:"); const lines = parts[1].split("\n").filter(l => l.trim().startsWith("- ")).map(l => l.trim().slice(2)); setInsights(prev => [...prev.filter(i => i.section !== section.id), ...lines.map(t => ({ section: section.id, text: t }))]); setMsgs(prev => [...prev, { role: "assistant", content: parts[0].trim() }]); }
+      else setMsgs(prev => [...prev, { role: "assistant", content: text }]);
+    } catch { setMsgs(prev => [...prev, { role: "assistant", content: "Hiccup \u2014 say that again?" }]); }
     setBusy(false);
   };
 
   if (!section) return (
-    <div style={{ ...F, minHeight: "100vh", padding: 20 }}>
+    <div style={{ ...F, minHeight: "100vh", padding: 20, background: C.bg }}>
       <div style={{ maxWidth: 460, margin: "0 auto", paddingTop: 36 }}>
         <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ width: 48, height: 48, borderRadius: 14, margin: "0 auto 14px", background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>{"\u{1F4AC}"}</div>
+          <div style={{ width: 48, height: 48, borderRadius: 14, margin: "0 auto 14px", background: C.accGrad, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, color: "#fff" }}>{"\u{1F4AC}"}</div>
           <h2 style={{ ...S, fontSize: 26, color: C.t1, marginBottom: 6 }}>Let's get to know you</h2>
-          <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>Quick conversations that make your recommendations better. ~2 min each.</p>
+          <p style={{ color: C.t2, fontSize: 14, lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>~2 min each. Makes your recommendations way better.</p>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
-          {PROFILE_SECTIONS.map(sec => {
-            const done = insights.some(i => i.section === sec.id);
-            return (
-              <div key={sec.id} onClick={() => startSection(sec)} style={{ ...F, padding: "14px 16px", borderRadius: 14, cursor: "pointer", background: done ? "rgba(86,212,165,0.05)" : C.s1, border: `1.5px solid ${done ? "rgba(86,212,165,0.15)" : C.b1}`, display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, background: done ? "rgba(86,212,165,0.1)" : C.s2 }}>{done ? "\u2713" : sec.icon}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: C.t1 }}>{sec.label}</div>
-                  <div style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>{done ? "Completed" : "~2 min"}</div>
-                </div>
-                <span style={{ color: C.t3, fontSize: 14 }}>{"\u203A"}</span>
-              </div>
-            );
-          })}
+          {PROFILE_SECTIONS.map(sec => { const done = insights.some(i => i.section === sec.id); return (
+            <div key={sec.id} onClick={() => startSection(sec)} style={{ ...F, padding: "14px 16px", borderRadius: 14, cursor: "pointer", background: done ? C.tealDim : "#fff", border: `1.5px solid ${done ? C.teal : C.b1}`, display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, background: done ? C.tealDim : C.s1 }}>{done ? "\u2713" : sec.icon}</div>
+              <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 600, color: C.t1 }}>{sec.label}</div><div style={{ fontSize: 12, color: C.t3, marginTop: 2 }}>{done ? "Done" : "~2 min"}</div></div>
+              <span style={{ color: C.t3 }}>{"\u203A"}</span>
+            </div>
+          ); })}
         </div>
-        <button onClick={() => onFinish(insights)} style={{ ...F, width: "100%", padding: "14px", borderRadius: 14, fontSize: 15, fontWeight: 600, border: "none", cursor: "pointer", background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, color: C.bg }}>
-          {completed.length === 0 ? "Skip for now \u2192" : "Continue \u2192"}
-        </button>
-        {completed.length === 0 && <p style={{ textAlign: "center", fontSize: 12, color: C.t3, marginTop: 10 }}>You can always come back later</p>}
+        <button onClick={() => onFinish(insights)} style={{ ...F, width: "100%", padding: "14px", borderRadius: 14, fontSize: 15, fontWeight: 600, border: "none", cursor: "pointer", background: C.accGrad, color: "#fff" }}>{completed.length === 0 ? "Skip for now \u2192" : "Continue \u2192"}</button>
       </div>
     </div>
   );
 
   return (
-    <div style={{ ...F, display: "flex", flexDirection: "column", height: "100vh", maxWidth: 480, margin: "0 auto" }}>
+    <div style={{ ...F, display: "flex", flexDirection: "column", height: "100vh", maxWidth: 480, margin: "0 auto", background: C.bg }}>
       <div style={{ padding: "14px 20px", borderBottom: `1px solid ${C.b1}`, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         <button onClick={() => setSection(null)} style={{ background: "none", border: "none", color: C.t3, cursor: "pointer", fontSize: 16, padding: 0 }}>{"\u2190"}</button>
         <div style={{ fontSize: 14, fontWeight: 600, color: C.t1 }}>{section.label}</div>
@@ -268,19 +230,17 @@ function DeepProfileChat({ profile, onFinish, existingInsights }) {
       <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px" }}>
         {msgs.map((msg, i) => (
           <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", marginBottom: 8 }}>
-            {msg.role !== "user" && <div style={{ width: 24, height: 24, borderRadius: 8, background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, flexShrink: 0, marginRight: 8, marginTop: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.bg, fontWeight: 700 }}>{"\u2192"}</div>}
-            <div style={{ maxWidth: "82%", padding: "10px 14px", borderRadius: 14, fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap", fontFamily: "'Manrope', sans-serif",
-              ...(msg.role === "user" ? { background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, color: C.bg, borderBottomRightRadius: 4 } : { background: C.s1, color: "rgba(255,255,255,0.8)", borderBottomLeftRadius: 4, border: `1px solid ${C.b1}` }),
-            }}>{msg.content}</div>
+            {msg.role !== "user" && <div style={{ width: 24, height: 24, borderRadius: 8, background: C.accGrad, flexShrink: 0, marginRight: 8, marginTop: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", fontWeight: 700 }}>{"\u{1F463}"}</div>}
+            <div style={{ maxWidth: "82%", padding: "10px 14px", borderRadius: 14, fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap", fontFamily: "'Manrope', sans-serif", ...(msg.role === "user" ? { background: C.accGrad, color: "#fff", borderBottomRightRadius: 4 } : { background: "#fff", color: C.t1, borderBottomLeftRadius: 4, border: `1px solid ${C.b1}` }) }}>{msg.content}</div>
           </div>
         ))}
-        {busy && <div style={{ display: "flex", gap: 8, marginBottom: 8 }}><div style={{ width: 24, height: 24, borderRadius: 8, background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, flexShrink: 0 }} /><div style={{ padding: "10px 16px", borderRadius: 14, background: C.s1, border: `1px solid ${C.b1}`, display: "flex", gap: 4 }}>{[0,1,2].map(i=><div key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(255,255,255,0.25)", animation: `dpb 1.2s ease-in-out ${i*0.15}s infinite` }} />)}</div></div>}
+        {busy && <div style={{ display: "flex", gap: 8, marginBottom: 8 }}><div style={{ width: 24, height: 24, borderRadius: 8, background: C.accGrad, flexShrink: 0 }} /><div style={{ padding: "10px 16px", borderRadius: 14, background: "#fff", border: `1px solid ${C.b1}`, display: "flex", gap: 4 }}>{[0,1,2].map(i=><div key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: C.t3, animation: `dpb 1.2s ease-in-out ${i*0.15}s infinite` }} />)}</div></div>}
         <div ref={endRef} />
       </div>
       <div style={{ padding: "8px 20px 16px", borderTop: `1px solid ${C.b1}`, flexShrink: 0 }}>
         <div style={{ display: "flex", gap: 8 }}>
-          <input ref={inpRef} value={inp} onChange={e => setInp(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Type your answer..." style={{ flex: 1, padding: "11px 14px", fontSize: 14, borderRadius: 12, border: `1px solid ${C.b1}`, background: C.s1, color: C.t1, outline: "none", boxSizing: "border-box", fontFamily: "inherit" }} />
-          <button onClick={send} disabled={!inp.trim() || busy} style={{ width: 42, height: 42, borderRadius: 12, border: "none", flexShrink: 0, cursor: inp.trim() && !busy ? "pointer" : "default", background: inp.trim() && !busy ? `linear-gradient(135deg, ${C.acc}, ${C.acc2})` : C.s1, color: inp.trim() && !busy ? C.bg : C.t3, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u2191"}</button>
+          <input ref={inpRef} value={inp} onChange={e => setInp(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Type your answer..." style={{ flex: 1, padding: "11px 14px", fontSize: 14, borderRadius: 12, border: `1.5px solid ${C.b2}`, background: "#fff", color: C.t1, outline: "none", boxSizing: "border-box", fontFamily: "inherit" }} />
+          <button onClick={send} disabled={!inp.trim() || busy} style={{ width: 42, height: 42, borderRadius: 12, border: "none", flexShrink: 0, cursor: inp.trim() && !busy ? "pointer" : "default", background: inp.trim() && !busy ? C.accGrad : C.s1, color: inp.trim() && !busy ? "#fff" : C.t3, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u2191"}</button>
         </div>
       </div>
       <style>{`@keyframes dpb { 0%,80%,100% { transform:translateY(0) } 40% { transform:translateY(-5px) } }`}</style>
@@ -303,96 +263,74 @@ export default function App() {
   const [feedbackStep, setFeedbackStep] = useState(null);
   const [feedbackText, setFeedbackText] = useState("");
   const [stravaData, setStravaData] = useState(null);
-  const chatEnd = useRef(null);
-  const inputRef = useRef(null);
+  const chatEnd = useRef(null); const inputRef = useRef(null);
 
   useEffect(() => { chatEnd.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, loading]);
 
-  // Handle Strava OAuth redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
-    const scope = params.get("scope");
-    if (code && scope?.includes("read")) {
+    if (code && params.get("scope")?.includes("read")) {
       window.history.replaceState({}, "", window.location.pathname);
-      exchangeStravaCode(code).then(data => {
-        if (data?.athlete) {
-          setStravaData(data);
-          // If we were in socials screen, mark strava connected
-          window.storage.set("mns-strava", JSON.stringify(data)).catch(() => {});
-        }
-      });
+      exchangeStravaCode(code).then(async d => { if (d?.access_token) { const p = await fetchStravaProfile(d.access_token); const full = { ...d, profile: p }; setStravaData(full); window.storage.set("mns-strava", JSON.stringify(full)).catch(() => {}); } });
     }
   }, []);
 
-  // Load saved state
   useEffect(() => {
     (async () => {
-      try {
-        const saved = await window.storage.get("mns-v7");
-        if (saved) {
-          const d = JSON.parse(saved.value);
-          if (d.profile?.setup) { setProfile(d.profile); setSteps(d.steps || []); setPlans(d.plans || []); setMessages(d.messages || []); setPreferences(d.preferences || []); setScreen("main"); }
-        }
-      } catch (e) {}
-      try { const sv = await window.storage.get("mns-strava"); if (sv) setStravaData(JSON.parse(sv.value)); } catch (e) {}
+      try { const s = await window.storage.get("mns-v8"); if (s) { const d = JSON.parse(s.value); if (d.profile?.setup) { setProfile(d.profile); setSteps(d.steps||[]); setPlans(d.plans||[]); setMessages(d.messages||[]); setPreferences(d.preferences||[]); setScreen("main"); } } } catch {}
+      try { const sv = await window.storage.get("mns-strava"); if (sv) setStravaData(JSON.parse(sv.value)); } catch {}
     })();
   }, []);
 
-  const persist = (p, s, pl, m, pr) => {
-    window.storage.set("mns-v7", JSON.stringify({ profile: p || profile, steps: s || steps, plans: pl || plans, messages: m || messages, preferences: pr || preferences })).catch(() => {});
-  };
+  const persist = (p, s, pl, m, pr) => { window.storage.set("mns-v8", JSON.stringify({ profile: p||profile, steps: s||steps, plans: pl||plans, messages: m||messages, preferences: pr||preferences })).catch(() => {}); };
 
-  const handleAuth = (auth) => { setProfile({ name: auth.name, email: auth.email, method: auth.method, picture: auth.picture }); setScreen("socials"); };
+  const handleAuth = (auth) => { setProfile({ name: auth.name, email: auth.email, method: auth.method }); setScreen("socials"); };
   const handleSocials = (socials) => { setProfile(p => ({ ...p, socials })); setScreen("setup"); };
   const handleSetup = (setup) => { setProfile(p => ({ ...p, setup })); setScreen("deepprofile"); };
   const handleDeepProfileFinish = (insights) => {
-    const full = { ...profile, insights };
-    setProfile(full);
-    if (messages.length === 0) {
-      const welcome = [{ role: "assistant", content: `Hey ${full.name}! I'm your Next Step coach.\n\nYou're in ${full.setup?.location} and focused on: "${full.setup?.goals}"\n\nWhat's the most important thing you'd like to tackle first?` }];
-      setMessages(welcome); setMode("chat"); persist(full, [], [], welcome, []);
-    } else persist(full, steps, plans, messages, preferences);
-    setScreen("main");
-    setTimeout(() => inputRef.current?.focus(), 200);
+    const full = { ...profile, insights }; setProfile(full);
+    if (messages.length === 0) { const w = [{ role: "assistant", content: `Hey ${full.name}! I'm your Next Step coach.\n\nYou're in ${full.setup?.location} and interested in: "${full.setup?.goals}"\n\nBefore I suggest anything, tell me more \u2014 what's the most important thing you'd like to focus on first? And what have you already tried?` }]; setMessages(w); setMode("chat"); persist(full, [], [], w, []); }
+    else persist(full, steps, plans, messages, preferences);
+    setScreen("main"); setTimeout(() => inputRef.current?.focus(), 200);
   };
 
+  const talkAbout = (text) => { setMode("chat"); setInput(""); setTimeout(() => { inputRef.current?.focus(); sendMessage(text); }, 100); };
+
   const sendMessage = async (text) => {
-    const msg = text || input.trim();
-    if (!msg || loading) return;
-    const userMsg = { role: "user", content: msg };
-    const updated = [...messages, userMsg];
+    const msg = text || input.trim(); if (!msg || loading) return;
+    const userMsg = { role: "user", content: msg }; const updated = [...messages, userMsg];
     setMessages(updated); setInput(""); setLoading(true);
     const prefText = preferences.length > 0 ? "\n\nPREFERENCES:\n" + preferences.map(p => `- ${p.key}: ${p.value}`).join("\n") : "";
-    const stravaText = stravaData?.athlete ? `\n\nStrava: ${stravaData.athlete.firstname}, ${stravaData.athlete.city || ""}` : "";
+    const sp = stravaData?.profile;
+    const stravaText = sp ? `\n\nSTRAVA DATA:\n- ${sp.name}, ${sp.city}\n- ${sp.allTimeRuns} runs (${sp.allTimeRunDistance}), ${sp.allTimeRides} rides (${sp.allTimeRideDistance})\n- Recent: ${sp.recentActivities?.map(a => `${a.date}: ${a.type} ${a.distance} ${a.duration}`).join(", ")||"none"}` : "";
+    const stepsCtx = steps.filter(s=>s.status==="active").length > 0 ? "\n\nCURRENT STEPS:\n"+steps.filter(s=>s.status==="active").map(s=>`- "${s.title}"`).join("\n") : "";
+    const plansCtx = plans.length > 0 ? "\n\nCURRENT PLANS:\n"+plans.map(p=>`- "${p.title}"`).join("\n") : "";
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 1500,
-          tools: [{ type: "web_search_20250305", name: "web_search" }],
-          system: SYSTEM_PROMPT + `\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location || ""}\nGoals: ${profile?.setup?.goals || ""}${prefText}${stravaText}`,
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json", "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1500, tools: [{ type: "web_search_20250305", name: "web_search" }],
+          system: SYSTEM_PROMPT + `\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}\nGoals: ${profile?.setup?.goals||""}${prefText}${stravaText}${stepsCtx}${plansCtx}`,
           messages: updated.slice(-20).map(m => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await res.json();
-      const raw = data.content?.map(c => c.text || "").filter(Boolean).join("\n") || "Tell me more?";
-      let displayText = raw, newSteps = steps, newPlans = plans, newPrefs = preferences;
+      const raw = data.content?.map(c => c.text||"").filter(Boolean).join("\n") || "Tell me more?";
+      let displayText = raw, newSteps = [...steps], newPlans = [...plans], newPrefs = [...preferences];
       if (raw.includes("---DATA---")) {
-        const parts = raw.split("---DATA---");
-        displayText = parts[0].trim();
+        const parts = raw.split("---DATA---"); displayText = parts[0].trim();
         try {
           for (const item of JSON.parse(parts[1].trim())) {
             if (item.type === "step") newSteps = [{ ...item, status: "active", id: Date.now() + Math.random() }, ...newSteps];
-            else if (item.type === "plan") newPlans = [{ ...item, tasks: (item.tasks || []).map(t => ({ ...t, done: false })) }, ...newPlans.filter(p => p.title !== item.title)];
+            else if (item.type === "plan") newPlans = [{ ...item, tasks: (item.tasks||[]).map(t => ({ ...t, done: false })) }, ...newPlans.filter(p => p.title !== item.title)];
             else if (item.type === "preference") newPrefs = [...newPrefs.filter(p => p.key !== item.key), item];
+            else if (item.type === "delete_step") newSteps = newSteps.filter(s => !s.title.toLowerCase().includes(item.title.toLowerCase().slice(0, 20)));
+            else if (item.type === "delete_plan") newPlans = newPlans.filter(p => !p.title.toLowerCase().includes(item.title.toLowerCase().slice(0, 20)));
           }
           setSteps(newSteps); setPlans(newPlans); setPreferences(newPrefs);
         } catch (e) { console.error("Parse:", e); }
       }
-      const newMsgs = [...updated, { role: "assistant", content: displayText }];
-      setMessages(newMsgs); persist(profile, newSteps, newPlans, newMsgs, newPrefs);
+      const newMsgs = [...updated, { role: "assistant", content: displayText }]; setMessages(newMsgs);
+      persist(profile, newSteps, newPlans, newMsgs, newPrefs);
       if (newSteps.length > steps.length) setTimeout(() => setMode("steps"), 600);
       else if (newPlans.length > plans.length) setTimeout(() => setMode("plans"), 600);
     } catch (err) { console.error(err); setMessages(prev => [...prev, { role: "assistant", content: "Quick hiccup \u2014 say that again?" }]); }
@@ -404,116 +342,118 @@ export default function App() {
   const submitFeedback = () => { if (!feedbackText.trim() || !feedbackStep) return; sendMessage(`Completed "${feedbackStep.title}": ${feedbackText.trim()}`); setFeedbackStep(null); setFeedbackText(""); setMode("chat"); };
   const deletePlan = (idx) => { const u = plans.filter((_, i) => i !== idx); setPlans(u); setExpandedPlan(null); persist(profile, steps, u, messages, preferences); };
   const togglePlanTask = (pi, ti) => { const u = plans.map((p, i) => i === pi ? { ...p, tasks: p.tasks.map((t, j) => j === ti ? { ...t, done: !t.done } : t) } : p); setPlans(u); persist(profile, steps, u, messages, preferences); };
-  const resetAll = async () => { try { await window.storage.delete("mns-v7"); await window.storage.delete("mns-strava"); } catch (e) {} setProfile(null); setMessages([]); setSteps([]); setPlans([]); setPreferences([]); setStravaData(null); setScreen("auth"); };
+  const resetAll = async () => { try { await window.storage.delete("mns-v8"); await window.storage.delete("mns-strava"); } catch {} setProfile(null); setMessages([]); setSteps([]); setPlans([]); setPreferences([]); setStravaData(null); setScreen("auth"); };
 
   const activeSteps = steps.filter(s => s.status === "active");
   const doneSteps = steps.filter(s => s.status === "done");
-  const bg = <div style={{ position: "fixed", inset: 0, zIndex: 0, background: `linear-gradient(160deg, ${C.bg}, #0D0D18 40%, #0A1420)` }} />;
 
-  if (screen === "auth") return (<div><style>{font}</style>{bg}<div style={{ position: "relative", zIndex: 1 }}><AuthScreen onAuth={handleAuth} /></div></div>);
-  if (screen === "socials") return (<div><style>{font}</style>{bg}<div style={{ position: "relative", zIndex: 1 }}><SocialLinkScreen onContinue={handleSocials} stravaConnected={!!stravaData} /></div></div>);
-  if (screen === "setup") return (<div><style>{font}</style>{bg}<div style={{ position: "relative", zIndex: 1 }}><SetupScreen profile={profile} onComplete={handleSetup} /></div></div>);
-  if (screen === "deepprofile") return (<div><style>{font}</style>{bg}<div style={{ position: "relative", zIndex: 1 }}><DeepProfileChat profile={profile} onFinish={handleDeepProfileFinish} existingInsights={profile?.insights || []} /></div></div>);
+  if (screen === "auth") return (<div style={{ background: C.bg, minHeight: "100vh" }}><style>{font}</style><AuthScreen onAuth={handleAuth} /></div>);
+  if (screen === "socials") return (<div style={{ background: C.bg, minHeight: "100vh" }}><style>{font}</style><SocialLinkScreen onContinue={handleSocials} stravaConnected={!!stravaData} stravaProfile={stravaData?.profile} /></div>);
+  if (screen === "setup") return (<div style={{ background: C.bg, minHeight: "100vh" }}><style>{font}</style><SetupScreen profile={profile} onComplete={handleSetup} /></div>);
+  if (screen === "deepprofile") return (<div style={{ background: C.bg, minHeight: "100vh" }}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepProfileFinish} existingInsights={profile?.insights||[]} /></div>);
 
   return (
-    <div style={{ ...F, height: "100vh", color: C.t1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <style>{font}</style>{bg}
+    <div style={{ ...F, height: "100vh", color: C.t1, display: "flex", flexDirection: "column", overflow: "hidden", background: C.bg }}>
+      <style>{font}</style>
       {feedbackStep && (
-        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ width: "100%", maxWidth: 400, background: "#14141E", borderRadius: 20, padding: 24, border: `1px solid ${C.b2}` }}>
+        <div style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(0,0,0,0.3)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+          <div style={{ width: "100%", maxWidth: 400, background: "#fff", borderRadius: 20, padding: 24, border: `1px solid ${C.b2}`, boxShadow: "0 20px 60px rgba(0,0,0,0.1)" }}>
             <div style={{ fontSize: 12, color: C.acc, fontWeight: 600, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>How did it go?</div>
             <div style={{ ...S, fontSize: 18, color: C.t1, marginBottom: 14 }}>{feedbackStep.title}</div>
             <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
               {["Loved it!", "It was okay", "Not for me", "Too expensive", "Too far", "More like this"].map(q => (
-                <button key={q} onClick={() => setFeedbackText(q)} style={{ ...F, padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer", background: feedbackText === q ? C.accDim : C.s1, border: `1px solid ${feedbackText === q ? "rgba(86,212,165,0.2)" : C.b1}`, color: feedbackText === q ? C.acc : C.t2 }}>{q}</button>
+                <button key={q} onClick={() => setFeedbackText(q)} style={{ ...F, padding: "6px 12px", borderRadius: 8, fontSize: 12, cursor: "pointer", background: feedbackText === q ? C.accDim : C.s1, border: `1px solid ${feedbackText === q ? C.accBorder : C.b1}`, color: feedbackText === q ? C.acc : C.t2 }}>{q}</button>
               ))}
             </div>
-            <textarea value={feedbackText} onChange={e => setFeedbackText(e.target.value)} rows={2} placeholder="Or type your thoughts..." style={{ ...F, width: "100%", padding: "10px 14px", fontSize: 14, borderRadius: 10, border: `1px solid ${C.b1}`, background: C.s1, color: C.t1, outline: "none", resize: "none", boxSizing: "border-box", marginBottom: 12 }} />
+            <textarea value={feedbackText} onChange={e => setFeedbackText(e.target.value)} rows={2} placeholder="Or type..." style={{ ...F, width: "100%", padding: "10px 14px", fontSize: 14, borderRadius: 10, border: `1.5px solid ${C.b2}`, background: C.bg, color: C.t1, outline: "none", resize: "none", boxSizing: "border-box", marginBottom: 12 }} />
             <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => { setFeedbackStep(null); setFeedbackText(""); }} style={{ ...F, flex: 1, padding: 11, borderRadius: 12, border: `1px solid ${C.b1}`, background: "transparent", color: C.t2, fontSize: 14, cursor: "pointer" }}>Skip</button>
-              <button onClick={submitFeedback} disabled={!feedbackText.trim()} style={{ ...F, flex: 1, padding: 11, borderRadius: 12, border: "none", fontSize: 14, fontWeight: 600, cursor: feedbackText.trim() ? "pointer" : "default", background: feedbackText.trim() ? `linear-gradient(135deg, ${C.acc}, ${C.acc2})` : C.s1, color: feedbackText.trim() ? C.bg : C.t3 }}>Submit</button>
+              <button onClick={() => { setFeedbackStep(null); setFeedbackText(""); }} style={{ ...F, flex: 1, padding: 11, borderRadius: 12, border: `1px solid ${C.b1}`, background: "#fff", color: C.t2, fontSize: 14, cursor: "pointer" }}>Skip</button>
+              <button onClick={submitFeedback} disabled={!feedbackText.trim()} style={{ ...F, flex: 1, padding: 11, borderRadius: 12, border: "none", fontSize: 14, fontWeight: 600, cursor: feedbackText.trim() ? "pointer" : "default", background: feedbackText.trim() ? C.accGrad : C.s1, color: feedbackText.trim() ? "#fff" : C.t3 }}>Submit</button>
             </div>
           </div>
         </div>
       )}
-      <div style={{ position: "relative", zIndex: 2, display: "flex", padding: "8px 16px 0", gap: 4, flexShrink: 0 }}>
+      {/* Tabs */}
+      <div style={{ display: "flex", padding: "8px 16px 0", gap: 4, flexShrink: 0, borderBottom: `1px solid ${C.b1}` }}>
         {[{ id: "steps", label: "Steps", count: activeSteps.length }, { id: "plans", label: "Plans", count: plans.length }, { id: "chat", label: "Coach" }].map(t => (
-          <button key={t.id} onClick={() => { setMode(t.id); if (t.id === "chat") setTimeout(() => inputRef.current?.focus(), 100); }} style={{ ...F, flex: 1, padding: "10px 0", background: mode === t.id ? C.s2 : "transparent", border: "none", borderRadius: "12px 12px 0 0", cursor: "pointer", fontSize: 13, fontWeight: mode === t.id ? 600 : 400, color: mode === t.id ? C.t1 : C.t3, borderBottom: mode === t.id ? `2px solid ${C.acc}` : "2px solid transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+          <button key={t.id} onClick={() => { setMode(t.id); if (t.id === "chat") setTimeout(() => inputRef.current?.focus(), 100); }} style={{ ...F, flex: 1, padding: "10px 0 12px", background: "transparent", border: "none", cursor: "pointer", fontSize: 13, fontWeight: mode === t.id ? 600 : 400, color: mode === t.id ? C.acc : C.t3, borderBottom: mode === t.id ? `2.5px solid ${C.acc}` : "2.5px solid transparent", display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
             {t.label}{t.count > 0 && <span style={{ fontSize: 10, background: mode === t.id ? C.accDim : C.s1, color: mode === t.id ? C.acc : C.t3, padding: "2px 6px", borderRadius: 6, fontWeight: 700 }}>{t.count}</span>}
           </button>
         ))}
       </div>
-      <div style={{ position: "relative", zIndex: 1, flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {/* STEPS */}
         {mode === "steps" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 80px" }}>
             {activeSteps.length === 0 && doneSteps.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "50px 20px" }}><div style={{ fontSize: 36, marginBottom: 10 }}>{"\u2728"}</div><div style={{ fontSize: 15, fontWeight: 500, color: C.t2, marginBottom: 8 }}>No steps yet</div><div style={{ fontSize: 13, color: C.t3, lineHeight: 1.6, maxWidth: 260, margin: "0 auto 18px" }}>Chat with your coach to get recommendations.</div><button onClick={() => { setMode("chat"); setTimeout(() => inputRef.current?.focus(), 100); }} style={{ ...F, padding: "11px 22px", borderRadius: 12, border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, color: C.bg }}>Talk to coach {"\u2192"}</button></div>
+              <div style={{ textAlign: "center", padding: "50px 20px" }}><div style={{ fontSize: 36, marginBottom: 10 }}>{"\u{1F463}"}</div><div style={{ fontSize: 15, fontWeight: 500, color: C.t2, marginBottom: 8 }}>No steps yet</div><div style={{ fontSize: 13, color: C.t3, lineHeight: 1.6, maxWidth: 260, margin: "0 auto 18px" }}>Chat with your coach first. Steps appear when the AI understands what you need.</div><button onClick={() => { setMode("chat"); setTimeout(() => inputRef.current?.focus(), 100); }} style={{ ...F, padding: "11px 22px", borderRadius: 12, border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", background: C.accGrad, color: "#fff" }}>Talk to coach {"\u2192"}</button></div>
             ) : (<>
               {activeSteps.length > 0 && <div style={{ marginBottom: 24 }}><div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: C.t3, marginBottom: 10 }}>To do ({activeSteps.length})</div>
                 {activeSteps.map(step => (
-                  <div key={step.id} style={{ padding: "14px 16px", borderRadius: 14, marginBottom: 8, background: C.s1, border: `1px solid ${C.b1}`, position: "relative" }}>
+                  <div key={step.id} style={{ padding: "14px 16px", borderRadius: 14, marginBottom: 8, background: "#fff", border: `1px solid ${C.b1}`, position: "relative" }}>
                     <button onClick={() => deleteStep(step.id)} style={{ position: "absolute", top: 10, right: 10, background: "none", border: "none", color: C.t3, cursor: "pointer", fontSize: 16, padding: "2px 6px" }}>{"\u00D7"}</button>
                     {step.category && <div style={{ fontSize: 10, fontWeight: 700, color: C.acc, textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 5 }}>{step.category}</div>}
                     <div style={{ fontSize: 14, fontWeight: 600, color: C.t1, lineHeight: 1.4, marginBottom: 3, paddingRight: 24 }}>{step.title}</div>
                     {step.time && <div style={{ fontSize: 12, color: C.t3, marginBottom: 5 }}>{step.time}</div>}
                     {step.why && <div style={{ fontSize: 13, color: C.t2, lineHeight: 1.5, marginBottom: 10 }}>{step.why}</div>}
                     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                      {step.link && <a href={step.link} target="_blank" rel="noopener noreferrer" style={{ ...F, fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 10, background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, color: C.bg, textDecoration: "none" }}>{step.linkText || "Do it"} {"\u2197"}</a>}
-                      <button onClick={() => markStep(step.id, "done")} style={{ ...F, fontSize: 13, fontWeight: 500, padding: "8px 14px", borderRadius: 10, background: C.accDim, border: `1px solid rgba(86,212,165,0.15)`, color: C.acc, cursor: "pointer" }}>Done {"\u2713"}</button>
+                      {step.link && <a href={step.link} target="_blank" rel="noopener noreferrer" style={{ ...F, fontSize: 13, fontWeight: 600, padding: "8px 14px", borderRadius: 10, background: C.accGrad, color: "#fff", textDecoration: "none" }}>{step.linkText||"Do it"} {"\u2197"}</a>}
+                      <button onClick={() => markStep(step.id, "done")} style={{ ...F, fontSize: 13, fontWeight: 500, padding: "8px 14px", borderRadius: 10, background: C.tealDim, border: `1px solid ${C.teal}20`, color: C.teal, cursor: "pointer" }}>Done {"\u2713"}</button>
+                      <button onClick={() => talkAbout(`Let's talk about this step: "${step.title}"`)} style={{ ...F, fontSize: 12, padding: "8px 12px", borderRadius: 10, background: C.s1, border: `1px solid ${C.b1}`, color: C.t3, cursor: "pointer" }}>Discuss</button>
                     </div>
                   </div>
                 ))}</div>}
-              {doneSteps.length > 0 && <div><div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: C.t3, marginBottom: 10 }}>Done ({doneSteps.length})</div>{doneSteps.slice(0,5).map(s => (<div key={s.id} style={{ padding: "10px 14px", borderRadius: 10, marginBottom: 5, background: "rgba(86,212,165,0.04)", border: "1px solid rgba(86,212,165,0.08)", display: "flex", alignItems: "center", gap: 8, opacity: 0.5 }}><span style={{ color: C.acc }}>{"\u2713"}</span><span style={{ fontSize: 13, textDecoration: "line-through", color: C.t2, flex: 1 }}>{s.title}</span><button onClick={() => deleteStep(s.id)} style={{ background: "none", border: "none", color: C.t3, cursor: "pointer", fontSize: 14 }}>{"\u00D7"}</button></div>))}</div>}
+              {doneSteps.length > 0 && <div><div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: C.t3, marginBottom: 10 }}>Done ({doneSteps.length})</div>{doneSteps.slice(0,5).map(s => (<div key={s.id} style={{ padding: "10px 14px", borderRadius: 10, marginBottom: 5, background: C.tealDim, border: `1px solid ${C.teal}15`, display: "flex", alignItems: "center", gap: 8, opacity: 0.6 }}><span style={{ color: C.teal }}>{"\u2713"}</span><span style={{ fontSize: 13, textDecoration: "line-through", color: C.t2, flex: 1 }}>{s.title}</span><button onClick={() => deleteStep(s.id)} style={{ background: "none", border: "none", color: C.t3, cursor: "pointer", fontSize: 14 }}>{"\u00D7"}</button></div>))}</div>}
             </>)}
           </div>
         )}
+        {/* PLANS */}
         {mode === "plans" && (
           <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px 80px" }}>
             {plans.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "50px 20px" }}><div style={{ fontSize: 36, marginBottom: 10 }}>{"\u{1F4CB}"}</div><div style={{ fontSize: 15, fontWeight: 500, color: C.t2, marginBottom: 8 }}>No plans yet</div><div style={{ fontSize: 13, color: C.t3, lineHeight: 1.6, maxWidth: 260, margin: "0 auto 18px" }}>Tell your coach about a trip, goal, or project.</div><button onClick={() => { setMode("chat"); setTimeout(() => inputRef.current?.focus(), 100); }} style={{ ...F, padding: "11px 22px", borderRadius: 12, border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, color: C.bg }}>Talk to coach {"\u2192"}</button></div>
+              <div style={{ textAlign: "center", padding: "50px 20px" }}><div style={{ fontSize: 36, marginBottom: 10 }}>{"\u{1F4CB}"}</div><div style={{ fontSize: 15, fontWeight: 500, color: C.t2, marginBottom: 8 }}>No plans yet</div><div style={{ fontSize: 13, color: C.t3, lineHeight: 1.6, maxWidth: 260, margin: "0 auto 18px" }}>Tell your coach about a trip, goal, or project.</div><button onClick={() => { setMode("chat"); setTimeout(() => inputRef.current?.focus(), 100); }} style={{ ...F, padding: "11px 22px", borderRadius: 12, border: "none", fontSize: 14, fontWeight: 600, cursor: "pointer", background: C.accGrad, color: "#fff" }}>Talk to coach {"\u2192"}</button></div>
             ) : (<><div style={{ fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: C.t3, marginBottom: 10 }}>Your plans ({plans.length})</div>
-              {plans.map((plan, pi) => {
-                const open = expandedPlan === pi, done = plan.tasks?.filter(t => t.done).length || 0, total = plan.tasks?.length || 0;
-                return (<div key={pi} style={{ marginBottom: 10 }}>
-                  <div style={{ padding: "14px 16px", borderRadius: open ? "14px 14px 0 0" : 14, cursor: "pointer", background: C.s1, border: `1px solid ${C.b1}`, borderBottom: open ? "none" : `1px solid ${C.b1}`, position: "relative" }}>
-                    <button onClick={e => { e.stopPropagation(); deletePlan(pi); }} style={{ position: "absolute", top: 10, right: 10, background: "none", border: "none", color: C.t3, cursor: "pointer", fontSize: 16, padding: "2px 6px" }}>{"\u00D7"}</button>
-                    <div onClick={() => setExpandedPlan(open ? null : pi)}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: C.t1, paddingRight: 24 }}>{plan.title}</div>
-                      {plan.date && <div style={{ fontSize: 12, color: C.t3, marginTop: 3 }}>{plan.date}</div>}
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}><div style={{ flex: 1, height: 3, background: "rgba(255,255,255,0.05)", borderRadius: 2 }}><div style={{ height: "100%", width: total ? (done/total*100)+"%" : "0%", background: `linear-gradient(90deg, ${C.acc}, ${C.acc2})`, borderRadius: 2 }} /></div><span style={{ fontSize: 11, fontWeight: 600, color: C.acc }}>{done}/{total}</span></div>
-                    </div>
+              {plans.map((plan, pi) => { const open = expandedPlan === pi, done = plan.tasks?.filter(t => t.done).length||0, total = plan.tasks?.length||0; return (<div key={pi} style={{ marginBottom: 10 }}>
+                <div style={{ padding: "14px 16px", borderRadius: open ? "14px 14px 0 0" : 14, cursor: "pointer", background: "#fff", border: `1px solid ${C.b1}`, borderBottom: open ? "none" : `1px solid ${C.b1}`, position: "relative" }}>
+                  <button onClick={e => { e.stopPropagation(); deletePlan(pi); }} style={{ position: "absolute", top: 10, right: 10, background: "none", border: "none", color: C.t3, cursor: "pointer", fontSize: 16, padding: "2px 6px" }}>{"\u00D7"}</button>
+                  <div onClick={() => setExpandedPlan(open ? null : pi)}>
+                    <div style={{ fontSize: 15, fontWeight: 600, color: C.t1, paddingRight: 24 }}>{plan.title}</div>
+                    {plan.date && <div style={{ fontSize: 12, color: C.t3, marginTop: 3 }}>{plan.date}</div>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}><div style={{ flex: 1, height: 3, background: C.s1, borderRadius: 2 }}><div style={{ height: "100%", width: total ? (done/total*100)+"%" : "0%", background: C.accGrad, borderRadius: 2 }} /></div><span style={{ fontSize: 11, fontWeight: 600, color: C.acc }}>{done}/{total}</span></div>
                   </div>
-                  {open && <div style={{ padding: "6px 16px 14px", background: C.s1, border: `1px solid ${C.b1}`, borderTop: "none", borderRadius: "0 0 14px 14px" }}>
-                    {plan.tasks?.map((task, ti) => (<div key={ti} style={{ padding: "10px 0", borderBottom: ti < plan.tasks.length-1 ? `1px solid ${C.b1}` : "none" }}><div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
-                      <button onClick={() => togglePlanTask(pi, ti)} style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1, cursor: "pointer", background: task.done ? C.acc : "transparent", border: `2px solid ${task.done ? C.acc : C.b2}`, display: "flex", alignItems: "center", justifyContent: "center", color: task.done ? C.bg : "transparent", fontSize: 11 }}>{task.done ? "\u2713" : ""}</button>
-                      <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 500, color: C.t1, textDecoration: task.done ? "line-through" : "none", opacity: task.done ? 0.5 : 1 }}>{task.title}</div>
-                        {task.links?.length > 0 && !task.done && <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>{task.links.map((l, li) => <a key={li} href={l.url} target="_blank" rel="noopener noreferrer" style={{ ...F, fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 7, background: C.accDim, color: C.acc, textDecoration: "none", border: "1px solid rgba(86,212,165,0.1)" }}>{l.label} {"\u2197"}</a>)}</div>}
-                      </div></div></div>))}
-                  </div>}
-                </div>);
-              })}</>)}
+                  <button onClick={() => talkAbout(`Let's discuss my plan: "${plan.title}"`)} style={{ ...F, fontSize: 11, padding: "5px 10px", borderRadius: 8, background: C.s1, border: `1px solid ${C.b1}`, color: C.t3, cursor: "pointer", marginTop: 8 }}>Discuss this plan</button>
+                </div>
+                {open && <div style={{ padding: "6px 16px 14px", background: "#fff", border: `1px solid ${C.b1}`, borderTop: "none", borderRadius: "0 0 14px 14px" }}>
+                  {plan.tasks?.map((task, ti) => (<div key={ti} style={{ padding: "10px 0", borderBottom: ti < plan.tasks.length-1 ? `1px solid ${C.b1}` : "none" }}><div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <button onClick={() => togglePlanTask(pi, ti)} style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1, cursor: "pointer", background: task.done ? C.teal : "transparent", border: `2px solid ${task.done ? C.teal : C.b2}`, display: "flex", alignItems: "center", justifyContent: "center", color: task.done ? "#fff" : "transparent", fontSize: 11 }}>{task.done ? "\u2713" : ""}</button>
+                    <div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 500, color: C.t1, textDecoration: task.done ? "line-through" : "none", opacity: task.done ? 0.5 : 1 }}>{task.title}</div>
+                      {task.links?.length > 0 && !task.done && <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: 6 }}>{task.links.map((l, li) => <a key={li} href={l.url} target="_blank" rel="noopener noreferrer" style={{ ...F, fontSize: 11, fontWeight: 600, padding: "5px 10px", borderRadius: 7, background: C.accDim, color: C.acc, textDecoration: "none", border: `1px solid ${C.accBorder}` }}>{l.label} {"\u2197"}</a>)}</div>}
+                    </div></div></div>))}
+                </div>}
+              </div>); })}</>)}
           </div>
         )}
+        {/* CHAT */}
         {mode === "chat" && (<>
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 20px" }}>
             {messages.map((msg, i) => (
               <div key={i} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", marginBottom: 8 }}>
-                {msg.role !== "user" && <div style={{ width: 24, height: 24, borderRadius: 8, background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, flexShrink: 0, marginRight: 8, marginTop: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.bg, fontWeight: 700 }}>{"\u2192"}</div>}
+                {msg.role !== "user" && <div style={{ width: 24, height: 24, borderRadius: 8, background: C.accGrad, flexShrink: 0, marginRight: 8, marginTop: 3, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "#fff", fontWeight: 700 }}>{"\u{1F463}"}</div>}
                 <div style={{ ...F, maxWidth: "82%", padding: "10px 14px", borderRadius: 14, fontSize: 14, lineHeight: 1.6, whiteSpace: "pre-wrap",
-                  ...(msg.role === "user" ? { background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, color: C.bg, borderBottomRightRadius: 4 } : { background: C.s1, color: "rgba(255,255,255,0.8)", borderBottomLeftRadius: 4, border: `1px solid ${C.b1}` }),
+                  ...(msg.role === "user" ? { background: C.accGrad, color: "#fff", borderBottomRightRadius: 4 } : { background: "#fff", color: C.t1, borderBottomLeftRadius: 4, border: `1px solid ${C.b1}` }),
                 }}>{msg.content}</div>
               </div>
             ))}
-            {loading && <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><div style={{ width: 24, height: 24, borderRadius: 8, background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`, flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: C.bg, fontWeight: 700 }}>{"\u2192"}</div><div style={{ padding: "10px 16px", borderRadius: 14, borderBottomLeftRadius: 4, background: C.s1, border: `1px solid ${C.b1}`, display: "flex", gap: 4 }}>{[0,1,2].map(i=><div key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: "rgba(255,255,255,0.25)", animation: `bounce 1.2s ease-in-out ${i*0.15}s infinite` }} />)}</div></div>}
+            {loading && <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><div style={{ width: 24, height: 24, borderRadius: 8, background: C.accGrad, flexShrink: 0 }} /><div style={{ padding: "10px 16px", borderRadius: 14, background: "#fff", border: `1px solid ${C.b1}`, display: "flex", gap: 4 }}>{[0,1,2].map(i=><div key={i} style={{ width: 5, height: 5, borderRadius: "50%", background: C.t3, animation: `bounce 1.2s ease-in-out ${i*0.15}s infinite` }} />)}</div></div>}
             <div ref={chatEnd} />
           </div>
           <div style={{ padding: "8px 20px 16px", borderTop: `1px solid ${C.b1}`, flexShrink: 0 }}><div style={{ display: "flex", gap: 8 }}>
-            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()} placeholder="What do you want to do?" style={{ ...F, flex: 1, padding: "11px 14px", fontSize: 14, borderRadius: 12, border: `1px solid ${C.b1}`, background: C.s1, color: C.t1, outline: "none", boxSizing: "border-box" }} />
-            <button onClick={() => sendMessage()} disabled={!input.trim() || loading} style={{ width: 42, height: 42, borderRadius: 12, border: "none", flexShrink: 0, cursor: input.trim() && !loading ? "pointer" : "default", background: input.trim() && !loading ? `linear-gradient(135deg, ${C.acc}, ${C.acc2})` : C.s1, color: input.trim() && !loading ? C.bg : C.t3, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u2191"}</button>
+            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage()} placeholder="What do you want to do?" style={{ ...F, flex: 1, padding: "11px 14px", fontSize: 14, borderRadius: 12, border: `1.5px solid ${C.b2}`, background: "#fff", color: C.t1, outline: "none", boxSizing: "border-box" }} />
+            <button onClick={() => sendMessage()} disabled={!input.trim() || loading} style={{ width: 42, height: 42, borderRadius: 12, border: "none", flexShrink: 0, cursor: input.trim() && !loading ? "pointer" : "default", background: input.trim() && !loading ? C.accGrad : C.s1, color: input.trim() && !loading ? "#fff" : C.t3, fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center" }}>{"\u2191"}</button>
           </div></div>
         </>)}
       </div>
-      {mode !== "chat" && <div style={{ position: "relative", zIndex: 2, padding: "0 20px 12px", textAlign: "center", display: "flex", justifyContent: "center", gap: 16 }}>
+      {mode !== "chat" && <div style={{ padding: "0 20px 12px", textAlign: "center", display: "flex", justifyContent: "center", gap: 16 }}>
         <button onClick={() => setScreen("deepprofile")} style={{ ...F, background: "none", border: "none", color: C.acc, cursor: "pointer", fontSize: 11 }}>Go deeper with coach</button>
         <button onClick={resetAll} style={{ ...F, background: "none", border: "none", color: C.t3, cursor: "pointer", fontSize: 11 }}>Reset everything</button>
       </div>}
