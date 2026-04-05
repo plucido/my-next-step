@@ -296,7 +296,19 @@ export default function App(){
 
   return(
     <div style={{...F,height:"100vh",color:C.t1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg}}>
-      <style>{font}{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes landIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}@keyframes landFade{from{opacity:0}to{opacity:1}}`}</style>
+      <style>{font}{`
+        *{-webkit-tap-highlight-color:transparent;}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+        @keyframes landIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes landFade{from{opacity:0}to{opacity:1}}
+        @keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+        button{transition:transform 0.1s ease,opacity 0.15s ease;}
+        button:active{transform:scale(0.97);opacity:0.9;}
+        input:focus,textarea:focus{border-color:${C.acc} !important;box-shadow:0 0 0 3px rgba(212,82,42,0.08);}
+        ::-webkit-scrollbar{width:0;height:0;}
+      `}</style>
       {showLanding&&<div style={{position:"fixed",inset:0,zIndex:250,background:C.bg,display:"flex",flexDirection:"column",overflow:"auto"}}>
         <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",maxWidth:440,margin:"0 auto",width:"100%"}}>
           <div style={{animation:"landIn 0.6s ease",textAlign:"center",marginBottom:32}}>
@@ -538,9 +550,15 @@ export default function App(){
                 <div style={bubble(msg.role==="user")}>{msg.content}</div>
               </div>
             ))}
-            {loading&&<div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-              <div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:14,height:14,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",animation:"spin 0.8s linear infinite"}}/></div>
-              <div style={{...F,fontSize:14,color:C.t3,fontStyle:"italic"}}>Thinking...</div>
+            {loading&&<div style={{display:"flex",gap:10,marginBottom:10}}>
+              <div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:14,height:14,borderRadius:"50%",border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",animation:"spin 0.8s linear infinite"}}/></div>
+              <div style={{maxWidth:"70%"}}>
+                <div style={{padding:"14px 18px",borderRadius:20,borderBottomLeftRadius:6,background:C.card,boxShadow:C.shadow}}>
+                  <div style={{height:12,width:"80%",borderRadius:6,background:`linear-gradient(90deg,${C.cream} 25%,${C.b1} 50%,${C.cream} 75%)`,backgroundSize:"400px 100%",animation:"shimmer 1.5s ease infinite",marginBottom:8}}>{null}</div>
+                  <div style={{height:12,width:"60%",borderRadius:6,background:`linear-gradient(90deg,${C.cream} 25%,${C.b1} 50%,${C.cream} 75%)`,backgroundSize:"400px 100%",animation:"shimmer 1.5s ease infinite"}}>{null}</div>
+                </div>
+                <div style={{...F,fontSize:11,color:C.t3,marginTop:4,fontStyle:"italic"}}>Searching and thinking...</div>
+              </div>
             </div>}
             <div ref={chatEnd}/>
           </div>
