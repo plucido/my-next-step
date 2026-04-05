@@ -419,6 +419,7 @@ export default function App(){
   const[calToken,setCalToken]=useState(null);
   const[showSettings,setShowSettings]=useState(false);
   const[settingsTab,setSettingsTab]=useState("profile");
+  const[showLanding,setShowLanding]=useState(false);
   const[editField,setEditField]=useState(null);
   const[editVal,setEditVal]=useState("");
   const[genderEdit,setGenderEdit]=useState("");
@@ -429,6 +430,7 @@ export default function App(){
   const[healthSection,setHealthSection]=useState({fitness:true,food:true,medical:false});
   const[petType,setPetType]=useState("Dog");
   const[petBreed,setPetBreed]=useState("");
+  const[petAge,setPetAge]=useState("");
   const[transitionMsg,setTransitionMsg]=useState(null);
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
@@ -460,7 +462,7 @@ export default function App(){
   useEffect(()=>{(async()=>{
     try{const hint=localStorage.getItem("mns_last_user");if(hint){
       const data=await loadFB(hint,"appdata");
-      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);setScreen("main");}
+      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);setScreen("main");setShowLanding(true);}
       const sv=await loadFB(hint,"strava");if(sv)setStravaData(sv);
       const cv=await loadFB(hint,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}
     }}catch{}
@@ -495,7 +497,7 @@ export default function App(){
     const stepsCtx=allSteps.filter(s=>s.status==="active").length>0?"\n\nALL ACTIVE STEPS:\n"+allSteps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
     const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\n\nLOVED STEPS:\n"+allSteps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
     const favsCtx=(profile?.favorites||[]).length>0?"\n\nFAVORITES (places/things user loves):\n"+(profile.favorites).map(f=>`- "${f.title}" (${f.category})`).join("\n"):"";
-    const petsCtx=(profile?.pets||[]).length>0?"\n\nPETS:\n"+(profile.pets).map(p=>`- ${p.name} (${p.type}${p.breed?" / "+p.breed:""})`).join("\n"):"";
+    const petsCtx=(profile?.pets||[]).length>0?"\n\nPETS:\n"+(profile.pets).map(p=>`- ${p.name} (${p.type}${p.breed?" / "+p.breed:""}${p.age?", "+p.age:""})`).join("\n"):"";
     const plansCtx=allPlans.length>0?"\n\nJOURNEYS:\n"+allPlans.map(p=>{const d=p.tasks?.filter(t=>t.done).length||0;return`- "${p.title}" (${p.date||"no date"}, ${d}/${p.tasks?.length||0} done)`;}).join("\n"):"";
     const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\n\nACTIVE ROUTINES:\n"+allRoutines.filter(r=>!r.paused).map(r=>`- "${r.title}" (${r.schedule}, ${(r.days||[]).join("/")||"flexible"}, ${r.category})`).join("\n"):"";
     const calCtx=calData?.length>0?"\n\nCALENDAR:\n"+calData.slice(0,10).map(e=>{const d=new Date(e.start);return`- ${d.toLocaleDateString()} ${e.allDay?"all day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}: ${e.title}`;}).join("\n"):"";
@@ -672,7 +674,42 @@ export default function App(){
 
   return(
     <div style={{...F,height:"100vh",color:C.t1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg}}>
-      <style>{font}{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
+      <style>{font}{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}@keyframes landIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}@keyframes landFade{from{opacity:0}to{opacity:1}}`}</style>
+
+      {/* Landing overlay */}
+      {showLanding&&<div style={{position:"fixed",inset:0,zIndex:250,background:C.bg,display:"flex",flexDirection:"column",overflow:"auto"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",maxWidth:440,margin:"0 auto",width:"100%"}}>
+          <div style={{animation:"landIn 0.6s ease",textAlign:"center",marginBottom:32}}>
+            <div style={{width:72,height:72,borderRadius:22,margin:"0 auto 20px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 12px 36px rgba(212,82,42,0.25)"}}><Logo size={38} color="#fff"/></div>
+            <div style={{...H,fontSize:28,color:C.t1,marginBottom:6}}>
+              {getGreeting()}{profile?.name?`, ${profile.name}`:""}</div>
+            <div style={{...F,fontSize:15,color:C.t2,lineHeight:1.6}}>What would you like to work on?</div>
+          </div>
+
+          <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
+            {SEG_KEYS.map((s,i)=>{const info=SEGMENTS[s];const count=allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;return(
+              <button key={s} onClick={()=>{setSegment(s);setView("steps");setShowLanding(false);}} style={{...F,width:"100%",padding:"18px 20px",borderRadius:20,background:C.card,boxShadow:C.shadow,border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:16,textAlign:"left",animation:`landIn 0.5s ease ${0.15+i*0.08}s both`}}>
+                <div style={{width:48,height:48,borderRadius:16,background:info.soft,display:"flex",alignItems:"center",justifyContent:"center"}}>{segIcon(s,22,info.color)}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:16,fontWeight:600,color:C.t1}}>{info.label}</div>
+                  <div style={{fontSize:13,color:C.t3,marginTop:2}}>{count>0?`${count} active step${count>1?"s":""}`:info.desc}</div>
+                </div>
+                <ChevronRight size={18} color={C.t3}/>
+              </button>
+            );})}
+            <button onClick={()=>{setSegment("everything");setView("steps");setShowLanding(false);}} style={{...F,width:"100%",padding:"14px 20px",borderRadius:16,background:"transparent",border:`1.5px solid ${C.b2}`,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left",animation:`landIn 0.5s ease ${0.15+4*0.08}s both`}}>
+              <div style={{width:40,height:40,borderRadius:14,background:C.cream,display:"flex",alignItems:"center",justifyContent:"center"}}><Calendar size={18} color={C.t3}/></div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:500,color:C.t2}}>Timeline</div>
+                <div style={{fontSize:12,color:C.t3}}>See everything on your calendar</div>
+              </div>
+              <ChevronRight size={16} color={C.t3}/>
+            </button>
+          </div>
+
+          <button onClick={()=>setShowLanding(false)} style={{...F,fontSize:13,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"10px 20px",animation:`landFade 0.4s ease 0.8s both`}}>Dismiss</button>
+        </div>
+      </div>}
 
       {/* Feedback modal */}
       {feedbackStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
@@ -961,7 +998,7 @@ export default function App(){
               {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities near me"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway ideas"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
             </div>
           </div>}
-          {(chats[segment]||[]).length>2&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
+          {(chats[segment]||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
             <button onClick={()=>{if(confirm("Clear this conversation? Steps and journeys will be kept.")){const nc={...chats,[segment]:[]};setChats(nc);persist(profile,allSteps,allPlans,nc,preferences);}}} style={{...F,fontSize:11,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"4px 8px"}}>Clear conversation</button>
           </div>}
           <div style={{padding:"6px 20px 16px",flexShrink:0}}>
@@ -1044,9 +1081,10 @@ export default function App(){
               <div style={{marginBottom:10}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Name</div><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Pet's name" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"}}/></div>
               <div style={{marginBottom:10}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Type</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Dog","Cat","Bird","Fish","Rabbit","Reptile","Other"].map(t=>(<button key={t} onClick={()=>setPetType(t)} style={{...F,padding:"6px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:petType===t?C.accSoft:C.cream,border:`1.5px solid ${petType===t?C.acc:C.b2}`,color:petType===t?C.acc:C.t2,fontWeight:petType===t?600:400}}>{t}</button>))}</div></div>
               <div style={{marginBottom:10}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Breed (optional)</div><input value={petBreed} onChange={e=>setPetBreed(e.target.value)} placeholder="e.g. Golden Retriever" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"}}/></div>
+              <div style={{marginBottom:10}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Age (optional)</div><input value={petAge} onChange={e=>setPetAge(e.target.value)} placeholder="e.g. 3 years, 6 months" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"}}/></div>
               <div style={{display:"flex",gap:8,marginTop:12}}>
                 <button onClick={()=>{setEditField(null);setPetType("Dog");setPetBreed("");}} style={{...F,flex:1,padding:8,borderRadius:10,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
-                <button onClick={()=>{if(editVal.trim()){const pet={name:editVal.trim(),type:petType,breed:petBreed.trim(),addedAt:new Date().toISOString()};const pets=[...(profile?.pets||[]),pet];const p={...profile,pets};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);setEditVal("");setPetType("Dog");setPetBreed("");}}} style={{...F,flex:1,padding:8,borderRadius:10,border:"none",background:C.accGrad,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add pet</button>
+                <button onClick={()=>{if(editVal.trim()){const pet={name:editVal.trim(),type:petType,breed:petBreed.trim(),age:petAge.trim(),addedAt:new Date().toISOString()};const pets=[...(profile?.pets||[]),pet];const p={...profile,pets};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);setEditVal("");setPetType("Dog");setPetBreed("");setPetAge("");}}} style={{...F,flex:1,padding:8,borderRadius:10,border:"none",background:C.accGrad,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add pet</button>
               </div>
             </div>}
             {(profile?.pets||[]).length===0&&editField!=="add_pet"&&<div style={{...F,fontSize:13,color:C.t3,padding:"8px 0",lineHeight:1.5}}>Add your pets so your guide can suggest pet-friendly restaurants, parks, travel, and activities.</div>}
@@ -1054,7 +1092,7 @@ export default function App(){
               <div style={{width:36,height:36,borderRadius:12,background:C.cream,display:"flex",alignItems:"center",justifyContent:"center"}}><Heart size={16} color={C.teal}/></div>
               <div style={{flex:1}}>
                 <div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>{pet.name}</div>
-                <div style={{...F,fontSize:12,color:C.t3}}>{pet.type}{pet.breed?` · ${pet.breed}`:""}</div>
+                <div style={{...F,fontSize:12,color:C.t3}}>{pet.type}{pet.breed?` · ${pet.breed}`:""}{pet.age?` · ${pet.age}`:""}</div>
               </div>
               <button onClick={()=>{const pets=(profile?.pets||[]).filter((_,j)=>j!==i);const p={...profile,pets};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer"}}><X size={14}/></button>
             </div>))}
