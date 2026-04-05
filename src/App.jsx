@@ -52,10 +52,20 @@ function ProgressRing({ progress, size = 44, stroke = 4 }) {
 }
 
 // ─── SUGGESTION CHIPS ───
-function SuggestionChips({ onSelect, hasSteps, hasPlans }) {
-  const initial = ["Find me a class", "Plan a trip", "What should I do today?", "Help me with a goal"];
-  const withSteps = ["Give me new steps", "Change my focus", "I want to try something new", "Plan a trip"];
-  const chips = hasSteps ? withSteps : initial;
+function SuggestionChips({ onSelect, hasSteps, hasPlans, steps, plans }) {
+  const initial = ["What should I do today?", "Help me plan something", "I want to learn something new", "Find me something fun nearby"];
+  let contextual = [];
+  if (hasSteps || hasPlans) {
+    contextual = ["What else should I try?", "I want to switch things up"];
+    if (steps?.length > 0) {
+      const latest = steps.find(s => s.status === "active");
+      if (latest) contextual.unshift(`More like "${latest.title.slice(0, 25)}${latest.title.length > 25 ? "..." : ""}"`);
+    }
+    if (plans?.length > 0) {
+      contextual.push(`Update my ${plans[0].title.slice(0, 20)} plan`);
+    }
+  }
+  const chips = contextual.length > 0 ? contextual.slice(0, 4) : initial;
   return (
     <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 0 8px", scrollbarWidth: "none" }}>
       {chips.map(c => (
@@ -197,14 +207,14 @@ function SocialLinkScreen({onContinue,stravaConnected,stravaProfile}){
 
 // ─── SETUP ───
 function SetupScreen({profile,onComplete}){
-  const[location,setLocation]=useState("");const[goals,setGoals]=useState("");const[age,setAge]=useState("");const[gender,setGender]=useState("");const[genderOther,setGenderOther]=useState("");
+  const[location,setLocation]=useState("");const[age,setAge]=useState("");const[gender,setGender]=useState("");const[genderOther,setGenderOther]=useState("");
   const inp={...F,width:"100%",padding:"15px 18px",fontSize:15,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:"inset 0 1px 2px rgba(0,0,0,0.02)"};
-  const ok=location.trim()&&goals.trim();
+  const ok=location.trim();
   return(
     <div style={{...F,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,background:C.bg}}>
       <FadeIn><div style={{width:"100%",maxWidth:420}}>
         <h2 style={{...H,fontSize:30,color:C.t1,marginBottom:8}}>A bit about you</h2>
-        <p style={{color:C.t2,fontSize:15,marginBottom:36,lineHeight:1.6}}>Helps your coach give relevant recommendations, {profile.name}.</p>
+        <p style={{color:C.t2,fontSize:15,marginBottom:36,lineHeight:1.6}}>Just the basics so your coach can find things near you, {profile.name}.</p>
         <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8,fontWeight:500}}>Age</label>
         <input value={age} onChange={e=>setAge(e.target.value)} placeholder="e.g. 28" type="number" style={{...inp,marginBottom:20}} />
         <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:10,fontWeight:500}}>Gender</label>
@@ -213,10 +223,8 @@ function SetupScreen({profile,onComplete}){
         </div>
         {gender==="Other"&&<input value={genderOther} onChange={e=>setGenderOther(e.target.value)} placeholder="How do you identify?" style={{...inp,marginBottom:20}} />}
         <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8,fontWeight:500}}>Where are you based?</label>
-        <input value={location} onChange={e=>setLocation(e.target.value)} placeholder="City, State" style={{...inp,marginBottom:20}} />
-        <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8,fontWeight:500}}>What are you focused on?</label>
-        <textarea value={goals} onChange={e=>setGoals(e.target.value)} rows={3} placeholder="A trip, career goal, getting healthier..." style={{...inp,resize:"vertical",lineHeight:1.6,marginBottom:28}} />
-        <button onClick={()=>ok&&onComplete({location:location.trim(),goals:goals.trim(),age:age.trim(),gender:gender==="Other"?genderOther:gender})} disabled={!ok} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:ok?"pointer":"default",background:ok?C.accGrad:"rgba(0,0,0,0.04)",color:ok?"#fff":C.t3,boxShadow:ok?"0 4px 20px rgba(212,82,42,0.25)":"none",transition:"all 0.2s"}}>Continue {"\u2192"}</button>
+        <input value={location} onChange={e=>setLocation(e.target.value)} placeholder="City, State" style={{...inp,marginBottom:28}} />
+        <button onClick={()=>ok&&onComplete({location:location.trim(),age:age.trim(),gender:gender==="Other"?genderOther:gender})} disabled={!ok} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:ok?"pointer":"default",background:ok?C.accGrad:"rgba(0,0,0,0.04)",color:ok?"#fff":C.t3,boxShadow:ok?"0 4px 20px rgba(212,82,42,0.25)":"none",transition:"all 0.2s"}}>Continue {"\u2192"}</button>
       </div></FadeIn>
     </div>
   );
@@ -299,7 +307,7 @@ function SettingsPanel({profile,stravaData,preferences,onUpdateProfile,onConnect
       </div>
       <div style={{display:"flex",gap:6,marginBottom:24}}>{[{id:"account",l:"Profile"},{id:"connections",l:"Connected"},{id:"preferences",l:"AI insights"},{id:"about",l:"About"}].map(t=>(<button key={t.id} onClick={()=>setSection(t.id)} style={{...F,flex:1,padding:"10px 6px",background:section===t.id?C.card:"transparent",border:section===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:section===t.id?600:400,color:section===t.id?C.t1:C.t3,boxShadow:section===t.id?C.shadow:"none",transition:"all 0.15s"}}>{t.l}</button>))}</div>
 
-      {section==="account"&&<div>{field("name","Name","\u{1F464}",profile.name)}{field("age","Age","\u{1F382}",profile.setup?.age)}{field("gender","Gender","\u2728",profile.setup?.gender)}{field("location","Location","\u{1F4CD}",profile.setup?.location)}{field("goals","Current focus","\u{1F3AF}",profile.setup?.goals)}
+      {section==="account"&&<div>{field("name","Name","\u{1F464}",profile.name)}{field("age","Age","\u{1F382}",profile.setup?.age)}{field("gender","Gender","\u2728",profile.setup?.gender)}{field("location","Location","\u{1F4CD}",profile.setup?.location)}
         <button onClick={onDeepProfile} style={{...F,width:"100%",padding:"18px 20px",borderRadius:18,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left",marginTop:8}}><span style={{fontSize:20}}>{"\u{1F4AC}"}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with coach</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>{profile.insights?.length||0} insights</div></div><span style={{color:C.acc,fontSize:16}}>{"\u203A"}</span></button>
         <button onClick={onSignOut} style={{...F,width:"100%",padding:"15px",borderRadius:16,marginTop:20,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,fontWeight:500,cursor:"pointer"}}>Sign out</button>
       </div>}
@@ -341,6 +349,7 @@ export default function App(){
   const[showSettings,setShowSettings]=useState(false);
   const[missedStep,setMissedStep]=useState(null);
   const[missedReason,setMissedReason]=useState("");
+  const[chatContext,setChatContext]=useState(null);
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
   const timeAgo=iso=>{if(!iso)return"";const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/6e4);if(m<1)return"Just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";};
@@ -379,11 +388,14 @@ export default function App(){
   const handleSetup=setup=>{setProfile(p=>({...p,setup}));setScreen("deepprofile");};
   const handleDeepProfileFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(messages.length===0){const w=[{role:"assistant",content:`Hey ${full.name}! I'm your Next Step coach. ${"\u{1F463}"}\n\nYou're in ${full.setup?.location} and interested in: "${full.setup?.goals}"\n\nBefore I suggest anything \u2014 what's the most important thing you'd like to focus on first?`}];setMessages(w);setMode("chat");persist(full,[],[],w,[]);}
+    if(messages.length===0){const w=[{role:"assistant",content:`Hey ${full.name}! I'm your Next Step coach. ${"\u{1F463}"}\n\nI'm here to help you find real things to do, plan trips, build habits, learn new skills, or just figure out what's next.\n\nWhat's on your mind today?`}];setMessages(w);setMode("chat");persist(full,[],[],w,[]);}
     else persist(full,steps,plans,messages,preferences);
     setScreen("main");setTimeout(()=>inputRef.current?.focus(),200);
   };
-  const talkAbout=text=>{setMode("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
+  const talkAbout=(text,contextLabel)=>{
+    if(text.includes('"')){const match=text.match(/"([^"]+)"/);if(match)setChatContext(match[1].slice(0,40));}
+    setMode("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);
+  };
 
   const sendMessage=async text=>{
     const msg=text||input.trim();if(!msg||loading)return;
@@ -397,7 +409,7 @@ export default function App(){
     try{
       const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
         body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,tools:[{type:"web_search_20250305",name:"web_search"}],
-          system:SYSTEM_PROMPT+`\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}\nGoals: ${profile?.setup?.goals||""}${prefText}${stravaText}${stepsCtx}${plansCtx}`,
+          system:SYSTEM_PROMPT+`\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${plansCtx}`,
           messages:updated.slice(-20).map(m=>({role:m.role,content:m.content})),
         }),
       });
@@ -539,7 +551,11 @@ export default function App(){
                     <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                       {step.link&&<TrackedLink href={step.link} actionId={step.id} category={step.category} title={step.title} style={{...F,fontSize:14,fontWeight:600,padding:"11px 20px",borderRadius:14,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-block",boxShadow:"0 2px 10px rgba(212,82,42,0.15)"}}>{step.linkText||"Do it"} {"\u2197"}</TrackedLink>}
                       <button onClick={()=>markStep(step.id,"done")} style={{...F,fontSize:14,fontWeight:500,padding:"11px 20px",borderRadius:14,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>Done {"\u2713"}</button>
-                      <button onClick={()=>talkAbout(`Let's talk about: "${step.title}"`)} style={{...F,fontSize:13,padding:"11px 16px",borderRadius:14,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Discuss</button>
+                    </div>
+                    <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>
+                      <button onClick={()=>talkAbout(`Let's work on this step: "${step.title}". Help me get started or find alternatives.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer",fontWeight:500}}>Let's work on this</button>
+                      <button onClick={()=>talkAbout(`Find me something similar to "${step.title}" but different.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Find similar</button>
+                      <button onClick={()=>talkAbout(`Push "${step.title}" to tomorrow and suggest something I can do right now instead.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Push to tomorrow</button>
                     </div>
                   </div></FadeIn>
                 ))}</div>}
@@ -613,9 +629,10 @@ export default function App(){
                     </div>}
                     <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}><div style={{flex:1,height:5,background:isPast&&!allDone?"rgba(220,60,60,0.08)":C.cream,borderRadius:3}}><div style={{height:"100%",width:total?(done/total*100)+"%":"0%",background:allDone?C.teal:isPast&&!allDone?"#DC3C3C":C.accGrad,borderRadius:3,transition:"width 0.6s ease"}}/></div><span style={{...F,fontSize:12,fontWeight:600,color:allDone?C.teal:isPast&&!allDone?"#DC3C3C":C.acc}}>{done}/{total}</span></div>
                   </div>
-                  <div style={{display:"flex",gap:8,marginTop:12}}>
+                  <div style={{display:"flex",gap:8,marginTop:12,flexWrap:"wrap"}}>
                     {isPast&&!allDone&&<button onClick={()=>talkAbout(`My plan "${plan.title}" is overdue (was ${plan.date}). Help me reschedule or adjust it.`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:"rgba(220,60,60,0.06)",border:"1px solid rgba(220,60,60,0.12)",color:"#DC3C3C",cursor:"pointer",fontWeight:600}}>Reschedule</button>}
-                    <button onClick={()=>talkAbout(`Let's discuss: "${plan.title}"`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Discuss plan</button>
+                    {!allDone&&(()=>{const nextTask=plan.tasks?.find(t=>!t.done);return nextTask?<button onClick={()=>talkAbout(`Help me with the next task in my "${plan.title}" plan: "${nextTask.title}"`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Work on next task</button>:null;})()}
+                    <button onClick={()=>talkAbout(`Let's work on my plan: "${plan.title}". What should I focus on?`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Let's work on this</button>
                   </div>
                 </div>
                 {open&&<div style={{padding:"10px 22px 20px",background:cardBg,boxShadow:C.shadow,borderRadius:"0 0 20px 20px",borderTop:`1px solid ${C.b1}`}}>
@@ -631,6 +648,7 @@ export default function App(){
 
         {/* CHAT */}
         {mode==="chat"&&(<>
+          {chatContext&&<div style={{padding:"8px 22px",flexShrink:0}}><div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 14px",borderRadius:12,background:C.accSoft,border:`1px solid ${C.accBorder}`}}><span style={{...F,fontSize:12,color:C.acc,flex:1}}>Talking about: {chatContext}</span><button onClick={()=>setChatContext(null)} style={{background:"none",border:"none",color:C.acc,cursor:"pointer",fontSize:14,padding:"0 4px"}}>{"\u00D7"}</button></div></div>}
           <div style={{flex:1,overflowY:"auto",padding:"12px 22px"}}>
             {messages.map((msg,i)=>(
               <FadeIn key={i} delay={0}><div style={{display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start",marginBottom:12}}>
@@ -647,7 +665,7 @@ export default function App(){
             <div ref={chatEnd} />
           </div>
           <div style={{padding:"6px 22px 6px",flexShrink:0}}>
-            {messages.length<=4&&<SuggestionChips onSelect={text=>{setInput(text);setTimeout(()=>sendMessage(text),50);}} hasSteps={activeSteps.length>0} hasPlans={plans.length>0} />}
+            {messages.length<=4&&<SuggestionChips onSelect={text=>{setInput(text);setTimeout(()=>sendMessage(text),50);}} hasSteps={activeSteps.length>0} hasPlans={plans.length>0} steps={steps} plans={plans} />}
           </div>
           <div style={{padding:"6px 22px 16px",flexShrink:0}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
