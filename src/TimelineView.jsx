@@ -425,7 +425,7 @@ export default function TimelineView({
   }
 
   return (
-    <div>
+    <div style={{flex:1,overflowY:"auto",padding:"8px 20px 200px"}}>
       {renderToday()}
       {renderThisWeek()}
       {renderUpcomingAndCalendar()}
