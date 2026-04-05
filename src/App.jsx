@@ -342,7 +342,7 @@ export default function App(){
         <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell guide</button></div>
       </div></div>)}
       <div style={{padding:"14px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-        <div><div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div><div style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</div></div>
+        <div><div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div><div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</span><span onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,fontSize:13,fontStyle:"italic",color:C.t3,cursor:"pointer"}}>Take your next step!</span></div></div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           {(()=>{
             const now=new Date();const weekAgo=new Date(now-7*864e5);
@@ -369,20 +369,17 @@ export default function App(){
         items.sort((a,b)=>a.time-b.time);
         upNext=items[0]||null;
         var withinWeek=upNext&&(upNext.time-new Date())<7*864e5;
-        if(!withinWeek&&allSteps.filter(s=>s.status==="active").length===0)return null;
-        var diff=upNext?(upNext.time-new Date()):0;var mins=Math.floor(diff/6e4);var label="";
-        if(upNext){if(mins<60)label="in "+mins+" min";else if(mins<1440)label="in "+Math.floor(mins/60)+"h";else if(mins<2880)label="Tomorrow";else label=upNext.time.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});}
-        var color=upNext?(upNext.type==="cal"?"#4285F4":upNext.type==="routine"?C.teal:SEGMENTS[upNext.seg]?.color||C.acc):C.acc;
+        if(!withinWeek||!upNext)return null;
+        var diff=upNext.time-new Date();var mins=Math.floor(diff/6e4);var label="";
+        if(mins<60)label="in "+mins+" min";else if(mins<1440)label="in "+Math.floor(mins/60)+"h";else if(mins<2880)label="Tomorrow";else label=upNext.time.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});
+        var color=upNext.type==="cal"?"#4285F4":upNext.type==="routine"?C.teal:SEGMENTS[upNext.seg]?.color||C.acc;
         return <div style={{padding:"0 20px 6px",flexShrink:0}}>
-          {withinWeek&&upNext?<div onClick={()=>{setSegment("everything");setView("steps");}} style={{...F,padding:"10px 16px",borderRadius:14,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
+          <div onClick={()=>{setSegment("everything");setView("steps");}} style={{...F,padding:"10px 16px",borderRadius:14,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:6,height:6,borderRadius:3,background:color,flexShrink:0}}>{null}</div>
             <div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:13,fontWeight:600,color:C.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{upNext.title}</div></div>
             <div style={{...F,fontSize:11,fontWeight:600,color:color,flexShrink:0}}>{label}</div>
             <span style={{color:C.t3}}><ChevronRight size={14}/></span>
           </div>
-          :<div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",textAlign:"center"}}>
-            <span style={{fontSize:14,fontStyle:"italic",color:C.t2}}>Take your next step!</span>
-          </div>}
         </div>;
       })()}
       {!profile?.insights?.length&&allSteps.filter(s=>s.status==="active").length>0&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
