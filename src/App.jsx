@@ -227,6 +227,17 @@ I'll set up a weekly workout routine for you!
 [{"type":"routine","title":"Weekly Upper Body Day","description":"Push-pull upper body split: bench press 3x10, bent rows 3x10, OHP 3x8, pull-ups 3x8, tricep dips 3x12","schedule":"weekly","days":["monday"],"category":"fitness","generateBefore":1}]
 
 Types: step, plan (journey), routine, delete_step, delete_plan, delete_routine, preference
+
+CATEGORY RULES (CRITICAL - determines which segment a step appears in):
+- career: work tasks, job search, resume, networking, courses, professional development, side hustles
+- learning: classes, courses, tutorials, certifications, skills
+- fitness: workouts, gym, running, yoga, exercise, sports
+- wellness: health, meditation, self-care, doctor visits, mental health
+- social: friends, dating, dinner with people, group activities, parties
+- events: concerts, shows, festivals, meetups, local events
+- travel: ANY trip, flight, hotel, vacation, getaway, road trip, adventure, exploration, hiking
+- products: gear, equipment, purchases, subscriptions
+ALWAYS set the right category. A trip to Florence = "travel" (shows in Adventure). A dinner with friends = "social" (shows in Fun). A workout = "fitness" (shows in Health). NEVER default everything to the current segment.
 The step/journey cards ARE the product. Text without ---DATA--- is a failed response.`;
 
 const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:null,questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:null,questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:null,questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:null,questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
@@ -497,7 +508,7 @@ export default function App(){
 
     try{
       // Strip ts field and ensure valid alternating roles for API
-      const cleanMsgs=segChat.slice(-20).map(m=>({role:m.role,content:typeof m.content==="string"?m.content:JSON.stringify(m.content)})).filter(m=>m.content&&m.content.trim());
+      const cleanMsgs=segChat.slice(-20).filter(m=>!m.isError).map(m=>({role:m.role,content:typeof m.content==="string"?m.content:JSON.stringify(m.content)})).filter(m=>m.content&&m.content.trim()&&!m.content.startsWith("Something went wrong")&&!m.content.startsWith("Quick hiccup"));
       // Ensure messages alternate user/assistant (API requirement)
       const apiMsgs=[];
       for(const m of cleanMsgs){
@@ -514,7 +525,7 @@ export default function App(){
       // Safety: ensure no empty content
       const safeApiMsgs=apiMsgs.filter(m=>m.content&&m.content.trim()).map(m=>({role:m.role,content:m.content.trim()}));
       
-      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
+      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nYou're chatting in ${SEGMENTS[segment].label}, but ALWAYS use the correct category for each step regardless of which segment the chat is in. A trip discussed in Health chat still gets category "travel" (Adventure). A workout discussed in Fun chat still gets category "fitness" (Health).\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
@@ -571,10 +582,12 @@ export default function App(){
       displayText=displayText.replace(/\[[\s\S]*?"type"\s*:[\s\S]*?\]/g,"").trim();
       if(!displayText)displayText=newSteps.length>allSteps.length?"Here's what I found!":newPlans.length>allPlans.length?"Journey mapped out!":"Let me know what you think.";
 
-      const finalChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:clean(displayText),ts:Date.now()}]};
-      setChats(finalChat);persist(profile,newSteps,newPlans,finalChat,newPrefs,allRoutines);
+      const isError=displayText.startsWith("Something went wrong")||displayText.startsWith("Hmm, I didn't")||displayText.startsWith("Quick hiccup");
+      const finalChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:clean(displayText),ts:Date.now(),isError:isError}]};
+      setChats(finalChat);
+      if(!isError)persist(profile,newSteps,newPlans,finalChat,newPrefs,allRoutines);
       if(newSteps.length>allSteps.length||newPlans.length>allPlans.length)setTimeout(()=>setView("steps"),600);
-    }catch(err){console.error(err);const errChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:"Quick hiccup \u2014 say that again?",ts:Date.now()}]};setChats(errChat);}
+    }catch(err){console.error(err);const errChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:"Quick hiccup \u2014 say that again?",ts:Date.now(),isError:true}]};setChats(errChat);}
     setLoading(false);
   };
 
