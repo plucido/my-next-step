@@ -50,7 +50,7 @@ export default function App(){
   const[petType,setPetType]=useState("Dog");
   const[petBreed,setPetBreed]=useState("");
   const[petAge,setPetAge]=useState("");
-  const[transitionMsg,setTransitionMsg]=useState(null);
+  const[transitionMsg,setTransitionMsg]=useState(null); // {text, targetSeg, count, type}
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
   // Normalize chats from old format (work/me/social) to new (career/wellness/fun/adventure)
@@ -214,20 +214,18 @@ export default function App(){
       if(!isError){
         const createdSteps=newSteps.filter(s=>!allSteps.find(o=>o.id===s.id));
         const createdPlans=newPlans.filter(p=>!allPlans.find(o=>o.title===p.title));
-        if(createdSteps.length>0||createdPlans.length>0){
+        const createdRoutines=newRoutines.filter(r=>!allRoutines.find(o=>o.id===r.id));
+        const totalCreated=createdSteps.length+createdPlans.length+createdRoutines.length;
+        if(totalCreated>0){
           const firstItem=createdSteps[0]||null;
           const firstPlan=createdPlans[0]||null;
-          const itemCat=firstItem?.category||(firstPlan?.tasks?.[0]?.category)||null;
+          const firstRoutine=createdRoutines[0]||null;
+          const itemCat=firstItem?.category||(firstPlan?.tasks?.[0]?.category)||firstRoutine?.category||null;
           const targetSeg=itemCat?catToSeg(itemCat):segment;
           const targetLabel=SEGMENTS[targetSeg]?.label||"Timeline";
-          const isStep=createdSteps.length>0;
-          if(targetSeg===segment){
-            setTransitionMsg(isStep?"Your next step is ready!":"Journey mapped out!");
-            setTimeout(()=>{setView("steps");setTransitionMsg(null);},1200);
-          } else {
-            setTransitionMsg(`Added to ${targetLabel}! Taking you there...`);
-            setTimeout(()=>{setSegment(targetSeg);setView("steps");setTransitionMsg(null);},1800);
-          }
+          const type=createdSteps.length>0?"step":createdPlans.length>0?"journey":"routine";
+          const text=totalCreated===1?(type==="step"?`New step: ${firstItem?.title||"Ready!"}`:(type==="journey"?`Journey: ${firstPlan?.title||"Mapped out!"}`:`Routine: ${firstRoutine?.title||"Set up!"}`)):`${totalCreated} new items created`;
+          setTransitionMsg({text,targetSeg,targetLabel,count:totalCreated});
         }
       }
     }catch(err){console.error(err);const errChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:"Quick hiccup \u2014 say that again?",ts:Date.now(),isError:true}]};setChats(errChat);}
@@ -579,7 +577,12 @@ export default function App(){
         </>)}
       </div>
 
-      {transitionMsg&&<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:150,padding:"14px 28px",borderRadius:20,background:C.accGrad,color:"#fff",boxShadow:"0 8px 32px rgba(212,82,42,0.3)",display:"flex",alignItems:"center",gap:10,animation:"fadeUp 0.4s ease"}}><Check size={18}/><span style={{...F,fontSize:14,fontWeight:600}}>{transitionMsg}</span></div>}
+      {transitionMsg&&<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:150,padding:"12px 16px 12px 20px",borderRadius:20,background:C.accGrad,color:"#fff",boxShadow:"0 8px 32px rgba(212,82,42,0.3)",display:"flex",alignItems:"center",gap:10,animation:"fadeUp 0.4s ease",maxWidth:380}}>
+        <Check size={18}/>
+        <span style={{...F,fontSize:13,fontWeight:600,flex:1}}>{transitionMsg.text}</span>
+        <button onClick={()=>{setSegment(transitionMsg.targetSeg);setView("steps");setTransitionMsg(null);}} style={{...F,fontSize:12,fontWeight:700,padding:"6px 14px",borderRadius:12,background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>View {transitionMsg.targetSeg!==segment?`in ${transitionMsg.targetLabel}`:""}</button>
+        <button onClick={()=>setTransitionMsg(null)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.7)",cursor:"pointer",padding:4,display:"flex"}}><X size={14}/></button>
+      </div>}
 
       {showSettings && <SettingsPanel
         setShowSettings={setShowSettings}
