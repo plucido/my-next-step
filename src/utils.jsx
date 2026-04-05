@@ -39,6 +39,10 @@ export function clean(text){if(!text)return text;let t=text;
   t=t.replace(/\[\d+\]/g,"");
   t=t.replace(/\u3010[^】]*\u3011/g,"");
   t=t.replace(/\[\d+†[^\]]*\]/g,"");
+  // Strip <cite> tags from web search
+  t=t.replace(/<cite[^>]*>|<\/cite>/g,"");
+  // Strip any remaining HTML tags
+  t=t.replace(/<[^>]+>/g,"");
   // Strip orphaned special chars left by citation removal
   t=t.replace(/[†‡§]+/g,"");
   // Collapse excessive whitespace
