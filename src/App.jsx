@@ -1213,8 +1213,10 @@ export default function App(){
           </div>
         </div>}
 
-        {/* Legal modals */}
-        {legalModal&&<div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setLegalModal(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"80vh",overflowY:"auto",background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
+      </div></div>}
+
+      {/* Legal modals - outside settings to avoid esbuild JSX parsing issue */}
+      {legalModal&&<div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setLegalModal(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"80vh",overflowY:"auto",background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{...H,fontSize:20,color:C.t1}}>{legalModal==="terms"?"Terms of Service":legalModal==="privacy"?"Privacy Policy":legalModal==="dnsmpi"?"Do Not Sell My Personal Information":"Affiliate Disclosure"}</div><button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}><X size={16}/></button></div>
           <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.8}}>
             {legalModal==="terms"&&<div>
@@ -1253,8 +1255,6 @@ export default function App(){
             </div>}
           </div>
         </div></div>}
-
-      {/* end settings */}
-      </div></div>}
-    </div>);
+    </div>
+  );
 }
