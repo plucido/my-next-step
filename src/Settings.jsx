@@ -204,7 +204,7 @@ export default function Settings({
     </div>);
   }
 
-  if (!showSettings) return null;
+  // showSettings guard removed - parent controls visibility with && in JSX
 
   return (
     <div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}>
