@@ -36,17 +36,19 @@ const C = {
 
 // ─── SEGMENTS ───
 const SEGMENTS = {
-  work: { label: "Work", icon: "\u{1F4BC}", color: "#6D28D9", soft: "#EDE9FE", desc: "Career, professional growth, side hustles" },
-  me: { label: "Me", icon: "\u{1F331}", color: "#0F766E", soft: "#E6F7F5", desc: "Health, hobbies, personal goals, solo adventures" },
-  social: { label: "Social", icon: "\u{1F91D}", color: "#DB2777", soft: "#FCE7F3", desc: "Friends, family, events, group activities" },
+  career: { label: "Career", icon: "\u{1F680}", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking" },
+  wellness: { label: "Wellness", icon: "\u{1F33F}", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, health, habits, self-care, mental health" },
+  fun: { label: "Fun", icon: "\u{1F389}", color: "#DB2777", soft: "#FCE7F3", desc: "Friends, dating, events, hobbies, going out" },
+  adventure: { label: "Adventure", icon: "\u{1F30D}", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, bucket list, new experiences" },
 };
-const SEG_KEYS = ["work", "me", "social"];
+const SEG_KEYS = ["career", "wellness", "fun", "adventure"];
 // Map AI categories to segments
 const catToSeg = c => {
-  if (["career", "learning", "products"].includes(c)) return "work";
-  if (["fitness", "wellness", "travel"].includes(c)) return "me";
-  if (["social", "events"].includes(c)) return "social";
-  return "me"; // default
+  if (["career", "learning", "products"].includes(c)) return "career";
+  if (["fitness", "wellness"].includes(c)) return "wellness";
+  if (["social", "events"].includes(c)) return "fun";
+  if (["travel"].includes(c)) return "adventure";
+  return "wellness"; // default
 };
 const catIcon = c => ({ fitness:"\u{1F3CB}", wellness:"\u{1F9D8}", career:"\u{1F4BC}", learning:"\u{1F4DA}", social:"\u{1F91D}", events:"\u{1F389}", travel:"\u2708\uFE0F", products:"\u{1F6CD}\uFE0F" })[c] || "\u2728";
 
@@ -78,8 +80,8 @@ async function addGCalEvent(token,title,desc,time){try{const s=new Date();const 
 // ─── SYSTEM PROMPT ───
 const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm, personal life coach.
 
-The app has 3 life segments: Work (career, professional growth), Me (health, hobbies, personal goals), Social (friends, events, group activities).
-The user is currently chatting in one segment. Focus your responses on that segment, but remember everything across all segments to build a complete picture of who they are.
+The app has 4 life segments: Career (work, professional growth), Wellness (fitness, health, self-care), Fun (friends, events, hobbies), Adventure (trips, travel, new experiences).
+The user is currently chatting in one segment. Focus on that area, but use everything you know about them across all segments.
 
 WHEN TO CREATE STEPS/JOURNEYS:
 - If the user says what they want, MAKE IT immediately.
@@ -248,18 +250,20 @@ function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,delay=0
 export default function App(){
   const[screen,setScreen]=useState("auth");
   const[profile,setProfile]=useState(null);
-  const[segment,setSegment]=useState("me"); // work, me, social, everything
+  const[segment,setSegment]=useState("wellness"); // work, me, social, everything
   const[view,setView]=useState("steps"); // steps, chat
   const[allSteps,setAllSteps]=useState([]);
   const[allPlans,setAllPlans]=useState([]);
   const[preferences,setPreferences]=useState([]);
   // Per-segment chat histories
-  const[chats,setChats]=useState({work:[],me:[],social:[]});
+  const[chats,setChats]=useState({career:[],wellness:[],fun:[],adventure:[]});
   const[input,setInput]=useState("");
   const[loading,setLoading]=useState(false);
   const[expandedPlan,setExpandedPlan]=useState(null);
   const[feedbackStep,setFeedbackStep]=useState(null);
   const[feedbackText,setFeedbackText]=useState("");
+  const[missedStep,setMissedStep]=useState(null);
+  const[missedReason,setMissedReason]=useState("");
   const[stravaData,setStravaData]=useState(null);
   const[calData,setCalData]=useState(null);
   const[calToken,setCalToken]=useState(null);
@@ -268,8 +272,8 @@ export default function App(){
 
   // Current segment's data
   const segSteps=segment==="everything"?allSteps.filter(s=>s.status==="active"):allSteps.filter(s=>s.status==="active"&&catToSeg(s.category)===segment);
-  const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(["career","work","job","interview","resume","linkedin"].some(w=>title.includes(w)))return segment==="work";if(["gym","yoga","run","health","diet","meditation"].some(w=>title.includes(w)))return segment==="me";if(["friend","party","dinner","concert","group","date"].some(w=>title.includes(w)))return segment==="social";return segment==="me";});
-  const segMessages=segment==="everything"?[...chats.work,...chats.me,...chats.social].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
+  const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(["career","work","job","interview","resume","linkedin"].some(w=>title.includes(w)))return segment==="career";if(["gym","yoga","run","health","diet","meditation"].some(w=>title.includes(w)))return segment==="wellness";if(["friend","party","dinner","concert","group","date"].some(w=>title.includes(w)))return segment==="fun";if(["trip","travel","flight","hotel","vacation","hike","explore"].some(w=>title.includes(w)))return segment==="adventure";return segment==="wellness";});
+  const segMessages=segment==="everything"?[...chats.career,...chats.wellness,...chats.fun,...chats.adventure].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
   const doneSteps=allSteps.filter(s=>s.status==="done");
   const expiredSteps=allSteps.filter(s=>s.status==="expired");
 
@@ -282,12 +286,12 @@ export default function App(){
   useEffect(()=>{(async()=>{
     try{const hint=localStorage.getItem("mns_last_user");if(hint){
       const data=await loadFB(hint,"appdata");
-      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setChats(data.chats||{work:[],me:[],social:[]});setPreferences(data.preferences||[]);setScreen("main");}
+      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setChats(data.chats||{career:[],wellness:[],fun:[],adventure:[]});setPreferences(data.preferences||[]);setScreen("main");}
       const sv=await loadFB(hint,"strava");if(sv)setStravaData(sv);
       const cv=await loadFB(hint,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}
     }}catch{}
     // Migration from old format
-    try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setChats({work:[],me:d.messages||[],social:[]});setPreferences(d.preferences||[]);setScreen("main");const uid=getUserId(d.profile);if(uid){saveFB(uid,"appdata",{...d,chats:{work:[],me:d.messages||[],social:[]}});window.storage.delete("mns-v11").catch(()=>{});}}}}catch{}
+    try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setChats({career:[],wellness:d.messages||[],fun:[],adventure:[]});setPreferences(d.preferences||[]);setScreen("main");const uid=getUserId(d.profile);if(uid){saveFB(uid,"appdata",{...d,chats:{career:[],wellness:d.messages||[],fun:[],adventure:[]}});window.storage.delete("mns-v11").catch(()=>{});}}}}catch{}
   })();},[]);
 
   const persist=(p,s,pl,ch,pr)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
@@ -296,7 +300,7 @@ export default function App(){
   const handleSetup=setup=>{setProfile(p=>({...p,setup}));setScreen("deepprofile");};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(!chats.me.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. I'm here to help across your whole life \u2014 work, personal stuff, and social plans.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({work:[],me:w,social:[]});setView("chat");persist(full,[],[],{work:[],me:w,social:[]},[]); }
+    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("chat");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
     else persist(full,allSteps,allPlans,chats,preferences);
     setScreen("main");setTimeout(()=>inputRef.current?.focus(),200);
   };
@@ -311,7 +315,7 @@ export default function App(){
     if(inputRef.current)inputRef.current.style.height="auto";
 
     // Build full profile context from ALL segments
-    const allMsgs=[...chats.work,...chats.me,...chats.social].sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const allMsgs=[...chats.career,...chats.wellness,...chats.fun,...chats.adventure].sort((a,b)=>(a.ts||0)-(b.ts||0));
     const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
     const stepsCtx=allSteps.filter(s=>s.status==="active").length>0?"\n\nALL ACTIVE STEPS:\n"+allSteps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
@@ -365,11 +369,13 @@ export default function App(){
   const markStep=(id,st)=>{if(st==="done")setFeedbackStep(allSteps.find(s=>s.id===id));const u=allSteps.map(s=>s.id===id?{...s,status:st}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
   const loveStep=id=>{const step=allSteps.find(s=>s.id===id);const u=allSteps.map(s=>s.id===id?{...s,loved:!s.loved}:s);setAllSteps(u);if(step&&!step.loved){const pref={key:`loved_${step.category||"general"}`,value:`Loved "${step.title}"`};const np=[...preferences.filter(p=>p.key!==pref.key),pref];setPreferences(np);persist(profile,u,allPlans,chats,np);}else persist(profile,u,allPlans,chats,preferences);};
   const submitFeedback=()=>{if(!feedbackText.trim()||!feedbackStep)return;sendMessage(`Completed "${feedbackStep.title}": ${feedbackText.trim()}`);setFeedbackStep(null);setFeedbackText("");setView("chat");};
+  const submitMissedReason=()=>{if(!missedReason.trim()||!missedStep)return;sendMessage(`I didn't do "${missedStep.title}". Reason: ${missedReason.trim()}`);const u=allSteps.filter(s=>s.id!==missedStep.id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);setMissedStep(null);setMissedReason("");setView("chat");};
+  const dismissMissed=id=>{const u=allSteps.filter(s=>s.id!==id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
   const deletePlan=idx=>{const u=allPlans.filter((_,i)=>i!==idx);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const toggleTask=(pi,ti)=>{const u=allPlans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const talkAbout=text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
   const handleAddCal=async(title,why,time)=>{if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});const ok=await addGCalEvent(r.access_token,title,why,time);alert(ok?"Added to Calendar!":"Couldn't add.");});return;}const ok=await addGCalEvent(calToken,title,why,time);alert(ok?"Added to Calendar!":"Try reconnecting calendar.");};
-  const resetAll=async()=>{const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({work:[],me:[],social:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
+  const resetAll=async()=>{const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({career:[],wellness:[],fun:[],adventure:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
 
   // Expiration check
   useEffect(()=>{const now=new Date(),h=now.getHours();let changed=false;const u=allSteps.map(s=>{if(s.status!=="active")return s;const t=(s.time||"").toLowerCase(),age=s.createdAt?(Date.now()-new Date(s.createdAt).getTime())/36e5:0;if((age>48)||(t.includes("tonight")&&age>14)||(t.includes("today")&&age>24)){changed=true;return{...s,status:"expired"};}return s;});if(changed){setAllSteps(u);persist(profile,u,allPlans,chats,preferences);}},[allSteps.length]);
@@ -392,6 +398,16 @@ export default function App(){
         <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{["Loved it!","It was okay","Not for me","Too expensive","Too far","More like this"].map(q=>(<button key={q} onClick={()=>setFeedbackText(q)} style={{...F,padding:"8px 14px",borderRadius:12,fontSize:13,cursor:"pointer",background:feedbackText===q?C.accSoft:C.cream,border:`1.5px solid ${feedbackText===q?C.acc:C.b2}`,color:feedbackText===q?C.acc:C.t2}}>{q}</button>))}</div>
         <textarea value={feedbackText} onChange={e=>setFeedbackText(e.target.value)} rows={2} placeholder="Or type..." style={{...F,width:"100%",padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:14}}/>
         <div style={{display:"flex",gap:10}}><button onClick={()=>{setFeedbackStep(null);setFeedbackText("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Skip</button><button onClick={submitFeedback} disabled={!feedbackText.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:feedbackText.trim()?"pointer":"default",background:feedbackText.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:feedbackText.trim()?"#fff":C.t3}}>Submit</button></div>
+      </div></div>)}
+
+      {/* Missed step modal */}
+      {missedStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
+        <div style={{...F,fontSize:12,color:"#B45309",fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Missed step</div>
+        <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>{missedStep.title}</div>
+        <div style={{...F,fontSize:14,color:C.t3,marginBottom:16,lineHeight:1.5}}>Telling your coach why helps improve future recommendations.</div>
+        <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{["Forgot","No time","Changed mind","Too far","Found better","Not interested"].map(q=>(<button key={q} onClick={()=>setMissedReason(q)} style={{...F,padding:"8px 14px",borderRadius:12,fontSize:13,cursor:"pointer",background:missedReason===q?C.goldSoft:C.cream,border:`1.5px solid ${missedReason===q?"#B45309":C.b2}`,color:missedReason===q?"#B45309":C.t2}}>{q}</button>))}</div>
+        <textarea value={missedReason} onChange={e=>setMissedReason(e.target.value)} rows={2} placeholder="Or tell us more..." style={{...F,width:"100%",padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:14}}/>
+        <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell coach</button></div>
       </div></div>)}
 
       {/* Top header */}
@@ -436,7 +452,17 @@ export default function App(){
                 {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} delay={pi*50}/>)}
                 {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all journeys</button>}
               </div>}
-              {segment==="everything"&&doneSteps.length>0&&<div><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({doneSteps.length})</div>{doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.5}}><span style={{color:C.teal}}>{"\u2713"}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span></div>))}</div>}
+              {segment==="everything"&&doneSteps.length>0&&<div><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({doneSteps.length})</div>{doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?"\u2764\uFE0F":"\u2713"}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?"\u2764\uFE0F":"\u{1F90D}"}</button></div>))}</div>}
+              {/* Expired steps */}
+              {expiredSteps.length>0&&(segment==="everything"||expiredSteps.some(s=>catToSeg(s.category)===segment))&&<div style={{marginBottom:20}}>
+                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#B45309",marginBottom:12}}>Expired ({(segment==="everything"?expiredSteps:expiredSteps.filter(s=>catToSeg(s.category)===segment)).length})</div>
+                {(segment==="everything"?expiredSteps:expiredSteps.filter(s=>catToSeg(s.category)===segment)).map(s=>(<div key={s.id} style={{padding:"14px 16px",borderRadius:14,marginBottom:6,background:C.goldSoft,border:"1px solid rgba(180,83,9,0.08)",display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:14,opacity:.6}}>{catIcon(s.category)}</span>
+                  <div style={{flex:1}}><div style={{...F,fontSize:13,color:C.t1,fontWeight:500,opacity:.7}}>{s.title}</div>{s.time&&<div style={{...F,fontSize:11,color:"#B45309",marginTop:2}}>Was: {s.time}</div>}</div>
+                  <button onClick={()=>{setMissedStep(s);setMissedReason("");}} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.card,border:`1px solid ${C.b2}`,color:C.t2,cursor:"pointer"}}>Why?</button>
+                  <button onClick={()=>dismissMissed(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button>
+                </div>))}
+              </div>}
             </>)}
           </div>
         )}
@@ -456,6 +482,11 @@ export default function App(){
             </div>}
             <div ref={chatEnd}/>
           </div>
+          {(chats[segment]||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
+            <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
+              {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities near me"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway ideas"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
+            </div>
+          </div>}
           <div style={{padding:"6px 20px 16px",flexShrink:0}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
               <textarea ref={inputRef} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder={`Ask about ${segInfo.label.toLowerCase()}...`} rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:18,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow,resize:"none",maxHeight:150,lineHeight:1.5}} onFocus={e=>{e.target.style.borderColor=segInfo.color;e.target.style.boxShadow=`0 0 0 3px ${segInfo.color}15`;}} onBlur={e=>{e.target.style.borderColor=C.b2;e.target.style.boxShadow=C.shadow;}}/>
