@@ -129,6 +129,16 @@ MANAGING ITEMS:
 - To update a journey, output it with the SAME title \u2014 it replaces the old one.
 - Loved steps = strong signal, recommend more like them.
 
+IMPROVING USER IDEAS:
+- When a user shares a vague idea ("I should work out more", "maybe learn to cook"), don't just agree. ENHANCE it into something specific and actionable.
+- Turn "I should work out" into a specific class recommendation with time, place, and price.
+- Turn "learn to cook" into a specific cooking class or a structured journey with weekly tasks.
+- Always make their ideas BETTER and more concrete than what they said.
+
+RECURRING STEPS:
+- If a step makes sense as a recurring activity (weekly yoga, daily meditation, monthly book club), add "recurring":"weekly" or "recurring":"daily" to the step data.
+- Only do this when it naturally fits. One-off events don't recur.
+
 OUTPUT FORMAT:
 Your response should be: short casual chat text, then ---DATA---, then a JSON array.
 
@@ -214,13 +224,14 @@ function DeepProfileChat({profile,onFinish,existingInsights}){
 }
 
 // ─── STEP CARD ───
-function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,delay=0}){
+function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,onShare,delay=0}){
   const seg=SEGMENTS[catToSeg(step.category)];
   return(<FadeIn delay={delay}><div style={{padding:"18px 20px",borderRadius:18,marginBottom:10,background:C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${seg?.color||C.acc}`}}>
     <button onClick={()=>onDelete(step.id)} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}>{"\u00D7"}</button>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
       <span style={{fontSize:14}}>{catIcon(step.category)}</span>
       <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.acc,textTransform:"uppercase",letterSpacing:1.5}}>{step.category}</span>
+      {step.recurring&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 6px",borderRadius:5}}>{step.recurring}</span>}
       {step.createdAt&&<span style={{...F,fontSize:10,color:C.t3,marginLeft:"auto"}}>{((d)=>{const m=Math.floor(d/6e4);if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";return Math.floor(h/24)+"d";})(Date.now()-new Date(step.createdAt).getTime())} ago</span>}
     </div>
     <div style={{...F,fontSize:15,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:4,paddingRight:24}}>{step.title}</div>
@@ -233,14 +244,16 @@ function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,delay=0}){
     </div>
     <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap"}}>
       <button onClick={()=>onTalk(`Work on step: "${step.title}". Find specific options with prices and booking links.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer",fontWeight:500}}>Work on this</button>
+      <button onClick={()=>onTalk(`Make "${step.title}" even better. Find a more specific, exciting, or well-reviewed option. Upgrade it.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>{"\u2728"} Make better</button>
       <button onClick={()=>onTalk(`Find alternative to "${step.title}" with prices and details.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Alternative</button>
+      <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>{"\u{1F4E4}"} Share</button>
       {step.time&&<button onClick={()=>onAddCal(step.title,step.why,step.time)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer"}}>{"\u{1F4C5}"} Calendar</button>}
     </div>
   </div></FadeIn>);
 }
 
 // ─── JOURNEY CARD ───
-function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,delay=0}){
+function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,onShare,delay=0}){
   const done=plan.tasks?.filter(t=>t.done).length||0,total=plan.tasks?.length||0,allDone=total>0&&done===total;
   let isPast=false;try{const m=(plan.date||"").match(/(\w+)\s+\d{1,2}\s*[-\u2013]\s*(\d{1,2}),?\s*(\d{4})/);if(m){const d=new Date(`${m[1]} ${m[2]}, ${m[3]}`);d.setHours(23,59);isPast=d<new Date();}else{const s=(plan.date||"").match(/(\w+\s+\d{1,2}),?\s*(\d{4})/);if(s){const d=new Date(`${s[1]}, ${s[2]}`);d.setHours(23,59);isPast=d<new Date();}}}catch{}
   const borderColor=isPast&&!allDone?"#DC3C3C":allDone?C.teal:C.b1;
@@ -257,6 +270,8 @@ function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,delay=0
         {isPast&&!allDone&&<button onClick={()=>onTalk(`My journey "${plan.title}" is overdue (${plan.date}). Help me reschedule.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:"rgba(220,60,60,0.06)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",cursor:"pointer",fontWeight:600}}>Reschedule</button>}
         {!allDone&&(()=>{const nt=plan.tasks?.find(t=>!t.done);return nt?<button onClick={()=>onTalk(`Work on "${nt.title}" for my "${plan.title}" journey. Find specific options with prices.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Next task</button>:null;})()}
         <button onClick={()=>onTalk(`Work on journey "${plan.title}". What should I focus on?`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Work on this</button>
+        <button onClick={()=>onTalk(`Make my "${plan.title}" journey even better. Upgrade the tasks with better options, add anything I'm missing.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>{"\u2728"} Improve</button>
+        <button onClick={()=>onShare(plan)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>{"\u{1F4E4}"} Share</button>
       </div>
     </div>
     {open&&<div style={{padding:"8px 20px 16px",background:bg,boxShadow:C.shadow,borderRadius:"0 0 18px 18px",borderTop:`1px solid ${C.b1}`}}>
@@ -336,7 +351,14 @@ export default function App(){
   const persist=(p,s,pl,ch,pr)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
   const handleAuth=auth=>{const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=setup=>{setProfile(p=>({...p,setup}));setScreen("deepprofile");};
+  const handleSetup=setup=>{
+    const full={...profile,setup};setProfile(full);
+    // Skip deep profile on first setup - they'll be prompted after completing a few steps
+    const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. Pick a segment above \u2014 Career, Wellness, Fun, or Adventure \u2014 and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.`,ts:Date.now()}];
+    setChats({career:[],wellness:w,fun:[],adventure:[]});
+    setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]);
+    setScreen("main");
+  };
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
     if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
@@ -437,6 +459,17 @@ export default function App(){
   const deletePlan=idx=>{const u=allPlans.filter((_,i)=>i!==idx);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const toggleTask=(pi,ti)=>{const u=allPlans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const talkAbout=text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
+  const shareItem=async(item)=>{
+    const isJourney=!!item.tasks;
+    const text=isJourney?`Check out this journey: ${item.title}\n${item.date?`Date: ${item.date}\n`:""}Tasks:\n${item.tasks?.map(t=>`- ${t.title}`).join("\n")}\n\nPlanned with My Next Step`
+      :`${item.title}${item.why?` - ${item.why}`:""}${item.time?`\nWhen: ${item.time}`:""}${item.link?`\n${item.link}`:""}\n\nShared from My Next Step`;
+    if(navigator.share){try{await navigator.share({title:isJourney?item.title:item.title,text});}catch{}}
+    else{try{await navigator.clipboard.writeText(text);alert("Copied to clipboard!");}catch{}}
+  };
+  // Compute insights for stats
+  const completedByCategory={};doneSteps.forEach(s=>{const c=s.category||"other";completedByCategory[c]=(completedByCategory[c]||0)+1;});
+  const totalCompleted=doneSteps.length;
+  const thisWeekDone=doneSteps.filter(s=>{const d=new Date(s.completedAt||s.createdAt);return(Date.now()-d.getTime())<7*864e5;}).length;
   const handleAddCal=async(title,why,time)=>{if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});const ok=await addGCalEvent(r.access_token,title,why,time);alert(ok?"Added to Calendar!":"Couldn't add.");});return;}const ok=await addGCalEvent(calToken,title,why,time);alert(ok?"Added to Calendar!":"Try reconnecting calendar.");};
   const resetAll=async()=>{const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({career:[],wellness:[],fun:[],adventure:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
 
@@ -473,10 +506,26 @@ export default function App(){
         <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell coach</button></div>
       </div></div>)}
 
-      {/* Top header */}
+      {/* Top header with streak */}
       <div style={{padding:"14px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
         <div><div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div><div style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</div></div>
-        <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>{"\u2699\uFE0F"}</button>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {(()=>{
+            const now=new Date();const weekAgo=new Date(now-7*864e5);
+            const thisWeek=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;
+            const today=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===now.toDateString()).length;
+            const activeCount=allSteps.filter(s=>s.status==="active").length;
+            // Calculate streak days
+            let streak=0;const d=new Date(now);d.setHours(0,0,0,0);
+            while(true){const ds=d.toDateString();if(allSteps.some(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===ds)){streak++;d.setDate(d.getDate()-1);}else break;}
+            if(thisWeek===0&&streak===0)return null;
+            return(<div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:12,background:streak>=3?C.goldSoft:C.cream}}>
+              {streak>0&&<><span style={{fontSize:14}}>{streak>=7?"\u{1F525}":streak>=3?"\u{1F4AA}":"\u2728"}</span><span style={{...F,fontSize:12,fontWeight:700,color:streak>=3?C.gold:C.t2}}>{streak}d</span></>}
+              {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} this week</span>}
+            </div>);
+          })()}
+          <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>{"\u2699\uFE0F"}</button>
+        </div>
       </div>
 
       {/* Segment selector */}
@@ -526,14 +575,36 @@ export default function App(){
                 {segment!=="everything"&&<button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"12px 28px",borderRadius:14,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff"}}>Start chatting {"\u2192"}</button>}
               </div></FadeIn>
             ):(<>
+              {/* Weekly progress bar */}
+              {(()=>{
+                const now=new Date();const weekAgo=new Date(now-7*864e5);
+                const completed=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;
+                const active=segSteps.length;
+                const total=completed+active;
+                if(total===0)return null;
+                // Show week's activity as dots (Mon-Sun)
+                const days=[];for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);const ds=d.toDateString();const hasDone=allSteps.some(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===ds);const hasCreated=allSteps.some(s=>s.createdAt&&new Date(s.createdAt).toDateString()===ds);days.push({label:["S","M","T","W","T","F","S"][d.getDay()],done:hasDone,active:hasCreated,today:d.toDateString()===now.toDateString()});}
+                return(<FadeIn><div style={{padding:"14px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:16}}>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                    <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3}}>This week</div>
+                    <div style={{...F,fontSize:13,fontWeight:600,color:C.teal}}>{completed} completed</div>
+                  </div>
+                  <div style={{display:"flex",justifyContent:"space-between",gap:4}}>
+                    {days.map((d,i)=>(<div key={i} style={{textAlign:"center",flex:1}}>
+                      <div style={{...F,fontSize:10,color:d.today?C.t1:C.t3,fontWeight:d.today?700:400,marginBottom:4}}>{d.label}</div>
+                      <div style={{width:24,height:24,borderRadius:8,margin:"0 auto",background:d.done?C.teal:d.active?C.accSoft:d.today?C.cream:"transparent",border:d.today&&!d.done?`2px solid ${C.acc}`:`2px solid ${d.done?C.teal:d.active?C.accBorder:"transparent"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:d.done?"#fff":"transparent"}}>{d.done?"\u2713":""}</div>
+                    </div>))}
+                  </div>
+                </div></FadeIn>);
+              })()}
               {segSteps.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
-                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} delay={i*50}/>)}
+                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*50}/>)}
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Journeys ({segPlans.length})</div>
-                {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} delay={pi*50}/>)}
+                {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*50}/>)}
                 {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all journeys</button>}
               </div>}
               {segment==="everything"&&doneSteps.length>0&&<div><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({doneSteps.length})</div>{doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?"\u2764\uFE0F":"\u2713"}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?"\u2764\uFE0F":"\u{1F90D}"}</button></div>))}</div>}
@@ -548,7 +619,31 @@ export default function App(){
                 </div>))}
               </div>}
             </>)}
+
+            {/* Deep profile prompt - shows after 3 completed steps if no insights yet */}
+            {doneSteps.length>=3&&!profile?.insights?.length&&segment!=="everything"&&(
+              <FadeIn delay={200}><div style={{padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,marginBottom:16}}>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <span style={{fontSize:20}}>{"\u{1F4AC}"}</span>
+                  <div style={{flex:1}}>
+                    <div style={{...F,fontSize:14,fontWeight:600,color:C.acc}}>You're on a roll!</div>
+                    <div style={{...F,fontSize:13,color:C.t2,marginTop:2}}>Go deeper with your coach so I can personalize even more.</div>
+                  </div>
+                  <button onClick={()=>setScreen("deepprofile")} style={{...F,fontSize:12,fontWeight:600,padding:"8px 14px",borderRadius:10,background:C.accGrad,color:"#fff",border:"none",cursor:"pointer"}}>Let's go</button>
+                </div>
+              </div></FadeIn>
+            )}
           </div>
+
+          {/* Quick-add bar at bottom of steps view */}
+          {segment!=="everything"&&(view==="steps")&&(
+            <div style={{padding:"8px 20px 16px",flexShrink:0,borderTop:`1px solid ${C.b1}`}}>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){e.preventDefault();setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}}} placeholder="Quick ask your coach..." style={{...F,flex:1,padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} onFocus={e=>{e.target.style.borderColor=segInfo.color;}} onBlur={e=>{e.target.style.borderColor=C.b2;}}/>
+                <button onClick={()=>{if(input.trim()){setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}else{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}}} style={{width:44,height:44,borderRadius:14,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(212,82,42,0.2)"}}>{input.trim()?"\u2191":"\u{1F4AC}"}</button>
+              </div>
+            </div>
+          )}
         )}
 
         {/* CHAT VIEW */}
@@ -623,9 +718,30 @@ export default function App(){
         </div>}
 
         {settingsTab==="insights"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
-          {profile?.insights?.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Profile insights ({profile.insights.length})</div>{profile.insights.map((ins,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<profile.insights.length-1?`1px solid ${C.b1}`:"none"}}>{"\u2022"} {ins.text}</div>))}</div>}
+          {/* Stats overview */}
+          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+            <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Your activity</div>
+            <div style={{display:"flex",gap:12}}>
+              <div style={{flex:1,padding:14,borderRadius:12,background:C.accSoft,textAlign:"center"}}><div style={{...H,fontSize:24,color:C.acc}}>{totalCompleted}</div><div style={{...F,fontSize:11,color:C.t2,marginTop:2}}>Completed</div></div>
+              <div style={{flex:1,padding:14,borderRadius:12,background:C.tealSoft,textAlign:"center"}}><div style={{...H,fontSize:24,color:C.teal}}>{thisWeekDone}</div><div style={{...F,fontSize:11,color:C.t2,marginTop:2}}>This week</div></div>
+              <div style={{flex:1,padding:14,borderRadius:12,background:C.cream,textAlign:"center"}}><div style={{...H,fontSize:24,color:C.gold}}>{allSteps.filter(s=>s.loved).length}</div><div style={{...F,fontSize:11,color:C.t2,marginTop:2}}>Loved</div></div>
+            </div>
+          </div>
+          {/* Category breakdown */}
+          {Object.keys(completedByCategory).length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+            <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>What you do most</div>
+            {Object.entries(completedByCategory).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>{const pct=totalCompleted>0?count/totalCompleted*100:0;return(
+              <div key={cat} style={{marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{...F,fontSize:13,fontWeight:500,color:C.t1,textTransform:"capitalize"}}>{catIcon(cat)} {cat}</span><span style={{...F,fontSize:12,color:C.t3}}>{count} done</span></div>
+                <div style={{height:6,background:C.cream,borderRadius:3}}><div style={{height:"100%",width:`${pct}%`,background:C.accGrad,borderRadius:3,transition:"width 0.5s"}}/></div>
+              </div>
+            );})}
+          </div>}
+          {/* Profile insights */}
+          {profile?.insights?.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Profile insights ({profile.insights.length})</div>{profile.insights.map((ins,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<profile.insights.length-1?`1px solid ${C.b1}`:"none"}}>{ins.text}</div>))}</div>}
+          {/* Learned preferences */}
           {preferences.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Learned preferences</div>{preferences.map((p,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<preferences.length-1?`1px solid ${C.b1}`:"none"}}><span style={{fontWeight:600,color:C.t1,textTransform:"capitalize"}}>{p.key?.replace(/_/g," ")}:</span> {p.value}</div>))}</div>}
-          {!profile?.insights?.length&&!preferences.length&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:28,marginBottom:8}}>{"\u{1F9E0}"}</div><div style={{...F,fontSize:14,color:C.t2}}>No insights yet. Chat more to build your profile.</div></div>}
+          {totalCompleted===0&&!profile?.insights?.length&&!preferences.length&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:28,marginBottom:8}}>{"\u{1F9E0}"}</div><div style={{...F,fontSize:14,color:C.t2}}>Complete some steps to see your patterns here.</div></div>}
         </div>}
 
         {settingsTab==="about"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
