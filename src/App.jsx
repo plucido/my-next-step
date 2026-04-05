@@ -442,27 +442,12 @@ export default function App(){
                         <span style={{...F,fontSize:10,color:"#A3A3A3"}}>GCal</span>
                       </div>
                     );})}
-                    {daySteps.map((s,i)=>{const seg=SEGMENTS[catToSeg(s.category)];return(
-                      <div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:C.card,borderLeft:`4px solid ${seg?.color||C.acc}`,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:10}}>
-                        <span style={{...F,fontSize:11,color:seg?.color||C.acc,minWidth:50,fontWeight:600}}>{s.time||"Anytime"}</span>
-                        <div style={{flex:1}}>
-                          <div style={{...F,fontSize:13,fontWeight:600,color:C.t1}}>{s.title}</div>
-                          {s.why&&<div style={{...F,fontSize:11,color:C.t2,marginTop:2}}>{s.why}</div>}
-                        </div>
-                        <span style={{fontSize:12}}>{catIcon(s.category)}</span>
-                      </div>
-                    );})}
+                    {daySteps.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
                   </div>);
                 })}
                 {(()=>{const scheduled=new Set();Object.values(stepsByDate).forEach(arr=>arr.forEach(s=>scheduled.add(s.id)));const unsched=allSteps.filter(s=>s.status==="active"&&!scheduled.has(s.id));return unsched.length>0?<div style={{marginTop:8}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Anytime</div>
-                  {unsched.map(s=>{const seg=SEGMENTS[catToSeg(s.category)];return(
-                    <div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:C.card,borderLeft:`4px solid ${seg?.color||C.acc}`,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:10}}>
-                      <span style={{fontSize:12}}>{catIcon(s.category)}</span>
-                      <div style={{flex:1}}><div style={{...F,fontSize:13,fontWeight:600,color:C.t1}}>{s.title}</div></div>
-                      <span style={{...F,fontSize:10,color:seg?.color,fontWeight:600,textTransform:"capitalize"}}>{catToSeg(s.category)}</span>
-                    </div>);
-                  })}
+                  {unsched.map((s,i)=>(<StepCard key={s.id} step={s} onDone={id=>markStep(id,"done")} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*30}/>))}
                 </div>:null;})()}
                 {doneSteps.length>0&&<div style={{marginTop:12}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
