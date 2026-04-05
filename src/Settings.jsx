@@ -30,6 +30,7 @@ export default function Settings({
 
         <div style={{display:"flex",gap:6,marginBottom:20}}>
           {[{id:"profile",l:"Profile"},{id:"health",l:"Health & Fitness"},{id:"connections",l:"Connected"},{id:"insights",l:"AI Insights"},{id:"about",l:"About"}].map(t=>(<button key={t.id} onClick={()=>setSettingsTab(t.id)} style={{...F,flex:1,padding:"9px 4px",background:settingsTab===t.id?C.card:"transparent",border:settingsTab===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:10,fontWeight:settingsTab===t.id?600:400,color:settingsTab===t.id?C.t1:C.t3,boxShadow:settingsTab===t.id?C.shadow:"none"}}>{t.l}</button>))}
+        {null}
         </div>
 
         {settingsTab==="profile"&&<div>
@@ -48,6 +49,7 @@ export default function Settings({
                 <div style={{flex:1}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:3}}>{f.l}</div><div style={{...F,fontSize:15,color:C.t1}}>{f.v||"Not set"}</div></div>
                 <button onClick={()=>{setEditField(f.k);setEditVal(f.v||"");if(f.k==="gender")setGenderEdit(f.v||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button>
               </div>)}
+            {null}
             </div>
           ))}
           <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}><MessageCircle size={18}/></span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
@@ -55,6 +57,7 @@ export default function Settings({
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5}}>My Favorites ({(profile?.favorites||[]).length})</div>
               {editField!=="add_fav"&&<button onClick={()=>{setEditField("add_fav");setEditVal("");}} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Add</button>}
+            {null}
             </div>
             {editField==="add_fav"&&<div style={{marginBottom:12}}>
               <input value={editVal} onChange={e=>setEditVal(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&editVal.trim()){const fav={title:editVal.trim(),category:"general",addedAt:new Date().toISOString(),manual:true};const favs=[fav,...(profile?.favorites||[])].slice(0,30);const p={...profile,favorites:favs};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);setEditVal("");}}} placeholder="Restaurant, class, place, etc." style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box",marginBottom:8}}/>
@@ -72,11 +75,13 @@ export default function Settings({
               </div>
               <button onClick={()=>{const favs=(profile?.favorites||[]).filter((_,j)=>j!==i);const p={...profile,favorites:favs};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}><X size={16}/></button>
             </div>))}
+          {null}
           </div>
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5}}>My Pets ({(profile?.pets||[]).length})</div>
               {editField!=="add_pet"&&<button onClick={()=>{setEditField("add_pet");setEditVal("");}} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}><Plus size={12}/> Add</button>}
+            {null}
             </div>
             {editField==="add_pet"&&<div style={{marginBottom:12,padding:14,borderRadius:14,background:C.bg}}>
               <div style={{marginBottom:10}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Name</div><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Pet's name" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"}}/></div>
@@ -97,6 +102,7 @@ export default function Settings({
               </div>
               <button onClick={()=>{const pets=(profile?.pets||[]).filter((_,j)=>j!==i);const p={...profile,pets};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer"}}><X size={14}/></button>
             </div>))}
+          {null}
           </div>
 
           <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
@@ -112,6 +118,7 @@ export default function Settings({
               <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Frequency</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["1-2x/week","3-4x/week","5-6x/week","Daily"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...(profile?.health||{}),workoutFreq:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.workoutFreq===t?C.accSoft:C.cream,border:`1.5px solid ${profile?.health?.workoutFreq===t?C.acc:C.b2}`,color:profile?.health?.workoutFreq===t?C.acc:C.t2,fontWeight:profile?.health?.workoutFreq===t?600:400}}>{t}</button>))}</div></div>
               <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Injuries or limitations</div>{editField==="injuries"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. bad knee, lower back" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...(profile?.health||{}),injuries:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.injuries||"None"}</div><button onClick={()=>{setEditField("injuries");setEditVal(profile?.health?.injuries||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
             </div>}
+          {null}
           </div>
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
             <button onClick={()=>setHealthSection(p=>({...p,food:!p.food}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}><UtensilsCrossed size={20}/></span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Food & Allergies</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Allergens, dietary preferences{(profile?.health?.allergies||[]).length>0?` \u00B7 ${profile.health.allergies.length} set`:""}</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.food?"rotate(180deg)":"rotate(0)"}}><ChevronDown size={16}/></span></button>
@@ -120,6 +127,7 @@ export default function Settings({
               <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.teal,fontWeight:600,marginBottom:8}}>Dietary preferences</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Low sodium","Low sugar","Lactose-free"].map(d=>{const di=profile?.health?.diets||[];const on=di.includes(d);return(<button key={d} onClick={()=>{const p={...profile,health:{...(profile?.health||{}),diets:on?di.filter(x=>x!==d):[...di,d]}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.tealSoft:C.cream,border:`1.5px solid ${on?C.teal:C.b2}`,color:on?C.teal:C.t2,fontWeight:on?600:400}}>{d}</button>);})}</div></div>
               <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Other allergies</div>{editField==="other_allergies"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. kiwi, latex, medications" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...(profile?.health||{}),otherAllergies:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.otherAllergies||"None"}</div><button onClick={()=>{setEditField("other_allergies");setEditVal(profile?.health?.otherAllergies||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
             </div>}
+          {null}
           </div>
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
             <div style={{padding:"16px 20px",display:"flex",alignItems:"center",gap:12}}>
@@ -132,6 +140,7 @@ export default function Settings({
               <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Plan Type</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["HMO","PPO","EPO","POS","Not sure"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,planType:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.planType===t?C.tealSoft:C.cream,border:`1.5px solid ${profile?.health?.planType===t?C.teal:C.b2}`,color:profile?.health?.planType===t?C.teal:C.t2,fontWeight:profile?.health?.planType===t?600:400}}>{t}</button>))}</div>{profile?.health?.planType==="HMO"&&<div style={{...F,fontSize:12,color:C.gold,marginTop:8,padding:"8px 12px",background:C.goldSoft,borderRadius:10}}>HMO plans require a PCP referral before seeing specialists.</div>}</div>
               <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Primary Care Physician</div>{editField==="pcp"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Doctor's name or clinic" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,pcp:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.pcp||"Not set"}</div><button onClick={()=>{setEditField("pcp");setEditVal(profile?.health?.pcp||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
             </div>}
+          {null}
           </div>
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>{[{icon:<Heart size={18} color="#FF2D55"/>,l:"Apple Health",d:"Steps, heart rate, sleep"},{icon:<Dumbbell size={18} color="#0073CF"/>,l:"MyFitnessPal",d:"Nutrition, calories"},{icon:<Heart size={18} color="#00B0B9"/>,l:"Fitbit",d:"Activity, sleep"},{icon:<Sparkles size={18} color="#F47D31"/>,l:"Headspace",d:"Meditation"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} {"·"} Coming soon</div></div></div>))}</div>
           <div style={{...F,fontSize:12,color:C.t3,lineHeight:1.6,padding:"14px 16px",background:C.cream,borderRadius:14}}>Your guide is not a medical professional. Always consult a licensed physician for medical concerns.</div>
@@ -141,12 +150,15 @@ export default function Settings({
           <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
             <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}><TrendingUp size={20}/></span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
             {stravaData?.profile&&<div style={{padding:"10px 14px",borderRadius:12,background:C.bg,marginTop:10,display:"flex",gap:16}}><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRuns}</div><div style={{...F,fontSize:10,color:C.t3}}>Runs</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRunDistance}</div><div style={{...F,fontSize:10,color:C.t3}}>Distance</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRides}</div><div style={{...F,fontSize:10,color:C.t3}}>Rides</div></div></div>}
+          {null}
           </div>
           <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
             <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}><Calendar size={20}/></span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:12,color:calData?"#4285F4":C.t3}}>{calData?`Connected \u00B7 ${calData.length} events`:"Not connected"}</div></div>{calData?<button onClick={async()=>{deleteFB(getUserId(profile),"calendar");setCalData(null);setCalToken(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={()=>connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);saveFB(getUserId(profile),"calendar",{token:r.access_token,events:ev});})} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:"rgba(66,133,244,0.06)",color:"#4285F4",border:"1px solid rgba(66,133,244,0.1)",cursor:"pointer"}}>Connect</button>}</div>
             {calData?.length>0&&<div style={{marginTop:10}}>{calData.slice(0,4).map((e,i)=>{const d=new Date(e.start);return<div key={i} style={{display:"flex",gap:8,padding:"6px 14px",borderRadius:10,background:C.bg,marginBottom:4,alignItems:"center"}}><span style={{...F,fontSize:11,fontWeight:600,color:"#4285F4",minWidth:55}}>{d.toLocaleDateString([],{month:"short",day:"numeric"})}</span><span style={{...F,fontSize:12,color:C.t2,flex:1}}>{e.title}</span></div>;})}{calData.length>4&&<div style={{...F,fontSize:11,color:C.t3,textAlign:"center",marginTop:4}}>+{calData.length-4} more</div>}</div>}
+          {null}
           </div>
           {[{icon:<Briefcase size={20} color="#0A66C2"/>,l:"LinkedIn"},{icon:<Sparkles size={20} color="#E4405F"/>,l:"Instagram"},{icon:<Star size={20} color="#1DB954"/>,l:"Spotify"}].map(s=>(<div key={s.l} style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>))}
+        {null}
         </div>}
 
         {settingsTab==="insights"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -166,10 +178,12 @@ export default function Settings({
                 <div style={{height:6,background:C.cream,borderRadius:3}}><div style={{height:"100%",width:`${pct}%`,background:C.accGrad,borderRadius:3,transition:"width 0.5s"}}/></div>
               </div>
             );})}
+          {null}
           </div>}
           {profile?.insights?.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Profile insights ({profile.insights.length})</div>{profile.insights.map((ins,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<profile.insights.length-1?`1px solid ${C.b1}`:"none"}}>{ins.text}</div>))}</div>}
           {preferences.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Learned preferences</div>{preferences.map((p,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<preferences.length-1?`1px solid ${C.b1}`:"none"}}><span style={{fontWeight:600,color:C.t1,textTransform:"capitalize"}}>{p.key?.replace(/_/g," ")}:</span> {p.value}</div>))}</div>}
           {totalCompleted===0&&!profile?.insights?.length&&!preferences.length&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:28,marginBottom:8}}><Sparkles size={18} color="#F47D31"/></div><div style={{...F,fontSize:14,color:C.t2}}>Complete some steps to see your patterns here.</div></div>}
+        {null}
         </div>}
 
         {settingsTab==="about"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -200,8 +214,14 @@ export default function Settings({
                 <button onClick={()=>{if(deleteText.toLowerCase().trim()==="delete my account"){const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}resetAll();}}} disabled={deleteText.toLowerCase().trim()!=="delete my account"} style={{...F,flex:1,padding:10,borderRadius:12,border:"none",background:deleteText.toLowerCase().trim()==="delete my account"?"#DC3C3C":"rgba(220,60,60,0.1)",color:deleteText.toLowerCase().trim()==="delete my account"?"#fff":"rgba(220,60,60,0.3)",fontSize:13,fontWeight:600,cursor:deleteText.toLowerCase().trim()==="delete my account"?"pointer":"default"}}>Delete permanently</button>
               </div>
             </div>}
+          {null}
           </div>
         </div>}
-
-      </div></div>);
+      {null}
+      {null}
+      </div>
+      {null}
+      {null}
+      </div>
+  );
 }

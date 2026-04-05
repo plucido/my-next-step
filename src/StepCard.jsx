@@ -11,6 +11,7 @@ export default function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,on
       <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.acc,textTransform:"uppercase",letterSpacing:1.5}}>{step.category}</span>
       {step.recurring&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 6px",borderRadius:5}}>{step.recurring}</span>}
       {step.createdAt&&<span style={{...F,fontSize:10,color:C.t3,marginLeft:"auto"}}>{((d)=>{const m=Math.floor(d/6e4);if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";return Math.floor(h/24)+"d";})(Date.now()-new Date(step.createdAt).getTime())} ago</span>}
+    {null}
     </div>
     <div style={{...F,fontSize:15,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:4,paddingRight:24}}>{step.title}</div>
     {step.time&&<div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>{step.time}</div>}
@@ -26,6 +27,7 @@ export default function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,on
       <button onClick={()=>onTalk(`Find alternative to "${step.title}" with prices and details.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Alternative</button>
       <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Share2 size={12}/> Share</button>
       {step.time&&<button onClick={()=>onAddCal(step.title,step.why,step.time)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer"}}><Calendar size={12}/> Calendar</button>}
+    {null}
     </div>
   </div></FadeIn>);
 }

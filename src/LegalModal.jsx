@@ -40,6 +40,13 @@ export default function LegalModal({legalModal,setLegalModal}){
               <p>Under the California Consumer Privacy Act (CCPA) and similar state privacy laws, you have the right to opt out of the sale of your personal information. Since we do not sell personal information, no opt-out action is required. However, we provide this notice for transparency.</p>
               <p>If you have questions about our data practices, you can delete all your data at any time from Settings.</p>
             </div>}
+          {null}
+          {null}
           </div>
-        </div></div>);
+        {null}
+        {null}
+        </div>
+      {null}
+      {null}
+      </div>);
 }

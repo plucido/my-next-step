@@ -12,6 +12,7 @@ export default function RoutineCard({routine,onPause,onDelete,onTalk,delay=0}){
       <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.teal,textTransform:"uppercase",letterSpacing:1.5}}>{routine.schedule}</span>
       {days&&<span style={{...F,fontSize:10,color:C.t3}}>{days}</span>}
       {routine.paused&&<span style={{...F,fontSize:9,fontWeight:600,color:C.gold,background:C.goldSoft,padding:"2px 6px",borderRadius:5}}>Paused</span>}
+    {null}
     </div>
     <div style={{...F,fontSize:15,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:4,paddingRight:24}}>{routine.title}</div>
     {routine.description&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:12}}>{routine.description}</div>}
