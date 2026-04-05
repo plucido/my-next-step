@@ -358,8 +358,10 @@ export default function App(){
         <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell guide</button></div>
       </div></div>)}
       <div style={{padding:"14px 20px 4px",flexShrink:0}}>
+        <div style={{...F,fontSize:12,color:C.t3,marginBottom:2}}>{getGreeting()},</div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div><div style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</div></div>
+          <div style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</div>
+          <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...H,fontSize:22,fontWeight:700,color:C.t1,cursor:"pointer"}}>Take your next step!</div>
           <div style={{display:"flex",alignItems:"center",gap:8}}>
           {(()=>{
             const now=new Date();const weekAgo=new Date(now-7*864e5);
@@ -377,9 +379,6 @@ export default function App(){
           })()}
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
           </div>
-        </div>
-        <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{textAlign:"center",padding:"6px 0 2px",cursor:"pointer"}}>
-          <span style={{...H,fontSize:22,fontWeight:700,color:C.t1}}>Take your next step!</span>
         </div>
       </div>
       {(()=>{
