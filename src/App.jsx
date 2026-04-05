@@ -388,6 +388,13 @@ export default function App(){
       let finalText="",currentMsgs=[...apiMsgs],attempts=0;
       while(attempts<3){attempts++;
         const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,tools:[{type:"web_search_20250305",name:"web_search"}],system:sysPrompt,messages:currentMsgs})});
+        if(res.status===429){
+          // Rate limited - wait and retry
+          const wait=attempts*3000;
+          console.log(`Rate limited, waiting ${wait}ms...`);
+          await new Promise(r=>setTimeout(r,wait));
+          continue;
+        }
         if(!res.ok){const errText=await res.text();console.error("API error:",res.status,errText);finalText=`Something went wrong (${res.status}). Try again in a moment.`;break;}
         const data=await res.json();
         console.log("API attempt",attempts,"stop:",data.stop_reason,"blocks:",data.content?.length);
