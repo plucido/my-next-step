@@ -449,27 +449,6 @@ export default function App(){
                 </div>
               </div></FadeIn>
             ):(<>
-              {(()=>{
-                const now=new Date();const weekAgo=new Date(now-7*864e5);
-                const completed=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;
-                const active=segSteps.length;
-                const total=completed+active;
-                if(total===0)return null;
-                // Show week's activity as dots (Mon-Sun)
-                const days=[];for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);const ds=d.toDateString();const hasDone=allSteps.some(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===ds);const hasCreated=allSteps.some(s=>s.createdAt&&new Date(s.createdAt).toDateString()===ds);days.push({label:["S","M","T","W","T","F","S"][d.getDay()],done:hasDone,active:hasCreated,today:d.toDateString()===now.toDateString()});}
-                return(<FadeIn><div style={{padding:"14px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:16}}>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                    <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3}}>This week</div>
-                    <div style={{...F,fontSize:13,fontWeight:600,color:C.teal}}>{completed} completed</div>
-                  </div>
-                  <div style={{display:"flex",justifyContent:"space-between",gap:4}}>
-                    {days.map((d,i)=>(<div key={i} style={{textAlign:"center",flex:1}}>
-                      <div style={{...F,fontSize:10,color:d.today?C.t1:C.t3,fontWeight:d.today?700:400,marginBottom:4}}>{d.label}</div>
-                      <div style={{width:24,height:24,borderRadius:8,margin:"0 auto",background:d.done?C.teal:d.active?C.accSoft:d.today?C.cream:"transparent",border:d.today&&!d.done?`2px solid ${C.acc}`:`2px solid ${d.done?C.teal:d.active?C.accBorder:"transparent"}`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:d.done?"#fff":"transparent"}}>{d.done?"\u2713":""}</div>
-                    </div>))}
-                  </div>
-                </div></FadeIn>);
-              })()}
               {segSteps.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
                 {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*50}/>)}
