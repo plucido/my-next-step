@@ -105,6 +105,12 @@ CRITICAL RULES:
 5. Tag every step with a category: fitness, wellness, career, learning, social, events, travel, products.
 6. After feedback, ADAPT. Be concise. 1-3 sentences. Be warm and encouraging.
 
+TONE & FORMATTING:
+- Write like a real person texting a friend. Casual, warm, no fluff.
+- NEVER use markdown: no asterisks, no bold (**), no bullet points, no numbered lists, no headers (#). Just plain conversational text.
+- Use short sentences. Break up ideas with line breaks, not formatting.
+- Sound like a supportive friend who happens to have great local knowledge, not a corporate assistant.
+
 OUTPUT FORMAT (after "---DATA---"):
 [{"type":"step","title":"...","why":"...","link":"https://...","linkText":"...","category":"fitness","time":"..."}]
 [{"type":"plan","title":"...","date":"...","tasks":[{"title":"...","links":[{"label":"...","url":"https://..."}]}]}]
@@ -118,6 +124,25 @@ function decodeJwt(t){try{return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+
 function connectStrava(){const c=import.meta.env.VITE_STRAVA_CLIENT_ID;if(!c)return;window.location.href=`https://www.strava.com/oauth/authorize?client_id=${c}&response_type=code&redirect_uri=${window.location.origin}&scope=read,activity:read&approval_prompt=auto`;}
 async function exchangeStravaCode(code){try{return await(await fetch("https://www.strava.com/oauth/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({client_id:import.meta.env.VITE_STRAVA_CLIENT_ID,client_secret:import.meta.env.VITE_STRAVA_CLIENT_SECRET,code,grant_type:"authorization_code"})})).json();}catch{return null;}}
 async function fetchStravaProfile(token){try{const[a,b]=await Promise.all([fetch("https://www.strava.com/api/v3/athlete",{headers:{Authorization:`Bearer ${token}`}}),fetch("https://www.strava.com/api/v3/athlete/activities?per_page=10",{headers:{Authorization:`Bearer ${token}`}})]);const at=await a.json();const ac=await b.json();let st=null;if(at.id){try{st=await(await fetch(`https://www.strava.com/api/v3/athletes/${at.id}/stats`,{headers:{Authorization:`Bearer ${token}`}})).json();}catch{}}const rc=Array.isArray(ac)?ac.slice(0,10).map(a=>({type:a.type,name:a.name,distance:(a.distance/1000).toFixed(1)+" km",duration:Math.round(a.moving_time/60)+" min",date:new Date(a.start_date_local).toLocaleDateString(),pace:a.type==="Run"?(a.moving_time/60/(a.distance/1000)).toFixed(1)+" min/km":null})):[];return{name:`${at.firstname||""} ${at.lastname||""}`.trim(),city:at.city||"",recentActivities:rc,allTimeRuns:st?.all_run_totals?.count||0,allTimeRunDistance:st?.all_run_totals?.distance?(st.all_run_totals.distance/1000).toFixed(0)+" km":"0 km",allTimeRides:st?.all_ride_totals?.count||0,allTimeRideDistance:st?.all_ride_totals?.distance?(st.all_ride_totals.distance/1000).toFixed(0)+" km":"0 km",recentRunCount:st?.recent_run_totals?.count||0,recentRideCount:st?.recent_ride_totals?.count||0};}catch{return null;}}
+
+// ─── CLEAN MARKDOWN FROM RESPONSES ───
+function cleanMarkdown(text) {
+  if (!text) return text;
+  let t = text;
+  t = t.replace(/\*\*\*(.*?)\*\*\*/g, "$1");
+  t = t.replace(/\*\*(.*?)\*\*/g, "$1");
+  t = t.replace(/\*(.*?)\*/g, "$1");
+  t = t.replace(/^#{1,6}\s+/gm, "");
+  t = t.replace(/^[\-]\s+/gm, "\u2022 ");
+  t = t.replace(/`([^`]+)`/g, "$1");
+  t = t.replace(/```[\s\S]*?```/g, "");
+  t = t.replace(/_{2}(.*?)_{2}/g, "$1");
+  t = t.replace(/~{2}(.*?)~{2}/g, "$1");
+  // Clean markdown links: [text](url) -> text
+  const linkRe = /\[([^\]]+)\]\([^)]+\)/g;
+  t = t.replace(linkRe, "$1");
+  return t.trim();
+}
 
 // ─── AUTH SCREEN ───
 function AuthScreen({onAuth}){
@@ -207,8 +232,8 @@ function DeepProfileChat({profile,onFinish,existingInsights}){
   const startSection=sec=>{setSection(sec);setMsgs([{role:"assistant",content:`Let's talk about ${sec.label.toLowerCase()}.\n\n${sec.questions[0]}`}]);setTimeout(()=>inpRef.current?.focus(),100);};
   const send=async()=>{
     if(!inp.trim()||busy)return;const updated=[...msgs,{role:"user",content:inp.trim()}];setMsgs(updated);setInp("");setBusy(true);
-    try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system:`Onboarding for "My Next Step". Be warm.\nUser: ${profile.name} | ${profile.setup?.location||""}\nSection: ${section.label}\nQuestions: ${section.questions.join(" | ")}\nONE question. After 3-5 exchanges: "INSIGHTS:" then "- " bullets.`,messages:updated.map(m=>({role:m.role,content:m.content}))})});const data=await res.json();const text=data.content?.map(c=>c.text||"").filter(Boolean).join("\n")||"Tell me more?";
-      if(text.includes("INSIGHTS:")){const p=text.split("INSIGHTS:");setInsights(prev=>[...prev.filter(i=>i.section!==section.id),...p[1].split("\n").filter(l=>l.trim().startsWith("- ")).map(l=>({section:section.id,text:l.trim().slice(2)}))]);setMsgs(prev=>[...prev,{role:"assistant",content:p[0].trim()}]);}
+    try{const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:800,system:`Onboarding for "My Next Step". Be warm and conversational. Never use markdown formatting like asterisks, bold, bullets, or headers. Write like a friend texting.\nUser: ${profile.name} | ${profile.setup?.location||""}\nSection: ${section.label}\nQuestions: ${section.questions.join(" | ")}\nONE question. After 3-5 exchanges: "INSIGHTS:" then "- " bullets.`,messages:updated.map(m=>({role:m.role,content:m.content}))})});const data=await res.json();const text=cleanMarkdown(data.content?.map(c=>c.text||"").filter(Boolean).join("\n")||"Tell me more?");
+      if(text.includes("INSIGHTS:")){const p=text.split("INSIGHTS:");setInsights(prev=>[...prev.filter(i=>i.section!==section.id),...p[1].split("\n").filter(l=>l.trim().startsWith("- ")).map(l=>({section:section.id,text:l.trim().slice(2)}))]);setMsgs(prev=>[...prev,{role:"assistant",content:cleanMarkdown(p[0].trim())}]);}
       else setMsgs(prev=>[...prev,{role:"assistant",content:text}]);
     }catch{setMsgs(prev=>[...prev,{role:"assistant",content:"Hiccup \u2014 say that again?"}]);}setBusy(false);
   };
@@ -387,7 +412,7 @@ export default function App(){
           else if(item.type==="delete_plan")newPlans=newPlans.filter(p=>!p.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
         }setSteps(newSteps);setPlans(newPlans);setPreferences(newPrefs);}catch(e){console.error("Parse:",e);}
       }
-      const newMsgs=[...updated,{role:"assistant",content:displayText}];setMessages(newMsgs);
+      const newMsgs=[...updated,{role:"assistant",content:cleanMarkdown(displayText)}];setMessages(newMsgs);
       persist(profile,newSteps,newPlans,newMsgs,newPrefs);
       if(newSteps.length>steps.length)setTimeout(()=>setMode("steps"),600);
       else if(newPlans.length>plans.length)setTimeout(()=>setMode("plans"),600);
