@@ -587,8 +587,6 @@ export default function App(){
     const userMsg={role:"user",content:msg};const updated=[...messages,userMsg];setMessages(updated);setInput("");setLoading(true);
     if(inputRef.current)inputRef.current.style.height="auto";
     const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
-    const lovedSteps=steps.filter(s=>s.loved);
-    const lovedCtx=lovedSteps.length>0?"\n\nSTEPS THE USER LOVED (give more like these!):\n"+lovedSteps.map(s=>`- "${s.title}" (${s.category||"general"})`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs (${sp.allTimeRunDistance}), ${sp.allTimeRides} rides (${sp.allTimeRideDistance})`:"";
     const stepsCtx=steps.filter(s=>s.status==="active").length>0?"\n\nACTIVE STEPS:\n"+steps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category||"general"}, ${s.time||"anytime"})${s.loved?" [LOVED]":""}`).join("\n"):"";
     const lovedCtx=steps.filter(s=>s.loved).length>0?"\n\nSTEPS THE USER LOVED (recommend more like these):\n"+steps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
@@ -695,23 +693,8 @@ export default function App(){
   const markStep=(id,status)=>{if(status==="done")setFeedbackStep(steps.find(s=>s.id===id));const u=steps.map(s=>s.id===id?{...s,status}:s);setSteps(u);persist(profile,u,plans,messages,preferences);};
   const loveStep=id=>{
     const step=steps.find(s=>s.id===id);
-    const wasLoved=step?.loved;
     const u=steps.map(s=>s.id===id?{...s,loved:!s.loved}:s);
     setSteps(u);persist(profile,u,plans,messages,preferences);
-    // Tell the AI about it so it learns
-    if(!wasLoved&&step){
-      const prefKey=`loved_${step.category||"general"}`;
-      const existing=preferences.find(p=>p.key===prefKey);
-      const newVal=existing?existing.value+`, ${step.title}`:step.title;
-      const newPrefs=[...preferences.filter(p=>p.key!==prefKey),{key:prefKey,value:newVal}];
-      setPreferences(newPrefs);persist(profile,u,plans,messages,newPrefs);
-    }
-  };
-  const loveStep=id=>{
-    const step=steps.find(s=>s.id===id);
-    const u=steps.map(s=>s.id===id?{...s,loved:!s.loved}:s);
-    setSteps(u);persist(profile,u,plans,messages,preferences);
-    // If newly loved, tell the AI so it learns
     if(step&&!step.loved){
       const pref={type:"preference",key:`loved_${step.category||"general"}`,value:`User loved "${step.title}" (${step.category}). Recommend more like this.`};
       const newPrefs=[...preferences.filter(p=>p.key!==pref.key),pref];
