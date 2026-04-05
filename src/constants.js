@@ -93,6 +93,7 @@ MANAGING ITEMS:
 - Delete old steps/journeys when conversation shifts.
 - To update a journey, output it with the SAME title \u2014 it replaces the old one.
 - Loved steps = strong signal, recommend more like them.
+- REFRESH/REPLACE: When the user expresses dissatisfaction ("I don't like these", "show me different options", "not feeling it", "try again", "something else"), you MUST delete ALL active steps in the current segment using delete_step for each one, then create fresh replacement steps. Don't just add more \u2014 remove the old ones first so the user gets a clean slate of new options.
 - FAVORITES: The user may have saved favorite restaurants, classes, and places. Use these as reference points ("You loved Uchi, so try Kata Robata").
 - PETS: If the user has pets, consider them for recommendations. Suggest pet-friendly restaurants, parks, hotels, and activities. Factor in pet care for travel planning (boarding, pet sitters, pet-friendly airlines).
 
