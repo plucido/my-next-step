@@ -361,6 +361,30 @@ export default function App(){
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
         </div>
       </div>
+      {(()=>{
+        var upNext=null;var items=[];
+        (calData||[]).forEach(e=>{var d=new Date(e.start);if(d>new Date())items.push({title:e.title,time:d,type:"cal"});});
+        allSteps.filter(s=>s.status==="active").forEach(s=>{var t=(s.time||"").toLowerCase();var d=new Date();if(t.includes("tonight")||t.includes("pm")){var m=t.match(/(\d{1,2})\s*pm/);d.setHours(m?parseInt(m[1])+12:19,0,0);}else if(t.includes("am")){var m2=t.match(/(\d{1,2})\s*am/);if(m2)d.setHours(parseInt(m2[1]),0,0);}else if(t.includes("tomorrow")){d.setDate(d.getDate()+1);d.setHours(9,0,0);}else{d=null;}if(d&&d>new Date())items.push({title:s.title,time:d,type:"step",cat:s.category,seg:catToSeg(s.category)});});
+        allRoutines.filter(r=>!r.paused&&r.days?.length>0).forEach(r=>{for(var i=0;i<7;i++){var d=new Date();d.setDate(d.getDate()+i);var dn=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][d.getDay()];if(r.days.map(x=>x.toLowerCase()).includes(dn)){var rt=new Date(d);var tp=(r.time||"").toLowerCase();var pm=tp.match(/(\d{1,2})\s*pm/);var am=tp.match(/(\d{1,2})\s*am/);if(pm)rt.setHours(parseInt(pm[1])+(parseInt(pm[1])===12?0:12),0,0);else if(am)rt.setHours(parseInt(am[1])===12?0:parseInt(am[1]),0,0);else rt.setHours(9,0,0);if(rt>new Date()){items.push({title:r.title,time:rt,type:"routine"});break;}}}});
+        items.sort((a,b)=>a.time-b.time);
+        upNext=items[0]||null;
+        var withinWeek=upNext&&(upNext.time-new Date())<7*864e5;
+        if(!withinWeek&&allSteps.filter(s=>s.status==="active").length===0)return null;
+        var diff=upNext?(upNext.time-new Date()):0;var mins=Math.floor(diff/6e4);var label="";
+        if(upNext){if(mins<60)label="in "+mins+" min";else if(mins<1440)label="in "+Math.floor(mins/60)+"h";else if(mins<2880)label="Tomorrow";else label=upNext.time.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});}
+        var color=upNext?(upNext.type==="cal"?"#4285F4":upNext.type==="routine"?C.teal:SEGMENTS[upNext.seg]?.color||C.acc):C.acc;
+        return <div style={{padding:"0 20px 6px",flexShrink:0}}>
+          {withinWeek&&upNext?<div onClick={()=>{setSegment("everything");setView("steps");}} style={{...F,padding:"10px 16px",borderRadius:14,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:6,height:6,borderRadius:3,background:color,flexShrink:0}}>{null}</div>
+            <div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:13,fontWeight:600,color:C.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{upNext.title}</div></div>
+            <div style={{...F,fontSize:11,fontWeight:600,color:color,flexShrink:0}}>{label}</div>
+            <span style={{color:C.t3}}><ChevronRight size={14}/></span>
+          </div>
+          :<div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",textAlign:"center"}}>
+            <span style={{fontSize:14,fontStyle:"italic",color:C.t2}}>Take your next step!</span>
+          </div>}
+        </div>;
+      })()}
       {!profile?.insights?.length&&allSteps.filter(s=>s.status==="active").length>0&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
         <button onClick={()=>{setSegment("wellness");setView("chat");setTimeout(()=>sendMessage("I'd like to tell you more about myself so you can personalize better. Ask me a few questions — don't create any steps, just learn about me."),100);}} style={{...F,width:"100%",padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
           <span style={{fontSize:16}}><Sparkles size={14}/></span>
