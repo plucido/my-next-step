@@ -167,7 +167,7 @@ export default function Settings({
     const loyaltyPrograms=travel.loyalty||[];
     const saveLoyalty=(programs)=>{const p={...profile,travel:{...travel,loyalty:programs}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);};
     const sectionLabel=(text)=>(<div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginTop:16,marginBottom:8}}>{text}</div>);
-    const comingSoon=(items)=>items.map(s=>(<div key={s.l} style={{padding:14,borderRadius:14,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} \u00B7 Coming soon</div></div></div>));
+    const comingSoon=(items)=>items.map(s=>(<div key={s.l} style={{padding:14,borderRadius:14,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>));
     return (<div style={{display:"flex",flexDirection:"column",gap:8}}>
       {sectionLabel("Calendar")}
       <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
