@@ -253,7 +253,7 @@ export default function App(){
     if(navigator.share){try{await navigator.share({title:isJourney?item.title:item.title,text});}catch{}}
     else{try{await navigator.clipboard.writeText(text);alert("Copied to clipboard!");}catch{}}
   };
-  const handleBooked=(step)=>{handleAddCal(step.title,step.why,step.time);markStep(step.id,"done");};
+  const handleBooked=(step)=>{handleAddCal(step.title,step.why,step.time);const u=allSteps.map(s=>s.id===step.id?{...s,booked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
   // Compute insights for stats
   const completedByCategory={};doneSteps.forEach(s=>{const c=s.category||"other";completedByCategory[c]=(completedByCategory[c]||0)+1;});
   const totalCompleted=doneSteps.length;

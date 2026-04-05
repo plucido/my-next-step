@@ -4,11 +4,12 @@ import { FadeIn, catToSeg, catIcon, TLink } from "./utils.jsx";
 
 export default function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove,onTalk,onAddCal,onShare,delay=0}){
   const seg=SEGMENTS[catToSeg(step.category)];
-  return(<FadeIn delay={delay}><div style={{padding:"18px 20px",borderRadius:18,marginBottom:10,background:C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${seg?.color||C.acc}`}}>
+  return(<FadeIn delay={delay}><div style={{padding:"18px 20px",borderRadius:18,marginBottom:10,background:step.booked?C.tealSoft:C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${step.booked?C.teal:seg?.color||C.acc}`}}>
     <button onClick={()=>onDelete(step.id)} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}><X size={16}/></button>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
       <span style={{fontSize:14}}>{catIcon(step.category)}</span>
       <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.acc,textTransform:"uppercase",letterSpacing:1.5}}>{step.category}</span>
+      {step.booked&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:"rgba(15,118,110,0.15)",padding:"2px 6px",borderRadius:5}}>Booked</span>}
       {step.recurring&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 6px",borderRadius:5}}>{step.recurring}</span>}
       {step.createdAt&&<span style={{...F,fontSize:10,color:C.t3,marginLeft:"auto"}}>{((d)=>{const m=Math.floor(d/6e4);if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";return Math.floor(h/24)+"d";})(Date.now()-new Date(step.createdAt).getTime())} ago</span>}
     </div>
@@ -17,7 +18,8 @@ export default function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove
     {step.why&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:14}}>{step.why}</div>}
     <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
       {step.link&&<TLink href={step.link} actionId={step.id} category={step.category} title={step.title} style={{...F,fontSize:13,fontWeight:600,padding:"9px 16px",borderRadius:12,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-block"}}>{step.linkText||"Do it"} <ExternalLink size={11}/></TLink>}
-      <button onClick={()=>onBooked(step)} style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer"}}><Calendar size={14}/> Booked</button>
+      {step.booked?<span style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(15,118,110,0.08)",border:`1px solid ${C.tealBorder}`,color:C.teal}}><Check size={14}/> Booked</span>
+      :<button onClick={()=>onBooked(step)} style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer"}}><Calendar size={14}/> Book it</button>}
       <button onClick={()=>onDone(step.id)} style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>Done <Check size={14}/></button>
       <button onClick={()=>onLove(step.id)} style={{width:38,height:38,borderRadius:12,border:"none",cursor:"pointer",background:step.loved?"rgba(220,38,38,0.08)":"rgba(0,0,0,0.02)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,transition:"all 0.2s"}}>{step.loved?<Heart size={16} fill="#DC2626" color="#DC2626"/>:<Heart size={16} color={C.t3}/>}</button>
       <button onClick={()=>onDislike(step.id)} style={{width:38,height:38,borderRadius:12,border:"none",cursor:"pointer",background:"rgba(0,0,0,0.02)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}><ThumbsDown size={16} color={C.t3}/></button>
