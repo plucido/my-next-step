@@ -424,14 +424,84 @@ export default function TimelineView({
     );
   }
 
+  function renderUpNext() {
+    var items = [];
+    (calData || []).forEach(function(e) {
+      var d = new Date(e.start);
+      if (d > now) items.push({title:e.title,time:d,type:"cal",location:e.location});
+    });
+    allSteps.filter(function(s){return s.status==="active";}).forEach(function(s) {
+      var t = (s.time || "").toLowerCase();
+      var d = new Date();
+      if (t.includes("tonight") || t.includes("pm")) {var m=t.match(/(\d{1,2})\s*pm/);d.setHours(m?parseInt(m[1])+12:19,0,0);}
+      else if (t.includes("am")) {var m2=t.match(/(\d{1,2})\s*am/);if(m2)d.setHours(parseInt(m2[1]),0,0);}
+      else if (t.includes("tomorrow")) {d.setDate(d.getDate()+1);d.setHours(9,0,0);}
+      else {d = null;}
+      if (d && d > now) items.push({title:s.title,time:d,type:"step",cat:s.category});
+    });
+    allRoutines.filter(function(r){return !r.paused;}).forEach(function(r) {
+      var rDays = r.days || [];
+      if (rDays.length === 0) return;
+      for (var i = 0; i < 7; i++) {
+        var d = new Date(now); d.setDate(d.getDate()+i);
+        var dayName = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][d.getDay()];
+        if (rDays.map(function(x){return x.toLowerCase();}).includes(dayName)) {
+          var rt = new Date(d);
+          var tp = (r.time||"").toLowerCase();
+          var pm=tp.match(/(\d{1,2})\s*pm/);var am=tp.match(/(\d{1,2})\s*am/);
+          if(pm)rt.setHours(parseInt(pm[1])+(parseInt(pm[1])===12?0:12),0,0);
+          else if(am)rt.setHours(parseInt(am[1])===12?0:parseInt(am[1]),0,0);
+          else rt.setHours(9,0,0);
+          if (rt > now) {items.push({title:r.title,time:rt,type:"routine"}); break;}
+        }
+      }
+    });
+    items.sort(function(a,b){return a.time-b.time;});
+    var next = items.slice(0,2);
+    if (next.length === 0) return null;
+
+    function timeLabel(d) {
+      var diff = d - now;
+      var mins = Math.floor(diff/6e4);
+      if (mins < 60) return "in " + mins + " min";
+      var hrs = Math.floor(mins/60);
+      if (hrs < 24) return "in " + hrs + "h";
+      var days = Math.floor(hrs/24);
+      if (days === 1) return "Tomorrow";
+      return d.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});
+    }
+
+    return (
+      <div style={{position:"sticky",top:0,zIndex:10,padding:"0 0 8px",background:C.bg}}>
+        <div style={{padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,display:"flex",gap:10,alignItems:"center"}}>
+          <div style={{width:6,height:6,borderRadius:3,background:C.acc,flexShrink:0,animation:"pulse 2s ease infinite"}}>{null}</div>
+          <div style={{flex:1,display:"flex",gap:16,overflow:"hidden"}}>
+            {next.map(function(item,i){
+              var color = item.type==="cal"?"#4285F4":item.type==="routine"?C.teal:C.acc;
+              return (
+                <div key={i} style={{flex:1,minWidth:0}}>
+                  <div style={{...F,fontSize:13,fontWeight:600,color:C.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.title}</div>
+                  <div style={{...F,fontSize:11,color:color,fontWeight:600,marginTop:1}}>{timeLabel(item.time)}</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{...F,fontSize:10,color:C.t3,flexShrink:0}}>Up next</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{flex:1,overflowY:"auto",padding:"8px 20px 200px"}}>
+      {renderUpNext()}
       {renderToday()}
       {renderThisWeek()}
       {renderUpcomingAndCalendar()}
       {renderRoutines()}
       {renderJourneys()}
       {renderCompleted()}
+      <style>{"@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}"}</style>
     </div>
   );
 }
