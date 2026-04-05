@@ -222,11 +222,35 @@ export default function TimelineView({
       <FadeIn delay={120}>
         <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ ...sectionHeader, marginBottom: 12 }}>Coming Up</div>
-            {upcomingItems.length > 0 ? upcomingItems.map(function(item, i) {
-              if (item.type === "cal") return renderCalEvent(item.data, "up-" + i);
-              return renderCompactStep(item.data, i);
-            }) : <div style={{ ...F, fontSize: 13, color: C.t3, fontStyle: "italic" }}>Nothing scheduled yet</div>}
+            {upcomingItems.length > 0 ? <div>
+              <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming Up</div>
+              {upcomingItems.slice(0,5).map(function(item, i) {
+                if (item.type === "cal") return renderCalEvent(item.data, "up-" + i);
+                return renderCompactStep(item.data, i);
+              })}
+            </div> : null}
+            {unscheduledSteps.length > 0 ? <div style={{marginTop: upcomingItems.length>0 ? 16 : 0}}>
+              <div style={{ ...sectionHeader, marginBottom: 10 }}>Anytime</div>
+              {unscheduledSteps.slice(0,5).map(function(s, i) { return renderCompactStep(s, i); })}
+            </div> : null}
+            {allPlans.length > 0 ? <div style={{marginTop:16}}>
+              <div style={{ ...sectionHeader, marginBottom: 10 }}>Journeys ({allPlans.length})</div>
+              {allPlans.slice(0,3).map(function(p, i) {
+                var done = (p.tasks||[]).filter(function(t){return t.done;}).length;
+                var total = (p.tasks||[]).length;
+                return <div key={i} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:C.card,boxShadow:C.shadow}}>
+                  <div style={{...F,fontSize:13,fontWeight:600,color:C.t1}}>{p.title}</div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+                    <div style={{flex:1,height:3,background:C.cream,borderRadius:2}}><div style={{height:"100%",width:total?(done/total*100)+"%":"0%",background:done===total?C.teal:C.accGrad,borderRadius:2}}>{null}</div></div>
+                    <span style={{...F,fontSize:10,color:C.t3}}>{done}/{total}</span>
+                  </div>
+                </div>;
+              })}
+            </div> : null}
+            {upcomingItems.length===0 && unscheduledSteps.length===0 && allPlans.length===0 ? <div>
+              <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming Up</div>
+              <div style={{ ...F, fontSize: 13, color: C.t3, fontStyle: "italic" }}>Nothing scheduled yet</div>
+            </div> : null}
           </div>
           {renderMiniCalendar()}
         </div>
@@ -248,14 +272,18 @@ export default function TimelineView({
     for (var d = 1; d <= daysInMonth; d++) {
       var cellDate = new Date(year, month, d);
       var cellKey = cellDate.toDateString();
-      var hasSteps = (stepsByDate[cellKey] || []).length > 0;
+      var daySteps = stepsByDate[cellKey] || [];
+      var dayRoutines = routinesByDate[cellKey] || [];
       var hasCal = (calByDate[cellKey] || []).length > 0;
-      var hasRoutine = (routinesByDate[cellKey] || []).length > 0;
       var isToday = cellKey === todayStr;
       var isSelected = selectedDate && cellKey === selectedDate.toDateString();
       var isPast = cellDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      var hasContent = hasSteps || hasCal || hasRoutine;
-      cells.push({ num: d, key: "d-" + d, date: cellDate, dateKey: cellKey, hasSteps: hasSteps, hasCal: hasCal, hasRoutine: hasRoutine, isToday: isToday, isSelected: isSelected, isPast: isPast, hasContent: hasContent });
+      var segColors = {};
+      daySteps.forEach(function(s){var seg=catToSeg(s.category);segColors[seg]=SEGMENTS[seg]?.color||C.acc;});
+      dayRoutines.forEach(function(r){var seg=catToSeg(r.category);segColors[seg]=SEGMENTS[seg]?.color||C.teal;});
+      var dots = Object.values(segColors);
+      if(hasCal) dots.push("#4285F4");
+      cells.push({ num: d, key: "d-" + d, date: cellDate, dateKey: cellKey, dots: dots, isToday: isToday, isSelected: isSelected, isPast: isPast });
     }
 
     function prevMonth() {
@@ -295,18 +323,15 @@ export default function TimelineView({
                 <div key={cell.key} onClick={function(){selectDay(cell);}} style={{ padding: "3px 0", display: "flex", flexDirection: "column", alignItems: "center", opacity: cell.isPast && !cell.isToday ? 0.35 : 1, cursor: "pointer" }}>
                   <div style={{ width: 28, height: 28, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: bg, color: fg, ...F, fontSize: 12, fontWeight: cell.isToday || cell.isSelected ? 700 : 400, transition: "all 0.15s" }}>{cell.num}</div>
                   <div style={{ display: "flex", gap: 2, marginTop: 2, height: 4 }}>
-                    {cell.hasSteps ? <div style={{ width: 4, height: 4, borderRadius: 2, background: cell.isSelected ? C.acc : C.acc }}>{null}</div> : null}
-                    {cell.hasCal ? <div style={{ width: 4, height: 4, borderRadius: 2, background: "#4285F4" }}>{null}</div> : null}
-                    {cell.hasRoutine && !cell.hasSteps ? <div style={{ width: 4, height: 4, borderRadius: 2, background: C.teal }}>{null}</div> : null}
+                    {cell.dots.slice(0,4).map(function(clr,di){return <div key={di} style={{ width: 4, height: 4, borderRadius: 2, background: clr }}>{null}</div>;})}
                   </div>
                 </div>
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: 12, marginTop: 12, padding: "8px 0 0", borderTop: "1px solid " + C.b1 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: C.acc }}>{null}</div><span style={{ ...F, fontSize: 10, color: C.t3 }}>Steps</span></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: "#4285F4" }}>{null}</div><span style={{ ...F, fontSize: 10, color: C.t3 }}>Calendar</span></div>
-            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: C.teal }}>{null}</div><span style={{ ...F, fontSize: 10, color: C.t3 }}>Routines</span></div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, padding: "8px 0 0", borderTop: "1px solid " + C.b1 }}>
+            {Object.keys(SEGMENTS).map(function(s){return <div key={s} style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: SEGMENTS[s].color }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>{SEGMENTS[s].label}</span></div>;})}
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: "#4285F4" }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>Calendar</span></div>
           </div>
         </div>
         {selectedDate ? renderSelectedDay(selectedDate, selSteps, selCal, selRoutines, selUnscheduled) : null}
