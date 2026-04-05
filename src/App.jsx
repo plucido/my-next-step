@@ -63,7 +63,22 @@ function trackClick(id,url,cat,title){try{const c=JSON.parse(localStorage.getIte
 function TLink({href,actionId,category,title,children,style:sx}){return<a href={wrapLink(href,actionId)} target="_blank" rel="noopener noreferrer" onClick={()=>trackClick(actionId,href,category,title)} style={sx}>{children}</a>;}
 
 // ─── MARKDOWN CLEANER ───
-function clean(text){if(!text)return text;let t=text;t=t.replace(/\*\*\*(.*?)\*\*\*/g,"$1");t=t.replace(/\*\*(.*?)\*\*/g,"$1");t=t.replace(/\*(.*?)\*/g,"$1");t=t.replace(/^#{1,6}\s+/gm,"");t=t.replace(/^[\-\*]\s+/gm,"");t=t.replace(/^\d+\.\s+/gm,"");t=t.replace(/`([^`]+)`/g,"$1");t=t.replace(/```[\s\S]*?```/g,"");t=t.replace(/_{2}(.*?)_{2}/g,"$1");t=t.replace(/~{2}(.*?)~{2}/g,"$1");t=t.replace(/\[([^\]]+)\]\([^)]+\)/g,"$1");t=t.replace(/\u2022\s*/g,"");t=t.replace(/^[A-Z][A-Z\s]+:/gm,"");t=t.replace(/\n{3,}/g,"\n\n");return t.trim();}
+function clean(text){if(!text)return text;let t=text;
+  // Strip markdown
+  t=t.replace(/\*\*\*(.*?)\*\*\*/g,"$1");t=t.replace(/\*\*(.*?)\*\*/g,"$1");t=t.replace(/\*(.*?)\*/g,"$1");
+  t=t.replace(/^#{1,6}\s+/gm,"");t=t.replace(/`([^`]+)`/g,"$1");t=t.replace(/```[\s\S]*?```/g,"");
+  t=t.replace(/_{2}(.*?)_{2}/g,"$1");t=t.replace(/~{2}(.*?)~{2}/g,"$1");t=t.replace(/\[([^\]]+)\]\([^)]+\)/g,"$1");
+  // Strip ALL CAPS HEADERS like "FLIGHTS:", "PERFECT TIMING:", "HOTELS:"
+  t=t.replace(/^[A-Z][A-Z\s]{2,}:\s*/gm,"");
+  // Strip bullets and list markers
+  t=t.replace(/^[\u2022\-\*]\s*/gm,"");t=t.replace(/^\d+[.)]\s*/gm,"");
+  // Strip orphaned punctuation lines (citation artifacts)
+  t=t.replace(/^\s*[.!]\s*$/gm,"");
+  // Strip citation markers like [1], [2] etc
+  t=t.replace(/\[\d+\]/g,"");
+  // Collapse excessive whitespace
+  t=t.replace(/\n{3,}/g,"\n\n");t=t.replace(/^\s+$/gm,"");
+  return t.trim();}
 
 // ─── AUTH HELPERS ───
 function loadGSI(){return new Promise(r=>{if(document.getElementById("gsi"))return r();const s=document.createElement("script");s.id="gsi";s.src="https://accounts.google.com/gsi/client";s.onload=r;document.head.appendChild(s);});}
@@ -324,9 +339,9 @@ export default function App(){
   const handleSetup=setup=>{setProfile(p=>({...p,setup}));setScreen("deepprofile");};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("chat");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
+    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
     else persist(full,allSteps,allPlans,chats,preferences);
-    setScreen("main");setTimeout(()=>inputRef.current?.focus(),200);
+    setView("steps");setScreen("main");
   };
 
   const sendMessage=async text=>{
@@ -358,7 +373,6 @@ export default function App(){
       const apiMsgs=[];
       for(const m of cleanMsgs){
         if(apiMsgs.length>0&&apiMsgs[apiMsgs.length-1].role===m.role){
-          // Same role twice - merge content
           apiMsgs[apiMsgs.length-1].content+="\n"+m.content;
         } else {
           apiMsgs.push({...m});
@@ -366,15 +380,18 @@ export default function App(){
       }
       // Ensure first message is from user
       while(apiMsgs.length>0&&apiMsgs[0].role!=="user")apiMsgs.shift();
+      // If no messages left, add the current one
+      if(apiMsgs.length===0)apiMsgs.push({role:"user",content:msg});
+      
       const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}${calCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...apiMsgs],attempts=0;
       while(attempts<3){attempts++;
         const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,tools:[{type:"web_search_20250305",name:"web_search"}],system:sysPrompt,messages:currentMsgs})});
-        if(!res.ok){console.error("API error:",res.status,await res.text());finalText="Let me try that again.";break;}
+        if(!res.ok){const errText=await res.text();console.error("API error:",res.status,errText);finalText=`Something went wrong (${res.status}). Try again in a moment.`;break;}
         const data=await res.json();
         console.log("API attempt",attempts,"stop:",data.stop_reason,"blocks:",data.content?.length);
-        if(!data.content){finalText="Let me try that again.";break;}
+        if(!data.content||data.content.length===0){console.error("Empty content from API:",JSON.stringify(data));finalText="Hmm, I didn't get a response. Try again?";break;}
         for(const block of data.content)if(block.type==="text"&&block.text)finalText+=block.text+"\n";
         if(data.stop_reason==="end_turn"||data.stop_reason==="stop")break;
         if(data.stop_reason==="tool_use"){currentMsgs.push({role:"assistant",content:data.content});const tr=[];for(const b of data.content)if(b.type==="tool_use")tr.push({type:"tool_result",tool_use_id:b.id,content:"Search done. Create specific steps/journeys with links."});if(tr.length)currentMsgs.push({role:"user",content:tr});finalText="";continue;}
@@ -473,11 +490,32 @@ export default function App(){
         {/* STEPS & JOURNEYS VIEW */}
         {(view==="steps"||segment==="everything")&&(
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
-            {segSteps.length===0&&segPlans.length===0?(
+            {segSteps.length===0&&segPlans.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
+              <FadeIn><div style={{padding:"20px 0"}}>
+                {/* Welcome hero */}
+                <div style={{textAlign:"center",padding:"24px 20px 32px"}}>
+                  <div style={{...H,fontSize:24,color:C.t1,marginBottom:8}}>What's next for you?</div>
+                  <div style={{...F,fontSize:15,color:C.t2,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Pick a segment above, then chat with your coach to start building your steps and journeys.</div>
+                </div>
+                {/* Segment quick starts */}
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {SEG_KEYS.map(s=>{const info=SEGMENTS[s];return(
+                    <button key={s} onClick={()=>{setSegment(s);setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,width:"100%",padding:"18px 20px",borderRadius:18,background:C.card,boxShadow:C.shadow,border:`1.5px solid ${info.color}15`,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+                      <div style={{width:44,height:44,borderRadius:14,background:info.soft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{info.icon}</div>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:15,fontWeight:600,color:C.t1}}>{info.label}</div>
+                        <div style={{fontSize:13,color:C.t3,marginTop:2}}>{info.desc}</div>
+                      </div>
+                      <span style={{color:info.color,fontSize:18}}>{"\u203A"}</span>
+                    </button>
+                  );})}
+                </div>
+              </div></FadeIn>
+            ):segSteps.length===0&&segPlans.length===0?(
               <FadeIn><div style={{textAlign:"center",padding:"44px 20px"}}>
                 <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{segInfo.icon}</div>
-                <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Nothing here yet</div>
-                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:260,margin:"0 auto 20px"}}>{segment==="everything"?"Start chatting in any segment to get steps and journeys.":`Chat with your coach about ${segInfo.desc.toLowerCase()}.`}</div>
+                <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Nothing in {segInfo.label} yet</div>
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:260,margin:"0 auto 20px"}}>Chat with your coach about {segInfo.desc.toLowerCase()}.</div>
                 {segment!=="everything"&&<button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"12px 28px",borderRadius:14,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff"}}>Start chatting {"\u2192"}</button>}
               </div></FadeIn>
             ):(<>
