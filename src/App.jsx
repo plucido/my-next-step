@@ -401,7 +401,7 @@ export default function App(){
         })}
       </div>
       {segment!=="everything"&&<div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
-        {[{id:"steps",label:"Steps & Journeys"},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s"}}>{t.label}</button>))}
+        {[{id:"steps",label:"Steps & Journeys"},{id:"routines",label:"Routines",count:segRoutines.length},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s",display:"flex",alignItems:"center",justifyContent:"center",gap:4}}>{t.label}{t.count>0?<span style={{fontSize:9,background:view===t.id?C.teal+"15":C.cream,color:C.teal,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{t.count}</span>:null}</button>))}
       </div>}
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -495,6 +495,31 @@ export default function App(){
             </div>
           )}
         </>)}
+        {view==="routines"&&segment!=="everything"&&(
+          <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
+            {segRoutines.length===0?(
+              <FadeIn><div style={{textAlign:"center",padding:"36px 20px"}}>
+                <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.tealSoft,display:"flex",alignItems:"center",justifyContent:"center"}}><RotateCcw size={24} color={C.teal}/></div>
+                <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>No routines yet</div>
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto 24px"}}>Ask your guide to set up recurring activities like weekly workouts, Saturday adventures, or daily habits.</div>
+                <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)"}}>Set up a routine</button>
+                <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap",marginTop:12}}>
+                  {["Weekly workout plan","Saturday adventures","Daily meditation","Monthly book club"].map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
+                </div>
+              </div></FadeIn>
+            ):(
+              <div>
+                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Active ({segRoutines.filter(r=>!r.paused).length})</div>
+                {segRoutines.filter(r=>!r.paused).map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*50}/>)}
+                {segRoutines.some(r=>r.paused)?<div>
+                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginTop:20,marginBottom:12}}>Paused ({segRoutines.filter(r=>r.paused).length})</div>
+                  {segRoutines.filter(r=>r.paused).map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*50}/>)}
+                </div>:null}
+                <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:16,background:C.bg,border:`1.5px dashed ${C.b2}`,color:C.acc,fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Add a routine</button>
+              </div>
+            )}
+          </div>
+        )}
         {view==="chat"&&segment!=="everything"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"10px 20px"}}>
             {(chats[segment]||[]).length===0&&!loading&&(
