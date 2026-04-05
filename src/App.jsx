@@ -13,6 +13,7 @@ import AuthScreen from "./AuthScreen.jsx";
 import SetupScreen from "./SetupScreen.jsx";
 import DeepProfileChat from "./DeepProfileChat.jsx";
 import LegalModal from "./LegalModal.jsx";
+import ShareModal from "./ShareModal.jsx";
 import SettingsPanel from "./Settings.jsx";
 
 // ─── MAIN APP ───
@@ -245,13 +246,8 @@ export default function App(){
   const pauseRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,paused:!r.paused}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const deleteRoutine=id=>{const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const talkAbout=text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
-  const shareItem=async(item)=>{
-    const isJourney=!!item.tasks;
-    const text=isJourney?`Check out this journey: ${item.title}\n${item.date?`Date: ${item.date}\n`:""}Tasks:\n${item.tasks?.map(t=>`- ${t.title}`).join("\n")}\n\nPlanned with My Next Step`
-      :`${item.title}${item.why?` - ${item.why}`:""}${item.time?`\nWhen: ${item.time}`:""}${item.link?`\n${item.link}`:""}\n\nShared from My Next Step`;
-    if(navigator.share){try{await navigator.share({title:isJourney?item.title:item.title,text});}catch{}}
-    else{try{await navigator.clipboard.writeText(text);alert("Copied to clipboard!");}catch{}}
-  };
+  const[shareModalItem,setShareModalItem]=useState(null);
+  const shareItem=(item)=>{setShareModalItem(item);};
   const handleBooked=(step)=>{handleAddCal(step.title,step.why,step.time);const u=allSteps.map(s=>s.id===step.id?{...s,booked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
   // Compute insights for stats
   const completedByCategory={};doneSteps.forEach(s=>{const c=s.category||"other";completedByCategory[c]=(completedByCategory[c]||0)+1;});
@@ -536,6 +532,7 @@ export default function App(){
         doneSteps={doneSteps} totalCompleted={totalCompleted} thisWeekDone={thisWeekDone} completedByCategory={completedByCategory}
       />}
       <LegalModal legalModal={legalModal} setLegalModal={setLegalModal} profile={profile} setProfile={setProfile} persist={persist} allSteps={allSteps} allPlans={allPlans} chats={chats} preferences={preferences} />
+      <ShareModal item={shareModalItem} onClose={()=>setShareModalItem(null)} />
     </div>
   );
 }
