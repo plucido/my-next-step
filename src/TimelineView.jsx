@@ -473,20 +473,22 @@ export default function TimelineView({
 
     return (
       <div style={{position:"sticky",top:0,zIndex:10,padding:"0 0 8px",background:C.bg}}>
-        <div style={{padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,display:"flex",gap:10,alignItems:"center"}}>
-          <div style={{width:6,height:6,borderRadius:3,background:C.acc,flexShrink:0,animation:"pulse 2s ease infinite"}}>{null}</div>
-          <div style={{flex:1,display:"flex",gap:16,overflow:"hidden"}}>
-            {next.map(function(item,i){
-              var color = item.type==="cal"?"#4285F4":item.type==="routine"?C.teal:C.acc;
-              return (
-                <div key={i} style={{flex:1,minWidth:0}}>
-                  <div style={{...F,fontSize:13,fontWeight:600,color:C.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.title}</div>
-                  <div style={{...F,fontSize:11,color:color,fontWeight:600,marginTop:1}}>{timeLabel(item.time)}</div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{...F,fontSize:10,color:C.t3,flexShrink:0}}>Up next</div>
+        <div style={{...F,fontSize:10,fontWeight:600,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:6,display:"flex",alignItems:"center",gap:6}}>
+          <div style={{width:6,height:6,borderRadius:3,background:C.acc,animation:"pulse 2s ease infinite"}}>{null}</div>
+          Up next
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          {next.map(function(item,i){
+            var color = item.type==="cal"?"#4285F4":item.type==="routine"?C.teal:C.acc;
+            var typeLabel = item.type==="cal"?"Calendar":item.type==="routine"?"Routine":"Step";
+            return (
+              <div key={i} style={{flex:1,padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,borderLeft:"3px solid "+color,minWidth:0}}>
+                <div style={{...F,fontSize:10,fontWeight:600,color:color,textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>{typeLabel}</div>
+                <div style={{...F,fontSize:13,fontWeight:600,color:C.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.title}</div>
+                <div style={{...F,fontSize:11,color:C.t3,marginTop:2}}>{timeLabel(item.time)}</div>
+              </div>
+            );
+          })}
         </div>
       </div>
     );
