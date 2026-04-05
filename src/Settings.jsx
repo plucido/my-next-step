@@ -117,11 +117,21 @@ export default function Settings({
           {renderTravelPrefRow("Room type","hotelRoom",["Standard","Suite","Studio / Apartment"],profile?.travel?.hotelRoom)}
           {renderTravelPrefRow("Hotel budget","hotelBudget",["Budget ($)","Mid-range ($$)","Upscale ($$$)","Luxury ($$$$)"],profile?.travel?.hotelBudget)}
           {renderTravelPrefRow("Hotel style","hotelStyle",["Chain / Brand","Boutique","Resort","Hostel / Airbnb","No preference"],profile?.travel?.hotelStyle)}
-          {profile?.travel?.hotelStyle==="Chain / Brand"?<div style={{marginBottom:14}}>
-            <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Preferred brand(s)</div>
-            {editField==="hotelBrand"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. Marriott, Hilton, Hyatt" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{saveTravel("hotelBrand",editVal.trim());setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>Save</button></div>
-            :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.travel?.hotelBrand||"Not set"}</div><button onClick={()=>{setEditField("hotelBrand");setEditVal(profile?.travel?.hotelBrand||"");}} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}{null}
-          </div>:null}
+          <div style={{marginTop:4}}>
+            <div style={{...F,fontSize:12,color:C.t3,marginBottom:8}}>Preferred brands</div>
+            {(profile?.travel?.brands||[]).map(function(b,i){return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<(profile.travel.brands.length-1)?"1px solid "+C.b1:"none"}}>
+              <div style={{width:32,height:32,borderRadius:10,background:C.cream,display:"flex",alignItems:"center",justifyContent:"center"}}><Star size={14} color={C.acc}/></div>
+              <div style={{...F,fontSize:14,fontWeight:500,color:C.t1,flex:1}}>{b}</div>
+              <button onClick={function(){var brands=(profile?.travel?.brands||[]).filter(function(_,j){return j!==i;});saveTravel("brands",brands);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer"}}><X size={14}/></button>
+            </div>;})}
+            {editField==="add_brand"?<div style={{marginTop:8}}>
+              <input value={editVal} onChange={function(e){setEditVal(e.target.value);}} onKeyDown={function(e){if(e.key==="Enter"&&editVal.trim()){var brands=[...(profile?.travel?.brands||[]),editVal.trim()];saveTravel("brands",brands);setEditField(null);setEditVal("");}}} placeholder="e.g. Marriott, Delta, Hertz" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:"1.5px solid "+C.acc,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box",marginBottom:8}}/>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={function(){setEditField(null);setEditVal("");}} style={{...F,flex:1,padding:8,borderRadius:10,border:"1px solid "+C.b1,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
+                <button onClick={function(){if(editVal.trim()){var brands=[...(profile?.travel?.brands||[]),editVal.trim()];saveTravel("brands",brands);setEditField(null);setEditVal("");}}} style={{...F,flex:1,padding:8,borderRadius:10,border:"none",background:C.accGrad,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add</button>
+              </div>
+            </div>:<button onClick={function(){setEditField("add_brand");setEditVal("");}} style={{...F,width:"100%",padding:"10px",borderRadius:10,background:C.bg,border:"1.5px dashed "+C.b2,color:C.acc,fontSize:12,fontWeight:600,cursor:"pointer",marginTop:8}}><Plus size={12}/> Add brand</button>}{null}
+          </div>
         </div>:null}{null}
       </div>
 
@@ -219,7 +229,7 @@ export default function Settings({
             <button onClick={()=>{setEditField(null);setEditVal("");setGenderEdit("");setGenderOtherEdit("");}} style={{...F,flex:1,padding:8,borderRadius:10,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
             <button onClick={()=>{if(editVal.trim()){saveLoyalty([...loyaltyPrograms,{name:editVal.trim(),type:genderEdit||"airline",number:genderOtherEdit.trim()}]);setEditField(null);setEditVal("");setGenderEdit("");setGenderOtherEdit("");}}} style={{...F,flex:1,padding:8,borderRadius:10,border:"none",background:C.accGrad,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add</button>
           </div>
-        </div>):(<button onClick={()=>{setEditField("add_loyalty");setEditVal("");setGenderEdit("airline");setGenderOtherEdit("");}} style={{...F,width:"100%",padding:"12px",borderRadius:12,background:C.bg,border:`1.5px dashed ${C.b2}`,color:C.acc,fontSize:13,fontWeight:600,cursor:"pointer",marginTop:8}}><Plus size={14}/> Add airline, hotel, or program</button>)}{null}
+        </div>):(<button onClick={()=>{setEditField("add_loyalty");setEditVal("");setGenderEdit("airline");setGenderOtherEdit("");}} style={{...F,width:"100%",padding:"12px",borderRadius:12,background:C.bg,border:`1.5px dashed ${C.b2}`,color:C.acc,fontSize:13,fontWeight:600,cursor:"pointer",marginTop:8}}><Plus size={14}/> Add airline, hotel, or other loyalty program</button>)}{null}
       </div>
 
       {sectionLabel("Dining")}
