@@ -429,6 +429,7 @@ export default function App(){
   const[healthSection,setHealthSection]=useState({fitness:true,food:true,medical:false});
   const[petType,setPetType]=useState("Dog");
   const[petBreed,setPetBreed]=useState("");
+  const[transitionMsg,setTransitionMsg]=useState(null);
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
   // Normalize chats from old format (work/me/social) to new (career/wellness/fun/adventure)
@@ -525,7 +526,7 @@ export default function App(){
       // Safety: ensure no empty content
       const safeApiMsgs=apiMsgs.filter(m=>m.content&&m.content.trim()).map(m=>({role:m.role,content:m.content.trim()}));
       
-      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nYou're chatting in ${SEGMENTS[segment].label}, but ALWAYS use the correct category for each step regardless of which segment the chat is in. A trip discussed in Health chat still gets category "travel" (Adventure). A workout discussed in Fun chat still gets category "fitness" (Health).\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
+      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nDefault category for this segment: ${segment==="career"?"career":segment==="wellness"?"fitness":segment==="fun"?"social":"travel"}\nUse this segment's default category UNLESS the content clearly belongs elsewhere (e.g. a trip mentioned in Health should be "travel", a workout mentioned in Fun should be "fitness").\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
@@ -586,7 +587,26 @@ export default function App(){
       const finalChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:clean(displayText),ts:Date.now(),isError:isError}]};
       setChats(finalChat);
       if(!isError)persist(profile,newSteps,newPlans,finalChat,newPrefs,allRoutines);
-      if(newSteps.length>allSteps.length||newPlans.length>allPlans.length)setTimeout(()=>setView("steps"),600);
+      // Auto-navigate to the correct segment with transition
+      if(!isError){
+        const createdSteps=newSteps.filter(s=>!allSteps.find(o=>o.id===s.id));
+        const createdPlans=newPlans.filter(p=>!allPlans.find(o=>o.title===p.title));
+        if(createdSteps.length>0||createdPlans.length>0){
+          const firstItem=createdSteps[0]||null;
+          const firstPlan=createdPlans[0]||null;
+          const itemCat=firstItem?.category||(firstPlan?.tasks?.[0]?.category)||null;
+          const targetSeg=itemCat?catToSeg(itemCat):segment;
+          const targetLabel=SEGMENTS[targetSeg]?.label||"Timeline";
+          const isStep=createdSteps.length>0;
+          if(targetSeg===segment){
+            setTransitionMsg(isStep?"Your next step is ready!":"Journey mapped out!");
+            setTimeout(()=>{setView("steps");setTransitionMsg(null);},1200);
+          } else {
+            setTransitionMsg(`Added to ${targetLabel}! Taking you there...`);
+            setTimeout(()=>{setSegment(targetSeg);setView("steps");setTransitionMsg(null);},1800);
+          }
+        }
+      }
     }catch(err){console.error(err);const errChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:"Quick hiccup \u2014 say that again?",ts:Date.now(),isError:true}]};setChats(errChat);}
     setLoading(false);
   };
@@ -652,7 +672,7 @@ export default function App(){
 
   return(
     <div style={{...F,height:"100vh",color:C.t1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg}}>
-      <style>{font}{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}`}</style>
+      <style>{font}{`@keyframes spin{to{transform:rotate(360deg)}}@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`}</style>
 
       {/* Feedback modal */}
       {feedbackStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
@@ -955,6 +975,9 @@ export default function App(){
       </div>
 
       {/* Full settings overlay */}
+      {/* Transition toast */}
+      {transitionMsg&&<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:150,padding:"14px 28px",borderRadius:20,background:C.accGrad,color:"#fff",boxShadow:"0 8px 32px rgba(212,82,42,0.3)",display:"flex",alignItems:"center",gap:10,animation:"fadeUp 0.4s ease"}}><Check size={18}/><span style={{...F,fontSize:14,fontWeight:600}}>{transitionMsg}</span></div>}
+
       {showSettings&&<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}><div style={{maxWidth:480,margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}><h2 style={{...H,fontSize:26,color:C.t1,margin:0}}>Settings</h2><button onClick={()=>setShowSettings(false)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.t3}}><X size={16}/></button></div>
 
@@ -1134,8 +1157,11 @@ export default function App(){
             <div style={{...F,fontSize:13,color:C.t3,marginTop:8,lineHeight:1.5,padding:"10px 14px",background:C.cream,borderRadius:10}}>Some links may earn us a small commission at no extra cost to you. This helps keep My Next Step free.</div>
           </div>
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
-            <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Data</div>
-            {!deleteConfirm?<button onClick={()=>{setDeleteConfirm(true);setDeleteText("");}} style={{...F,width:"100%",padding:"12px",borderRadius:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:13,cursor:"pointer",textAlign:"left"}}>Delete my account and all data</button>
+            <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Data & Privacy</div>
+            <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:14,padding:"10px 14px",background:C.cream,borderRadius:12}}>Your data is stored securely and never shared with third parties. We do not sell, rent, or trade your personal information.</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <button onClick={()=>setLegalModal("dnsmpi")} style={{...F,width:"100%",padding:"12px 16px",borderRadius:12,background:C.bg,border:`1px solid ${C.b2}`,color:C.t1,fontSize:13,cursor:"pointer",textAlign:"left",display:"flex",alignItems:"center",gap:10}}><Shield size={16} color={C.teal}/> Don't sell my personal information</button>
+              {!deleteConfirm?<button onClick={()=>{setDeleteConfirm(true);setDeleteText("");}} style={{...F,width:"100%",padding:"12px 16px",borderRadius:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:13,cursor:"pointer",textAlign:"left"}}>Delete my account and all data</button>
             :<div>
               <div style={{...F,fontSize:14,color:"#DC3C3C",fontWeight:600,marginBottom:8}}>This is permanent</div>
               <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:12}}>Your profile, all steps, journeys, routines, chat history, and connected accounts will be permanently deleted. This cannot be undone.</div>
@@ -1151,7 +1177,7 @@ export default function App(){
 
         {/* Legal modals */}
         {legalModal&&<div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setLegalModal(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"80vh",overflowY:"auto",background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{...H,fontSize:20,color:C.t1}}>{legalModal==="terms"?"Terms of Service":legalModal==="privacy"?"Privacy Policy":"Affiliate Disclosure"}</div><button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}><X size={16}/></button></div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{...H,fontSize:20,color:C.t1}}>{legalModal==="terms"?"Terms of Service":legalModal==="privacy"?"Privacy Policy":legalModal==="dnsmpi"?"Do Not Sell My Personal Information":"Affiliate Disclosure"}</div><button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}><X size={16}/></button></div>
           <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.8}}>
             {legalModal==="terms"&&<div>
               <p>Last updated: April 2026</p>
@@ -1177,6 +1203,15 @@ export default function App(){
               <p>This comes at no additional cost to you. Affiliate relationships do not influence which products or services we recommend \u2014 recommendations are based on your personal preferences, location, and goals.</p>
               <p>Our affiliate partners may include: ClassPass, Eventbrite, Udemy, Skillshare, Mindbody, Meetup, Amazon, LinkedIn Learning, Airbnb, Kayak, Booking.com, VRBO, and others.</p>
               <p>Revenue from affiliate links helps keep My Next Step free for all users.</p>
+            </div>}
+            {legalModal==="dnsmpi"&&<div>
+              <p>Last updated: April 2026</p>
+              <p><strong>We do not sell your personal information.</strong></p>
+              <p>My Next Step does not sell, rent, trade, or otherwise disclose your personal information to third parties for monetary or other valuable consideration.</p>
+              <p>Your data — including your profile, health information, fitness goals, allergies, chat history, steps, journeys, favorites, and connected account data — is used exclusively to provide and personalize the My Next Step service.</p>
+              <p>We do not share your data with advertisers, data brokers, or any third parties for their marketing purposes.</p>
+              <p>Under the California Consumer Privacy Act (CCPA) and similar state privacy laws, you have the right to opt out of the sale of your personal information. Since we do not sell personal information, no opt-out action is required. However, we provide this notice for transparency.</p>
+              <p>If you have questions about our data practices, you can delete all your data at any time from Settings.</p>
             </div>}
           </div>
         </div></div>}
