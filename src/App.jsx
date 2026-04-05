@@ -304,7 +304,7 @@ export default function App(){
             <div style={{width:72,height:72,borderRadius:22,margin:"0 auto 20px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 12px 36px rgba(212,82,42,0.25)"}}><Logo size={38} color="#fff"/></div>
             <div style={{...H,fontSize:28,color:C.t1,marginBottom:6}}>
               {getGreeting()}{profile?.name?`, ${profile.name}`:""}</div>
-            <div style={{...F,fontSize:15,color:C.t2,lineHeight:1.6}}>What would you like to work on?</div>
+            <div style={{...F,fontSize:15,color:C.t2,lineHeight:1.6}}>What's your next step?</div>
           </div>
 
           <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
