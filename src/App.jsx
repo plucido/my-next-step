@@ -93,7 +93,7 @@ async function fetchGCal(token){try{const now=new Date().toISOString(),end=new D
 async function addGCalEvent(token,title,desc,time){try{const s=new Date();const tl=(time||"").toLowerCase();if(tl.includes("tomorrow"))s.setDate(s.getDate()+1);if(tl.includes("tonight")||tl.includes("pm")){const m=tl.match(/(\d{1,2})\s*pm/);s.setHours(m?parseInt(m[1])+12:19,0,0);}if(tl.includes("am")){const m=tl.match(/(\d{1,2})\s*am/);if(m)s.setHours(parseInt(m[1]),0,0);}if(tl.includes("weekend")){s.setDate(s.getDate()+(6-s.getDay()+7)%7||7);s.setHours(10,0,0);}const e=new Date(s.getTime()+36e5);const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;const r=await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events",{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({summary:title,description:desc||"From My Next Step",start:{dateTime:s.toISOString(),timeZone:tz},end:{dateTime:e.toISOString(),timeZone:tz}})});return r.ok;}catch{return false;}}
 
 // ─── SYSTEM PROMPT ───
-const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm life coach app.
+const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm life guide app.
 
 The app has 4 segments: Career, Wellness, Fun, Adventure. You're chatting in one segment but know everything across all.
 
@@ -110,11 +110,18 @@ GOOD (do this):
 "Ooh Florence in September is dreamy! I found some great flights and hotels for you \u2014 check out the cards below."
 Then put the actual recommendations in ---DATA--- as steps/journeys.
 
+THE TWO-MESSAGE RULE:
+- If the user EXPLICITLY asks for a step, journey, plan, or recommendation: CREATE or UPDATE one IMMEDIATELY in your FIRST response. No questions. Just do it.
+- If the user's intent is clear ("plan a trip to Florence", "I want to start running"): CREATE or UPDATE IMMEDIATELY. First response. No questions.
+- If it's vague ("I'm bored", "help me"): Ask ONE clarifying question, then on their next message, you MUST create or update a step/journey. Maximum two exchanges before a card appears or changes.
+- For expensive things (trips, gear, classes): Ask about budget AND create a preliminary step/journey in the SAME response. "What's your budget? Here's a starting point you can adjust:" then ---DATA---.
+- NEVER go three exchanges without creating or updating something. That's a failure.
+- If the conversation is about an existing step or journey, UPDATE it (output it with the same title to replace it, or delete the old and create a new one). Don't just talk about it.
+
 ALWAYS CREATE STEPS OR JOURNEYS:
-- Every response that discusses doing something MUST include ---DATA--- with steps or a journey.
-- If you searched the web and found info, put those findings INTO step/journey cards, not in the chat text.
-- A trip discussion = create a journey with specific tasks. Always.
-- A class/restaurant/event recommendation = create a step. Always.
+- Every response that discusses doing something MUST include ---DATA---.
+- If you searched the web, put findings INTO cards, not chat text.
+- Trip = journey. Class/restaurant/event = step. Always.
 - If the user is just chatting/venting with no action needed, you can skip ---DATA---.
 - When in doubt, CREATE. Users can dismiss what they don't want.
 
@@ -123,6 +130,28 @@ SPECIFICITY:
 - Use web search to find real options.
 
 BUDGET: Ask naturally when relevant. Store as preference.
+
+HEALTH ASSISTANT (only when user has health enabled):
+- Help users find the RIGHT type of doctor for their symptoms. Use web search to find highly-rated, in-network options near them.
+- Always ask about their insurance if you don't know it. Store as preference.
+- HMO plans require a PCP referral before seeing a specialist. If user has HMO, ALWAYS create TWO steps: one to call PCP for referral, one for the specialist appointment.
+- PPO/EPO/POS plans can go directly to specialists.
+- Search Zocdoc, Healthgrades, or Google for "[specialist type] [insurance provider] [location]" to find in-network doctors.
+- Include doctor ratings, distance, and direct booking links in steps.
+- Explain copay vs deductible simply when relevant.
+- You are NOT a medical professional. Never diagnose. Help them find the right provider.
+- Create steps for appointments with booking links, not just advice.
+
+FITNESS COACHING (only when user has health enabled):
+- Use their fitness level, goals, workout preferences, frequency, and injuries to build personalized routines.
+- For beginners: start simple, 3 exercises per muscle group, emphasize form over weight. Create a journey with a weekly plan.
+- For intermediate/advanced: more complex splits, progressive overload, periodization.
+- Always respect injuries. If they have a bad knee, no heavy squats \u2014 suggest alternatives.
+- Create SPECIFIC workout steps: "Upper body push day: bench press 3x10, OHP 3x8, tricep dips 3x12" not vague "do some chest exercises."
+- Build workout journeys with weekly schedules as tasks.
+- If they like classes, search for specific classes near them (CrossFit boxes, yoga studios, etc.) with prices.
+- Connect their Strava data if available \u2014 use running stats to recommend appropriate running plans.
+- Suggest rest days based on their frequency preference.
 
 MANAGING ITEMS:
 - Delete old steps/journeys when conversation shifts.
@@ -135,9 +164,13 @@ IMPROVING USER IDEAS:
 - Turn "learn to cook" into a specific cooking class or a structured journey with weekly tasks.
 - Always make their ideas BETTER and more concrete than what they said.
 
-RECURRING STEPS:
-- If a step makes sense as a recurring activity (weekly yoga, daily meditation, monthly book club), add "recurring":"weekly" or "recurring":"daily" to the step data.
-- Only do this when it naturally fits. One-off events don't recur.
+ROUTINES (recurring activities):
+- When the user wants something ongoing (weekly workouts, Saturday adventures, daily meditation, monthly book club), create a ROUTINE not a step.
+- A routine has: title, description, schedule (daily/weekly/biweekly/monthly), day(s) of week, category, and a "generateBefore" hint (how many days before to generate a fresh step).
+- Example: "Find me something fun every Saturday" = routine that generates a fresh step every Thursday with a specific Saturday activity.
+- Example: "Weekly upper body workout" = routine that generates a workout step every week.
+- The user can pause/resume routines. Paused routines stop generating steps.
+- Output format: {"type":"routine","title":"Saturday Adventure","description":"Find a fun new activity every Saturday","schedule":"weekly","days":["saturday"],"category":"events","generateBefore":2}
 
 OUTPUT FORMAT:
 EVERY response must follow this pattern:
@@ -166,7 +199,13 @@ Here are a few things to try this week!
 ---DATA---
 [{"type":"step","title":"Morning run at Memorial Park","why":"Free, 3-mile loop, shaded trail","link":"https://www.google.com/maps/search/Memorial+Park+Running+Trail+Houston","linkText":"Map","category":"fitness","time":"Tomorrow 7am"},{"type":"step","title":"Try Uchi Houston for dinner","why":"Japanese farmhouse cuisine, $$$, incredible omakase","link":"https://www.google.com/search?q=Uchi+Houston+reservation","linkText":"Reserve","category":"social","time":"Friday evening"}]
 
-Categories: fitness, wellness, career, learning, social, events, travel, products
+Example 4 - routine (recurring):
+I'll set up a weekly workout routine for you!
+
+---DATA---
+[{"type":"routine","title":"Weekly Upper Body Day","description":"Push-pull upper body split: bench press 3x10, bent rows 3x10, OHP 3x8, pull-ups 3x8, tricep dips 3x12","schedule":"weekly","days":["monday"],"category":"fitness","generateBefore":1}]
+
+Types: step, plan (journey), routine, delete_step, delete_plan, delete_routine, preference
 The step/journey cards ARE the product. Text without ---DATA--- is a failed response.`;
 
 const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:"\u{1F464}",questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:"\u{1F31F}",questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:"\u{1F3E0}",questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:"\u{1F525}",questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
@@ -188,7 +227,7 @@ function AuthScreen({onAuth}){
   return(<div style={{...F,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,background:C.bg}}><FadeIn><div style={{width:"100%",maxWidth:400,textAlign:"center"}}>
     <div style={{width:68,height:68,borderRadius:20,margin:"0 auto 24px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,color:"#fff",boxShadow:"0 8px 28px rgba(212,82,42,0.3)"}}>{"\u{1F463}"}</div>
     <h1 style={{...H,fontSize:46,color:C.t1,lineHeight:1.05,marginBottom:14}}>My Next Step</h1>
-    <p style={{...F,fontSize:17,color:C.t2,lineHeight:1.6,maxWidth:310,margin:"0 auto 44px"}}>Your AI coach that turns goals into clear, actionable steps.</p>
+    <p style={{...F,fontSize:17,color:C.t2,lineHeight:1.6,maxWidth:310,margin:"0 auto 44px"}}>Your AI guide that turns goals into clear, actionable steps.</p>
     <div ref={gRef} style={{display:"flex",justifyContent:"center",marginBottom:14}} />
     <div style={{display:"flex",alignItems:"center",gap:16,margin:"22px 0"}}><div style={{flex:1,height:1,background:C.b1}}/><span style={{...F,fontSize:12,color:C.t3}}>or</span><div style={{flex:1,height:1,background:C.b1}}/></div>
     <button onClick={()=>setMode("email")} style={{...F,width:"100%",padding:"15px",borderRadius:16,fontSize:15,fontWeight:500,background:C.card,color:C.t2,border:`1.5px solid ${C.b2}`,cursor:"pointer",boxShadow:C.shadow}}>Sign up with email</button>
@@ -302,6 +341,28 @@ function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,onShare
   </div></FadeIn>);
 }
 
+// ─── ROUTINE CARD ───
+function RoutineCard({routine,onPause,onDelete,onTalk,delay=0}){
+  const seg=SEGMENTS[catToSeg(routine.category)];
+  const days=(routine.days||[]).map(d=>d.slice(0,3).charAt(0).toUpperCase()+d.slice(1,3)).join(", ");
+  return(<FadeIn delay={delay}><div style={{padding:"16px 18px",borderRadius:18,marginBottom:10,background:routine.paused?"rgba(0,0,0,0.02)":C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${routine.paused?C.t3:seg?.color||C.teal}`,opacity:routine.paused?.5:1}}>
+    <button onClick={()=>onDelete(routine.id)} style={{position:"absolute",top:12,right:12,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button>
+    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+      <span style={{fontSize:14}}>{"\u{1F504}"}</span>
+      <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.teal,textTransform:"uppercase",letterSpacing:1.5}}>{routine.schedule}</span>
+      {days&&<span style={{...F,fontSize:10,color:C.t3}}>{days}</span>}
+      {routine.paused&&<span style={{...F,fontSize:9,fontWeight:600,color:C.gold,background:C.goldSoft,padding:"2px 6px",borderRadius:5}}>Paused</span>}
+    </div>
+    <div style={{...F,fontSize:15,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:4,paddingRight:24}}>{routine.title}</div>
+    {routine.description&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:12}}>{routine.description}</div>}
+    <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+      <button onClick={()=>onPause(routine.id)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:routine.paused?C.tealSoft:C.cream,border:routine.paused?`1px solid ${C.tealBorder}`:"none",color:routine.paused?C.teal:C.t2,cursor:"pointer",fontWeight:routine.paused?600:400}}>{routine.paused?"Resume":"Pause"}</button>
+      <button onClick={()=>onTalk(`Generate a fresh step for my "${routine.title}" routine. Search for something specific and new.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Generate now</button>
+      <button onClick={()=>onTalk(`Update my "${routine.title}" routine. Make it better or change the schedule.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>{"\u2728"} Improve</button>
+    </div>
+  </div></FadeIn>);
+}
+
 // ─── MAIN APP ───
 export default function App(){
   const[screen,setScreen]=useState("auth");
@@ -310,6 +371,7 @@ export default function App(){
   const[view,setView]=useState("steps"); // steps, chat
   const[allSteps,setAllSteps]=useState([]);
   const[allPlans,setAllPlans]=useState([]);
+  const[allRoutines,setAllRoutines]=useState([]);
   const[preferences,setPreferences]=useState([]);
   // Per-segment chat histories
   const[chats,setChats]=useState({career:[],wellness:[],fun:[],adventure:[]});
@@ -329,6 +391,9 @@ export default function App(){
   const[editVal,setEditVal]=useState("");
   const[genderEdit,setGenderEdit]=useState("");
   const[genderOtherEdit,setGenderOtherEdit]=useState("");
+  const[legalModal,setLegalModal]=useState(null);
+  const[deleteConfirm,setDeleteConfirm]=useState(false);
+  const[deleteText,setDeleteText]=useState("");
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
   // Normalize chats from old format (work/me/social) to new (career/wellness/fun/adventure)
@@ -345,6 +410,7 @@ export default function App(){
   // Current segment's data
   const segSteps=segment==="everything"?allSteps.filter(s=>s.status==="active"):allSteps.filter(s=>s.status==="active"&&catToSeg(s.category)===segment);
   const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(["career","work","job","interview","resume","linkedin"].some(w=>title.includes(w)))return segment==="career";if(["gym","yoga","run","health","diet","meditation"].some(w=>title.includes(w)))return segment==="wellness";if(["friend","party","dinner","concert","group","date"].some(w=>title.includes(w)))return segment==="fun";if(["trip","travel","flight","hotel","vacation","hike","explore"].some(w=>title.includes(w)))return segment==="adventure";return segment==="wellness";});
+  const segRoutines=segment==="everything"?allRoutines:allRoutines.filter(r=>catToSeg(r.category)===segment);
   const segMessages=segment==="everything"?[...(chats.career||[]),...(chats.wellness||[]),...(chats.fun||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
   const doneSteps=allSteps.filter(s=>s.status==="done");
   const expiredSteps=allSteps.filter(s=>s.status==="expired");
@@ -358,7 +424,7 @@ export default function App(){
   useEffect(()=>{(async()=>{
     try{const hint=localStorage.getItem("mns_last_user");if(hint){
       const data=await loadFB(hint,"appdata");
-      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);setScreen("main");}
+      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);setScreen("main");}
       const sv=await loadFB(hint,"strava");if(sv)setStravaData(sv);
       const cv=await loadFB(hint,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}
     }}catch{}
@@ -366,13 +432,13 @@ export default function App(){
     try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setChats({career:[],wellness:d.messages||[],fun:[],adventure:[]});setPreferences(d.preferences||[]);setScreen("main");const uid=getUserId(d.profile);if(uid){saveFB(uid,"appdata",{...d,chats:{career:[],wellness:d.messages||[],fun:[],adventure:[]}});window.storage.delete("mns-v11").catch(()=>{});}}}}catch{}
   })();},[]);
 
-  const persist=(p,s,pl,ch,pr)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
+  const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
   const handleAuth=auth=>{const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"! \u{1F463}\n\nI'm your Next Step coach. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("main");};
+  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"! \u{1F463}\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("main");};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step coach. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
+    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step guide. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
     else persist(full,allSteps,allPlans,chats,preferences);
     setView("steps");setScreen("main");
   };
@@ -393,8 +459,10 @@ export default function App(){
     const stepsCtx=allSteps.filter(s=>s.status==="active").length>0?"\n\nALL ACTIVE STEPS:\n"+allSteps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
     const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\n\nLOVED STEPS:\n"+allSteps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
     const plansCtx=allPlans.length>0?"\n\nJOURNEYS:\n"+allPlans.map(p=>{const d=p.tasks?.filter(t=>t.done).length||0;return`- "${p.title}" (${p.date||"no date"}, ${d}/${p.tasks?.length||0} done)`;}).join("\n"):"";
+    const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\n\nACTIVE ROUTINES:\n"+allRoutines.filter(r=>!r.paused).map(r=>`- "${r.title}" (${r.schedule}, ${(r.days||[]).join("/")||"flexible"}, ${r.category})`).join("\n"):"";
     const calCtx=calData?.length>0?"\n\nCALENDAR:\n"+calData.slice(0,10).map(e=>{const d=new Date(e.start);return`- ${d.toLocaleDateString()} ${e.allDay?"all day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}: ${e.title}`;}).join("\n"):"";
     const profileCtx=profile?.setup?`\nAge: ${profile.setup.age||"?"} | Gender: ${profile.setup.gender||"?"}`:"";
+    const healthCtx=profile?.health?.enabled?`\n\nHEALTH & FITNESS PROFILE (user opted in):\nFitness level: ${profile.health.fitnessLevel||"not set"}\nGoals: ${(profile.health.fitnessGoals||[]).join(", ")||"not set"}\nPrefers: ${(profile.health.workoutPrefs||[]).join(", ")||"not set"}\nFrequency: ${profile.health.workoutFreq||"not set"}\nInjuries/limits: ${profile.health.injuries||"none"}\nInsurance: ${profile.health.provider||"not set"}\nPlan type: ${profile.health.planType||"not set"}${profile.health.planType==="HMO"?" (REQUIRES PCP REFERRAL for specialists)":""}\nPCP: ${profile.health.pcp||"not set"}`:"";
     // Cross-segment context summary
     const otherSegs=SEG_KEYS.filter(s=>s!==segment);
     const crossCtx=otherSegs.map(s=>{const msgs=chats[s]||[];if(!msgs.length)return"";const last=msgs.filter(m=>m.role==="user").slice(-2).map(m=>m.content).join(", ");return last?`\nIn ${SEGMENTS[s].label}: recently discussed "${last.slice(0,80)}"`:"";}).filter(Boolean).join("");
@@ -416,7 +484,7 @@ export default function App(){
       // If no messages left, add the current one
       if(apiMsgs.length===0)apiMsgs.push({role:"user",content:msg});
       
-      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}${calCtx}${crossCtx}`;
+      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...apiMsgs],attempts=0;
       while(attempts<3){attempts++;
@@ -444,28 +512,25 @@ export default function App(){
       let jsonStr=null;
       if(raw.includes("---DATA---")){const p=raw.split("---DATA---");displayText=p[0].trim();jsonStr=p[1]?.trim();}
       else{
-        // Try to find JSON array with step/plan type
-        const m=raw.match(/\[[\s\S]*?"type"\s*:\s*"(step|plan|preference|delete_step|delete_plan)"[\s\S]*?\]/);
+        const m=raw.match(/\[[\s\S]*?"type"\s*:\s*"(step|plan|routine|preference|delete_step|delete_plan|delete_routine)"[\s\S]*?\]/);
         if(m){displayText=raw.slice(0,raw.indexOf(m[0])).trim();jsonStr=m[0];}
-        else{
-          // Try to find a single JSON object
-          const single=raw.match(/\{[\s\S]*?"type"\s*:\s*"(step|plan)"[\s\S]*?\}/);
-          if(single){displayText=raw.slice(0,raw.indexOf(single[0])).trim();jsonStr="["+single[0]+"]";}
-        }
+        else{const single=raw.match(/\{[\s\S]*?"type"\s*:\s*"(step|plan|routine)"[\s\S]*?\}/);if(single){displayText=raw.slice(0,raw.indexOf(single[0])).trim();jsonStr="["+single[0]+"]";}}
       }
       if(jsonStr){try{
         jsonStr=jsonStr.replace(/```json\s*/g,"").replace(/```\s*/g,"").replace(/,\s*\]/g,"]").trim();
         console.log("Parsing JSON:", jsonStr.slice(0, 200));
-        const items=JSON.parse(jsonStr);
+        const items=JSON.parse(jsonStr);let newRoutines=[...allRoutines];
         for(const item of(Array.isArray(items)?items:[items])){
           if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
           else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false}))},...newPlans.filter(p=>p.title!==item.title)];
+          else if(item.type==="routine")newRoutines=[{...item,id:Date.now()+Math.random(),createdAt:new Date().toISOString(),paused:false},...newRoutines.filter(r=>r.title!==item.title)];
           else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
           else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
           else if(item.type==="delete_plan")newPlans=newPlans.filter(p=>!p.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
+          else if(item.type==="delete_routine")newRoutines=newRoutines.filter(r=>!r.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
         }
-        console.log("Parsed OK. New steps:", newSteps.length-allSteps.length, "New plans:", newPlans.length-allPlans.length);
-        setAllSteps(newSteps);setAllPlans(newPlans);setPreferences(newPrefs);
+        console.log("Parsed OK. Steps:", newSteps.length-allSteps.length, "Plans:", newPlans.length-allPlans.length, "Routines:", newRoutines.length-allRoutines.length);
+        setAllSteps(newSteps);setAllPlans(newPlans);setAllRoutines(newRoutines);setPreferences(newPrefs);
       }catch(e){console.error("JSON parse error:",e.message,"Input:",jsonStr?.slice(0,200));}}
       else{console.log("NO JSON FOUND in response");}
 
@@ -474,7 +539,7 @@ export default function App(){
       if(!displayText)displayText=newSteps.length>allSteps.length?"Here's what I found!":newPlans.length>allPlans.length?"Journey mapped out!":"Let me know what you think.";
 
       const finalChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:clean(displayText),ts:Date.now()}]};
-      setChats(finalChat);persist(profile,newSteps,newPlans,finalChat,newPrefs);
+      setChats(finalChat);persist(profile,newSteps,newPlans,finalChat,newPrefs,allRoutines);
       if(newSteps.length>allSteps.length||newPlans.length>allPlans.length)setTimeout(()=>setView("steps"),600);
     }catch(err){console.error(err);const errChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:"Quick hiccup \u2014 say that again?",ts:Date.now()}]};setChats(errChat);}
     setLoading(false);
@@ -488,6 +553,8 @@ export default function App(){
   const dismissMissed=id=>{const u=allSteps.filter(s=>s.id!==id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
   const deletePlan=idx=>{const u=allPlans.filter((_,i)=>i!==idx);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const toggleTask=(pi,ti)=>{const u=allPlans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
+  const pauseRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,paused:!r.paused}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
+  const deleteRoutine=id=>{const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const talkAbout=text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
   const shareItem=async(item)=>{
     const isJourney=!!item.tasks;
@@ -530,10 +597,10 @@ export default function App(){
       {missedStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
         <div style={{...F,fontSize:12,color:"#B45309",fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Missed step</div>
         <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>{missedStep.title}</div>
-        <div style={{...F,fontSize:14,color:C.t3,marginBottom:16,lineHeight:1.5}}>Telling your coach why helps improve future recommendations.</div>
+        <div style={{...F,fontSize:14,color:C.t3,marginBottom:16,lineHeight:1.5}}>Telling your guide why helps improve future recommendations.</div>
         <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{["Forgot","No time","Changed mind","Too far","Found better","Not interested"].map(q=>(<button key={q} onClick={()=>setMissedReason(q)} style={{...F,padding:"8px 14px",borderRadius:12,fontSize:13,cursor:"pointer",background:missedReason===q?C.goldSoft:C.cream,border:`1.5px solid ${missedReason===q?"#B45309":C.b2}`,color:missedReason===q?"#B45309":C.t2}}>{q}</button>))}</div>
         <textarea value={missedReason} onChange={e=>setMissedReason(e.target.value)} rows={2} placeholder="Or tell us more..." style={{...F,width:"100%",padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:14}}/>
-        <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell coach</button></div>
+        <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell guide</button></div>
       </div></div>)}
 
       {/* Top header with streak */}
@@ -569,19 +636,121 @@ export default function App(){
 
       {/* Sub-tabs: Steps / Chat */}
       {segment!=="everything"&&<div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
-        {[{id:"steps",label:"Steps & Journeys"},{id:"chat",label:"Coach"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s"}}>{t.label}</button>))}
+        {[{id:"steps",label:"Steps & Journeys"},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s"}}>{t.label}</button>))}
       </div>}
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
-        {/* STEPS & JOURNEYS VIEW */}
-        {(view==="steps"||segment==="everything")&&(<>
+        {/* EVERYTHING - Calendar Timeline View */}
+        {segment==="everything"&&(
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
-            {segSteps.length===0&&segPlans.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
+            {(()=>{
+              // Build a unified timeline of next 14 days
+              const now=new Date();const days=[];
+              for(let i=0;i<14;i++){const d=new Date(now);d.setDate(d.getDate()+i);d.setHours(0,0,0,0);days.push(d);}
+              const isToday=d=>d.toDateString()===now.toDateString();
+              const isTomorrow=d=>{const t=new Date(now);t.setDate(t.getDate()+1);return d.toDateString()===t.toDateString();};
+              const dayLabel=d=>isToday(d)?"Today":isTomorrow(d)?"Tomorrow":d.toLocaleDateString([],{weekday:"long",month:"short",day:"numeric"});
+              
+              // Get Google Calendar events mapped to dates
+              const calByDate={};(calData||[]).forEach(e=>{const d=new Date(e.start);const key=d.toDateString();if(!calByDate[key])calByDate[key]=[];calByDate[key].push(e);});
+              
+              // Get active steps (try to map by time hint)
+              const stepsByDate={};allSteps.filter(s=>s.status==="active").forEach(s=>{const t=(s.time||"").toLowerCase();let key=now.toDateString();// Default to today
+              if(t.includes("tomorrow")){const d=new Date(now);d.setDate(d.getDate()+1);key=d.toDateString();}
+              else if(t.includes("this week")||t.includes("this weekend")){const d=new Date(now);d.setDate(d.getDate()+(6-d.getDay()+7)%7||7);key=d.toDateString();}
+              if(!stepsByDate[key])stepsByDate[key]=[];stepsByDate[key].push(s);});
+              
+              const hasContent=days.some(d=>(calByDate[d.toDateString()]||[]).length>0||(stepsByDate[d.toDateString()]||[]).length>0)||allSteps.filter(s=>s.status==="active").length>0||allPlans.length>0||allRoutines.length>0;
+              
+              if(!hasContent)return(<FadeIn><div style={{textAlign:"center",padding:"44px 20px"}}>
+                <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{"\u{1F4C5}"}</div>
+                <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Your timeline</div>
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto"}}>Start chatting in any segment to see your steps, journeys, and calendar events here.</div>
+              </div></FadeIn>);
+              
+              return(<div>
+                {/* Active routines banner */}
+                {allRoutines.filter(r=>!r.paused).length>0&&<div style={{marginBottom:16}}>
+                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Active routines</div>
+                  {allRoutines.filter(r=>!r.paused).map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*30}/>)}
+                </div>}
+                
+                {/* Journeys */}
+                {allPlans.length>0&&<div style={{marginBottom:16}}>
+                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Journeys ({allPlans.length})</div>
+                  {allPlans.map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan===pi} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*30}/>)}
+                </div>}
+                
+                {/* Day-by-day timeline */}
+                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Timeline</div>
+                {days.map((day,di)=>{
+                  const key=day.toDateString();
+                  const calEvents=calByDate[key]||[];
+                  const daySteps=stepsByDate[key]||[];
+                  if(calEvents.length===0&&daySteps.length===0&&di>1)return null;// Skip empty days after tomorrow
+                  const today=isToday(day);
+                  return(<div key={key} style={{marginBottom:12}}>
+                    <div style={{...F,fontSize:13,fontWeight:600,color:today?C.acc:C.t1,marginBottom:8,display:"flex",alignItems:"center",gap:8}}>
+                      {today&&<div style={{width:8,height:8,borderRadius:4,background:C.acc}}/>}
+                      {dayLabel(day)}
+                    </div>
+                    {calEvents.length===0&&daySteps.length===0&&<div style={{...F,fontSize:13,color:C.t3,padding:"8px 0",fontStyle:"italic"}}>Nothing scheduled</div>}
+                    {/* Google Calendar events - grey */}
+                    {calEvents.map((e,i)=>{const d=new Date(e.start);return(
+                      <div key={`cal-${i}`} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:"#F5F5F4",borderLeft:"4px solid #D4D4D4",display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{...F,fontSize:11,color:"#A3A3A3",minWidth:50,fontWeight:600}}>{e.allDay?"All day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}</span>
+                        <div style={{flex:1}}>
+                          <div style={{...F,fontSize:13,color:"#737373"}}>{e.title}</div>
+                          {e.location&&<div style={{...F,fontSize:11,color:"#A3A3A3",marginTop:2}}>{e.location}</div>}
+                        </div>
+                        <span style={{...F,fontSize:10,color:"#A3A3A3"}}>GCal</span>
+                      </div>
+                    );})}
+                    {/* Our steps - colored by segment */}
+                    {daySteps.map((s,i)=>{const seg=SEGMENTS[catToSeg(s.category)];return(
+                      <div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:C.card,borderLeft:`4px solid ${seg?.color||C.acc}`,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:10}}>
+                        <span style={{...F,fontSize:11,color:seg?.color||C.acc,minWidth:50,fontWeight:600}}>{s.time||"Anytime"}</span>
+                        <div style={{flex:1}}>
+                          <div style={{...F,fontSize:13,fontWeight:600,color:C.t1}}>{s.title}</div>
+                          {s.why&&<div style={{...F,fontSize:11,color:C.t2,marginTop:2}}>{s.why}</div>}
+                        </div>
+                        <span style={{fontSize:12}}>{catIcon(s.category)}</span>
+                      </div>
+                    );})}
+                  </div>);
+                })}
+                
+                {/* Unscheduled steps */}
+                {(()=>{const scheduled=new Set();Object.values(stepsByDate).forEach(arr=>arr.forEach(s=>scheduled.add(s.id)));const unsched=allSteps.filter(s=>s.status==="active"&&!scheduled.has(s.id));return unsched.length>0?<div style={{marginTop:8}}>
+                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Anytime</div>
+                  {unsched.map(s=>{const seg=SEGMENTS[catToSeg(s.category)];return(
+                    <div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:C.card,borderLeft:`4px solid ${seg?.color||C.acc}`,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:10}}>
+                      <span style={{fontSize:12}}>{catIcon(s.category)}</span>
+                      <div style={{flex:1}}><div style={{...F,fontSize:13,fontWeight:600,color:C.t1}}>{s.title}</div></div>
+                      <span style={{...F,fontSize:10,color:seg?.color,fontWeight:600,textTransform:"capitalize"}}>{catToSeg(s.category)}</span>
+                    </div>);
+                  })}
+                </div>:null;})()}
+                
+                {/* Completed */}
+                {doneSteps.length>0&&<div style={{marginTop:12}}>
+                  <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
+                  {doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?"\u2764\uFE0F":"\u2713"}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span></div>))}
+                </div>}
+              </div>);
+            })()}
+          </div>
+        )}
+
+        {/* STEPS & JOURNEYS VIEW (non-everything segments) */}
+        {view==="steps"&&segment!=="everything"&&(<>
+          <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
+            {segSteps.length===0&&segPlans.length===0&&segRoutines.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
               <FadeIn><div style={{padding:"20px 0"}}>
                 {/* Welcome hero */}
                 <div style={{textAlign:"center",padding:"24px 20px 32px"}}>
                   <div style={{...H,fontSize:24,color:C.t1,marginBottom:8}}>What's next for you?</div>
-                  <div style={{...F,fontSize:15,color:C.t2,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Pick a segment above, then chat with your coach to start building your steps and journeys.</div>
+                  <div style={{...F,fontSize:15,color:C.t2,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Pick a segment above, then chat with your guide to start building your steps and journeys.</div>
                 </div>
                 {/* Segment quick starts */}
                 <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -597,11 +766,11 @@ export default function App(){
                   );})}
                 </div>
               </div></FadeIn>
-            ):segSteps.length===0&&segPlans.length===0?(
+            ):segSteps.length===0&&segPlans.length===0&&segRoutines.length===0?(
               <FadeIn><div style={{textAlign:"center",padding:"44px 20px"}}>
                 <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{segInfo.icon}</div>
                 <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Nothing in {segInfo.label} yet</div>
-                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:260,margin:"0 auto 20px"}}>Chat with your coach about {segInfo.desc.toLowerCase()}.</div>
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:260,margin:"0 auto 20px"}}>Chat with your guide about {segInfo.desc.toLowerCase()}.</div>
                 {segment!=="everything"&&<button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"12px 28px",borderRadius:14,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff"}}>Start chatting {"\u2192"}</button>}
               </div></FadeIn>
             ):(<>
@@ -637,7 +806,13 @@ export default function App(){
                 {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*50}/>)}
                 {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all journeys</button>}
               </div>}
-              {segment==="everything"&&doneSteps.length>0&&<div><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({doneSteps.length})</div>{doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?"\u2764\uFE0F":"\u2713"}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?"\u2764\uFE0F":"\u{1F90D}"}</button></div>))}</div>}
+              {/* Routines */}
+              {segRoutines.length>0&&<div style={{marginBottom:20}}>
+                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Routines ({segRoutines.length})</div>
+                {segRoutines.map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*50}/>)}
+              </div>}
+              {/* Completed steps - show in all views */}
+              {(()=>{const segDone=segment==="everything"?doneSteps:doneSteps.filter(s=>catToSeg(s.category)===segment);return segDone.length>0?<div style={{marginBottom:20}}><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({segDone.length})</div>{segDone.slice(0,segment==="everything"?5:3).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?"\u2764\uFE0F":"\u2713"}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?"\u2764\uFE0F":"\u{1F90D}"}</button><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}>{"\u00D7"}</button></div>))}{segDone.length>(segment==="everything"?5:3)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:4}}>+{segDone.length-(segment==="everything"?5:3)} more</div>}</div>:null;})()}
               {/* Expired steps */}
               {expiredSteps.length>0&&(segment==="everything"||expiredSteps.some(s=>catToSeg(s.category)===segment))&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#B45309",marginBottom:12}}>Expired ({(segment==="everything"?expiredSteps:expiredSteps.filter(s=>catToSeg(s.category)===segment)).length})</div>
@@ -657,7 +832,7 @@ export default function App(){
                   <span style={{fontSize:20}}>{"\u{1F4AC}"}</span>
                   <div style={{flex:1}}>
                     <div style={{...F,fontSize:14,fontWeight:600,color:C.acc}}>You're on a roll!</div>
-                    <div style={{...F,fontSize:13,color:C.t2,marginTop:2}}>Go deeper with your coach so I can personalize even more.</div>
+                    <div style={{...F,fontSize:13,color:C.t2,marginTop:2}}>Go deeper with your guide so I can personalize even more.</div>
                   </div>
                   <button onClick={()=>setScreen("deepprofile")} style={{...F,fontSize:12,fontWeight:600,padding:"8px 14px",borderRadius:10,background:C.accGrad,color:"#fff",border:"none",cursor:"pointer"}}>Let's go</button>
                 </div>
@@ -669,7 +844,7 @@ export default function App(){
           {segment!=="everything"&&(view==="steps")&&(
             <div style={{padding:"8px 20px 16px",flexShrink:0,borderTop:`1px solid ${C.b1}`}}>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){e.preventDefault();setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}}} placeholder="Quick ask your coach..." style={{...F,flex:1,padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} onFocus={e=>{e.target.style.borderColor=segInfo.color;}} onBlur={e=>{e.target.style.borderColor=C.b2;}}/>
+                <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){e.preventDefault();setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}}} placeholder="Quick ask your guide..." style={{...F,flex:1,padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} onFocus={e=>{e.target.style.borderColor=segInfo.color;}} onBlur={e=>{e.target.style.borderColor=C.b2;}}/>
                 <button onClick={()=>{if(input.trim()){setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}else{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}}} style={{width:44,height:44,borderRadius:14,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(212,82,42,0.2)"}}>{input.trim()?"\u2191":"\u{1F4AC}"}</button>
               </div>
             </div>
@@ -679,6 +854,14 @@ export default function App(){
         {/* CHAT VIEW */}
         {view==="chat"&&segment!=="everything"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"10px 20px"}}>
+            {/* Empty chat state */}
+            {(chats[segment]||[]).length===0&&!loading&&(
+              <div style={{textAlign:"center",padding:"40px 20px"}}>
+                <div style={{width:56,height:56,borderRadius:18,margin:"0 auto 14px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{segInfo.icon}</div>
+                <div style={{...H,fontSize:20,color:C.t1,marginBottom:6}}>Ask me anything about {segInfo.label.toLowerCase()}</div>
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto"}}>{segInfo.desc}. I'll turn ideas into steps and journeys you can act on.</div>
+              </div>
+            )}
             {(chats[segment]||[]).map((msg,i)=>(
               <div key={i} style={{display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
                 {msg.role!=="user"&&<div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,marginRight:10,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#fff"}}>{"\u{1F463}"}</div>}
@@ -691,10 +874,14 @@ export default function App(){
             </div>}
             <div ref={chatEnd}/>
           </div>
+          {/* Suggestion chips + clear chat */}
           {(chats[segment]||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
             <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
               {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities near me"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway ideas"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
             </div>
+          </div>}
+          {(chats[segment]||[]).length>2&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
+            <button onClick={()=>{if(confirm("Clear this conversation? Steps and journeys will be kept.")){const nc={...chats,[segment]:[]};setChats(nc);persist(profile,allSteps,allPlans,nc,preferences);}}} style={{...F,fontSize:11,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"4px 8px"}}>Clear conversation</button>
           </div>}
           <div style={{padding:"6px 20px 16px",flexShrink:0}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
@@ -716,7 +903,7 @@ export default function App(){
         </div>
 
         <div style={{display:"flex",gap:6,marginBottom:20}}>
-          {[{id:"profile",l:"Profile"},{id:"connections",l:"Connected"},{id:"insights",l:"AI Insights"},{id:"about",l:"About"}].map(t=>(<button key={t.id} onClick={()=>setSettingsTab(t.id)} style={{...F,flex:1,padding:"9px 4px",background:settingsTab===t.id?C.card:"transparent",border:settingsTab===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:11,fontWeight:settingsTab===t.id?600:400,color:settingsTab===t.id?C.t1:C.t3,boxShadow:settingsTab===t.id?C.shadow:"none"}}>{t.l}</button>))}
+          {[{id:"profile",l:"Profile"},{id:"health",l:"Health & Fitness"},{id:"connections",l:"Connected"},{id:"insights",l:"AI Insights"},{id:"about",l:"About"}].map(t=>(<button key={t.id} onClick={()=>setSettingsTab(t.id)} style={{...F,flex:1,padding:"9px 4px",background:settingsTab===t.id?C.card:"transparent",border:settingsTab===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:10,fontWeight:settingsTab===t.id?600:400,color:settingsTab===t.id?C.t1:C.t3,boxShadow:settingsTab===t.id?C.shadow:"none"}}>{t.l}</button>))}
         </div>
 
         {settingsTab==="profile"&&<div>
@@ -737,13 +924,102 @@ export default function App(){
               </div>)}
             </div>
           ))}
-          <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}>{"\u{1F4AC}"}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with coach</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
+          <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}>{"\u{1F4AC}"}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
           <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:20,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
         </div>}
 
+        {settingsTab==="health"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
+          <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}>
+            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:profile?.health?.enabled?16:0}}>
+              <div style={{width:44,height:44,borderRadius:14,background:profile?.health?.enabled?"#E6F7F5":"#F5F5F4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{profile?.health?.enabled?"\u2705":"\u{1F3CB}\uFE0F"}</div>
+              <div style={{flex:1}}>
+                <div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>Health & Fitness</div>
+                <div style={{...F,fontSize:13,color:C.t3,marginTop:2}}>{profile?.health?.enabled?"Active \u2014 personalized health & workout help":"Workouts, doctor search, insurance help"}</div>
+              </div>
+              <button onClick={()=>{const p={...profile,health:{...(profile?.health||{}),enabled:!profile?.health?.enabled}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{width:48,height:28,borderRadius:14,border:"none",cursor:"pointer",background:profile?.health?.enabled?C.teal:"#D4D4D4",position:"relative",transition:"all 0.2s"}}>
+                <div style={{width:22,height:22,borderRadius:11,background:"#fff",position:"absolute",top:3,left:profile?.health?.enabled?23:3,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/>
+              </button>
+            </div>
+            {!profile?.health?.enabled&&<div style={{...F,fontSize:13,color:C.t3,lineHeight:1.6,marginTop:12,padding:"12px 14px",background:C.cream,borderRadius:12}}>When enabled, your guide can build custom workout routines, find in-network doctors, understand your insurance, and give personalized fitness recommendations based on your goals and experience.</div>}
+          </div>
+          {profile?.health?.enabled&&<>
+            {/* Fitness profile */}
+            <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}>
+              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Fitness profile</div>
+              <div style={{marginBottom:14}}>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Fitness level</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {["Beginner","Intermediate","Advanced"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,fitnessLevel:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.fitnessLevel===t?C.tealSoft:C.cream,border:`1.5px solid ${profile?.health?.fitnessLevel===t?C.teal:C.b2}`,color:profile?.health?.fitnessLevel===t?C.teal:C.t2,fontWeight:profile?.health?.fitnessLevel===t?600:400}}>{t}</button>))}
+                </div>
+              </div>
+              <div style={{marginBottom:14}}>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Fitness goals (select all that apply)</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {["Lose weight","Build muscle","Get toned","Improve cardio","Flexibility","Stress relief","General health","Train for event"].map(g=>{const goals=profile?.health?.fitnessGoals||[];const on=goals.includes(g);return(<button key={g} onClick={()=>{const ng=on?goals.filter(x=>x!==g):[...goals,g];const p={...profile,health:{...profile.health,fitnessGoals:ng}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.accSoft:C.cream,border:`1.5px solid ${on?C.acc:C.b2}`,color:on?C.acc:C.t2,fontWeight:on?600:400}}>{g}</button>);})}
+                </div>
+              </div>
+              <div style={{marginBottom:14}}>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Workout preferences</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {["Gym","Home workouts","Outdoor","Classes","Yoga","Running","Swimming","Sports","HIIT","Weight training"].map(g=>{const prefs=profile?.health?.workoutPrefs||[];const on=prefs.includes(g);return(<button key={g} onClick={()=>{const np=on?prefs.filter(x=>x!==g):[...prefs,g];const p={...profile,health:{...profile.health,workoutPrefs:np}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?"#E6F7F5":C.cream,border:`1.5px solid ${on?C.teal:C.b2}`,color:on?C.teal:C.t2,fontWeight:on?600:400}}>{g}</button>);})}
+                </div>
+              </div>
+              <div style={{marginBottom:14}}>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>How often can you work out?</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {["1-2x/week","3-4x/week","5-6x/week","Daily"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,workoutFreq:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.workoutFreq===t?C.accSoft:C.cream,border:`1.5px solid ${profile?.health?.workoutFreq===t?C.acc:C.b2}`,color:profile?.health?.workoutFreq===t?C.acc:C.t2,fontWeight:profile?.health?.workoutFreq===t?600:400}}>{t}</button>))}
+                </div>
+              </div>
+              <div>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Any injuries or limitations?</div>
+                {editField==="injuries"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. bad knee, lower back issues" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,injuries:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
+                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.injuries||"None"}</div><button onClick={()=>{setEditField("injuries");setEditVal(profile?.health?.injuries||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
+              </div>
+            </div>
+            {/* Insurance info */}
+            <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}>
+              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Insurance</div>
+              <div style={{marginBottom:14}}>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Insurance Provider</div>
+                {editField==="insurance_provider"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. Blue Cross, Aetna, Cigna, United" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,provider:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
+                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.provider||"Not set"}</div><button onClick={()=>{setEditField("insurance_provider");setEditVal(profile?.health?.provider||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
+              </div>
+              <div style={{marginBottom:14}}>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Plan Type</div>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+                  {["HMO","PPO","EPO","POS","Not sure"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,planType:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.planType===t?C.tealSoft:C.cream,border:`1.5px solid ${profile?.health?.planType===t?C.teal:C.b2}`,color:profile?.health?.planType===t?C.teal:C.t2,fontWeight:profile?.health?.planType===t?600:400}}>{t}</button>))}
+                </div>
+                {profile?.health?.planType==="HMO"&&<div style={{...F,fontSize:12,color:C.gold,marginTop:8,padding:"8px 12px",background:C.goldSoft,borderRadius:10}}>HMO plans require a referral from your PCP before seeing a specialist. Your guide will remind you of this.</div>}
+              </div>
+              <div>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Primary Care Physician (PCP)</div>
+                {editField==="pcp"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Doctor's name or clinic" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,pcp:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
+                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.pcp||"Not set"}</div><button onClick={()=>{setEditField("pcp");setEditVal(profile?.health?.pcp||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
+              </div>
+            </div>
+            {/* What guide helps with */}
+            <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>What your guide can help with</div>
+              {[{i:"\u{1F3CB}\uFE0F",t:"Build a custom workout routine for your goals and level"},{i:"\u{1F4C6}",t:"Create a weekly training plan with rest days"},{i:"\u{1FA7A}",t:"Find the right specialist based on your symptoms"},{i:"\u{1F3E5}",t:"Search for in-network doctors near you"},{i:"\u{1F4CB}",t:"Remind you about referrals if you have an HMO"},{i:"\u{1F4B0}",t:"Explain copays and deductibles"},{i:"\u26A0\uFE0F",t:"Adapt workouts around your injuries"}].map((x,i)=>(<div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<6?`1px solid ${C.b1}`:"none"}}><span style={{fontSize:16}}>{x.i}</span><span style={{...F,fontSize:14,color:C.t2,lineHeight:1.5}}>{x.t}</span></div>))}
+            </div>
+            {/* Health apps */}
+            <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>
+              {[{i:"\u{1F34E}",l:"Apple Health",d:"Steps, heart rate, sleep"},{i:"\u{1F4AA}",l:"MyFitnessPal",d:"Nutrition, calories"},{i:"\u{1F49A}",l:"Fitbit",d:"Activity, sleep, heart rate"},{i:"\u{1F9E0}",l:"Headspace",d:"Meditation, mindfulness"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{fontSize:18}}>{s.i}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} \u00B7 Coming soon</div></div></div>))}
+            </div>
+            <div style={{...F,fontSize:12,color:C.t3,lineHeight:1.6,padding:"14px 16px",background:C.cream,borderRadius:14}}>Your guide is not a medical professional. Recommendations help you find healthcare providers and build fitness routines, not diagnose or treat conditions. Always consult a licensed physician for medical concerns.</div>
+          </>}
+        </div>}
+
         {settingsTab==="connections"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
-          <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F3C3}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
-          <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F4C5}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:12,color:calData?"#4285F4":C.t3}}>{calData?`Connected \u00B7 ${calData.length} events`:"Not connected"}</div></div>{calData?<button onClick={async()=>{deleteFB(getUserId(profile),"calendar");setCalData(null);setCalToken(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={()=>connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);saveFB(getUserId(profile),"calendar",{token:r.access_token,events:ev});})} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:"rgba(66,133,244,0.06)",color:"#4285F4",border:"1px solid rgba(66,133,244,0.1)",cursor:"pointer"}}>Connect</button>}</div>
+          <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F3C3}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
+            {stravaData?.profile&&<div style={{padding:"10px 14px",borderRadius:12,background:C.bg,marginTop:10,display:"flex",gap:16}}><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRuns}</div><div style={{...F,fontSize:10,color:C.t3}}>Runs</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRunDistance}</div><div style={{...F,fontSize:10,color:C.t3}}>Distance</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRides}</div><div style={{...F,fontSize:10,color:C.t3}}>Rides</div></div></div>}
+          </div>
+          <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F4C5}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:12,color:calData?"#4285F4":C.t3}}>{calData?`Connected \u00B7 ${calData.length} events`:"Not connected"}</div></div>{calData?<button onClick={async()=>{deleteFB(getUserId(profile),"calendar");setCalData(null);setCalToken(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={()=>connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);saveFB(getUserId(profile),"calendar",{token:r.access_token,events:ev});})} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:"rgba(66,133,244,0.06)",color:"#4285F4",border:"1px solid rgba(66,133,244,0.1)",cursor:"pointer"}}>Connect</button>}</div>
+            {calData?.length>0&&<div style={{marginTop:10}}>{calData.slice(0,4).map((e,i)=>{const d=new Date(e.start);return<div key={i} style={{display:"flex",gap:8,padding:"6px 14px",borderRadius:10,background:C.bg,marginBottom:4,alignItems:"center"}}><span style={{...F,fontSize:11,fontWeight:600,color:"#4285F4",minWidth:55}}>{d.toLocaleDateString([],{month:"short",day:"numeric"})}</span><span style={{...F,fontSize:12,color:C.t2,flex:1}}>{e.title}</span></div>;})}{calData.length>4&&<div style={{...F,fontSize:11,color:C.t3,textAlign:"center",marginTop:4}}>+{calData.length-4} more</div>}</div>}
+          </div>
           {[{i:"in",l:"LinkedIn",c:"#0A66C2"},{i:"\u{1F4F7}",l:"Instagram",c:"#E4405F"},{i:"\u{1F3B5}",l:"Spotify",c:"#1DB954"}].map(s=>(<div key={s.l} style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{fontSize:20,width:24,textAlign:"center"}}>{s.i}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>))}
         </div>}
 
@@ -777,16 +1053,62 @@ export default function App(){
         {settingsTab==="about"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
             <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}><div style={{width:40,height:40,borderRadius:12,background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:"#fff"}}>{"\u{1F463}"}</div><div><div style={{...H,fontSize:16,color:C.t1}}>My Next Step</div><div style={{...F,fontSize:12,color:C.t3}}>v1.0 Beta</div></div></div>
-            <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6}}>Your AI coach that turns goals into actionable steps.</div>
+            <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6}}>Your AI guide that turns goals into actionable steps.</div>
           </div>
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
             <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Legal</div>
-            <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Terms of Service</div>
-            <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Privacy Policy</div>
-            <div style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Affiliate Disclosure</div>
+            <div onClick={()=>setLegalModal("terms")} style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Terms of Service</div>
+            <div onClick={()=>setLegalModal("privacy")} style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Privacy Policy</div>
+            <div onClick={()=>setLegalModal("affiliate")} style={{...F,fontSize:14,color:C.acc,cursor:"pointer",padding:"5px 0"}}>Affiliate Disclosure</div>
             <div style={{...F,fontSize:13,color:C.t3,marginTop:8,lineHeight:1.5,padding:"10px 14px",background:C.cream,borderRadius:10}}>Some links may earn us a small commission at no extra cost to you. This helps keep My Next Step free.</div>
           </div>
+          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
+            <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Data</div>
+            {!deleteConfirm?<button onClick={()=>{setDeleteConfirm(true);setDeleteText("");}} style={{...F,width:"100%",padding:"12px",borderRadius:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:13,cursor:"pointer",textAlign:"left"}}>Delete my account and all data</button>
+            :<div>
+              <div style={{...F,fontSize:14,color:"#DC3C3C",fontWeight:600,marginBottom:8}}>This is permanent</div>
+              <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:12}}>Your profile, all steps, journeys, routines, chat history, and connected accounts will be permanently deleted. This cannot be undone.</div>
+              <div style={{...F,fontSize:12,color:C.t3,marginBottom:8}}>Type <span style={{fontWeight:700,color:"#DC3C3C"}}>delete my account</span> to confirm:</div>
+              <input value={deleteText} onChange={e=>setDeleteText(e.target.value)} placeholder="delete my account" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:"1.5px solid rgba(220,60,60,0.3)",background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box",marginBottom:12}}/>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>{setDeleteConfirm(false);setDeleteText("");}} style={{...F,flex:1,padding:10,borderRadius:12,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:13,cursor:"pointer"}}>Cancel</button>
+                <button onClick={()=>{if(deleteText.toLowerCase().trim()==="delete my account"){const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}resetAll();}}} disabled={deleteText.toLowerCase().trim()!=="delete my account"} style={{...F,flex:1,padding:10,borderRadius:12,border:"none",background:deleteText.toLowerCase().trim()==="delete my account"?"#DC3C3C":"rgba(220,60,60,0.1)",color:deleteText.toLowerCase().trim()==="delete my account"?"#fff":"rgba(220,60,60,0.3)",fontSize:13,fontWeight:600,cursor:deleteText.toLowerCase().trim()==="delete my account"?"pointer":"default"}}>Delete permanently</button>
+              </div>
+            </div>}
+          </div>
         </div>}
+
+        {/* Legal modals */}
+        {legalModal&&<div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setLegalModal(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"80vh",overflowY:"auto",background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{...H,fontSize:20,color:C.t1}}>{legalModal==="terms"?"Terms of Service":legalModal==="privacy"?"Privacy Policy":"Affiliate Disclosure"}</div><button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}>{"\u00D7"}</button></div>
+          <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.8}}>
+            {legalModal==="terms"&&<div>
+              <p>Last updated: April 2026</p>
+              <p>Welcome to My Next Step. By using this app, you agree to these terms.</p>
+              <p>My Next Step provides AI-powered life guidance including step and journey recommendations, fitness suggestions, and healthcare provider search. The app is not a substitute for professional medical, financial, or legal advice.</p>
+              <p>We use third-party AI (Anthropic Claude) to generate recommendations. While we strive for accuracy, recommendations may not always be perfect. Always verify important details independently.</p>
+              <p>You retain ownership of all personal data you provide. We store your data securely using Firebase/Firestore. You can delete your account and all associated data at any time from Settings.</p>
+              <p>We reserve the right to modify these terms. Continued use of the app constitutes acceptance of updated terms.</p>
+            </div>}
+            {legalModal==="privacy"&&<div>
+              <p>Last updated: April 2026</p>
+              <p>Your privacy matters to us. Here's how we handle your data:</p>
+              <p>We collect: your name, email, age, gender, location, fitness preferences, insurance information (if opted in), chat history, and step/journey data.</p>
+              <p>We use this data to: personalize AI recommendations, sync your data across devices, and improve the app experience.</p>
+              <p>We do NOT: sell your data, share it with advertisers, or use it for any purpose beyond providing the My Next Step service.</p>
+              <p>Third-party services: We use Firebase (Google) for data storage, Anthropic Claude for AI, and optionally connect to Strava and Google Calendar with your explicit permission.</p>
+              <p>Data deletion: You can delete all your data at any time from Settings. When you delete your account, all data is permanently removed from our servers.</p>
+              <p>Health data: Health and fitness information is only collected when you explicitly opt in. It is used solely to personalize recommendations and is never shared.</p>
+            </div>}
+            {legalModal==="affiliate"&&<div>
+              <p>Last updated: April 2026</p>
+              <p>My Next Step may include links to third-party products and services. Some of these links are affiliate links, meaning we may earn a small commission if you make a purchase or booking through them.</p>
+              <p>This comes at no additional cost to you. Affiliate relationships do not influence which products or services we recommend \u2014 recommendations are based on your personal preferences, location, and goals.</p>
+              <p>Our affiliate partners may include: ClassPass, Eventbrite, Udemy, Skillshare, Mindbody, Meetup, Amazon, LinkedIn Learning, Airbnb, Kayak, Booking.com, VRBO, and others.</p>
+              <p>Revenue from affiliate links helps keep My Next Step free for all users.</p>
+            </div>}
+          </div>
+        </div></div>}
       </div></div>}
     </div>
   );
