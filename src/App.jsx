@@ -248,7 +248,7 @@ export default function App(){
   const toggleTask=(pi,ti)=>{const u=allPlans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const pauseRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,paused:!r.paused}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const deleteRoutine=id=>{const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
-  const talkAbout=text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
+  const talkAbout=text=>{if(segment==="everything")setSegment("wellness");setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
   const[shareModalItem,setShareModalItem]=useState(null);
   const shareItem=(item)=>{setShareModalItem(item);};
   const handleBooked=(step)=>{handleAddCal(step.title,step.why,step.time);const u=allSteps.map(s=>s.id===step.id?{...s,booked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
@@ -346,7 +346,10 @@ export default function App(){
         <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell guide</button></div>
       </div></div>)}
       <div style={{padding:"14px 20px 10px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
-        <div><div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div><div style={{display:"flex",alignItems:"baseline",gap:10}}><span style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</span><span onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,fontSize:13,fontStyle:"italic",color:C.t3,cursor:"pointer"}}>Take your next step!</span></div></div>
+        <div style={{textAlign:"center",flex:1}}>
+          <div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()}, {profile?.name}</div>
+          <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...H,fontSize:22,fontWeight:700,color:C.t1,cursor:"pointer"}}>Take your next step!</div>
+        </div>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           {(()=>{
             const now=new Date();const weekAgo=new Date(now-7*864e5);

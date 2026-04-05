@@ -25,9 +25,8 @@ export default function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove
       <button onClick={()=>onDislike(step.id)} style={{width:38,height:38,borderRadius:12,border:"none",cursor:"pointer",background:"rgba(0,0,0,0.02)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}><ThumbsDown size={16} color={C.t3}/></button>
     </div>
     <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap"}}>
-      <button onClick={()=>onTalk(`Work on step: "${step.title}". Find specific options with prices and booking links.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer",fontWeight:500}}>Work on this</button>
-      <button onClick={()=>onTalk(`Make "${step.title}" even better. Find a more specific, exciting, or well-reviewed option. Upgrade it.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Sparkles size={14}/> Make better</button>
-      <button onClick={()=>onTalk(`Find alternative to "${step.title}" with prices and details.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Alternative</button>
+      <button onClick={()=>onTalk(`Work on step: "${step.title}". Find specific options with prices, booking links, and details. Make it actionable.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Work on this</button>
+      <button onClick={()=>onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Alternative</button>
       <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Share2 size={12}/> Share</button>
     </div>
   </div></FadeIn>);
