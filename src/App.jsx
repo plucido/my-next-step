@@ -37,7 +37,7 @@ const C = {
 // ─── SEGMENTS ───
 const SEGMENTS = {
   career: { label: "Career", icon: "\u{1F680}", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking" },
-  wellness: { label: "Health", icon: "\u{1F33F}", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, health, habits, self-care, mental health" },
+  wellness: { label: "Health", icon: "\u{1F33F}", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, nutrition, food allergies, doctor search, insurance, self-care" },
   fun: { label: "Fun", icon: "\u{1F389}", color: "#DB2777", soft: "#FCE7F3", desc: "Friends, dating, events, hobbies, going out" },
   adventure: { label: "Adventure", icon: "\u{1F30D}", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, bucket list, new experiences" },
 };
@@ -164,6 +164,13 @@ MANAGING ITEMS:
 - Delete old steps/journeys when conversation shifts.
 - To update a journey, output it with the SAME title \u2014 it replaces the old one.
 - Loved steps = strong signal, recommend more like them.
+- FAVORITES: The user may have saved favorite restaurants, classes, and places. Use these as reference points ("You loved Uchi, so try Kata Robata").
+
+PERSONALIZATION MODE:
+- If the user says "tell you about myself" or "help personalize" or "learn about me", switch to LEARNING mode.
+- Ask 2-3 conversational questions about preferences, interests, lifestyle.
+- Do NOT create steps or journeys during this. Just learn and store as preferences.
+- After learning, confirm you'll use it going forward.
 
 IMPROVING USER IDEAS:
 - When a user shares a vague idea ("I should work out more", "maybe learn to cook"), don't just agree. ENHANCE it into something specific and actionable.
@@ -401,6 +408,7 @@ export default function App(){
   const[legalModal,setLegalModal]=useState(null);
   const[deleteConfirm,setDeleteConfirm]=useState(false);
   const[deleteText,setDeleteText]=useState("");
+  const[healthSection,setHealthSection]=useState({fitness:true,food:true,medical:false});
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
   // Normalize chats from old format (work/me/social) to new (career/wellness/fun/adventure)
@@ -465,6 +473,7 @@ export default function App(){
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
     const stepsCtx=allSteps.filter(s=>s.status==="active").length>0?"\n\nALL ACTIVE STEPS:\n"+allSteps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
     const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\n\nLOVED STEPS:\n"+allSteps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
+    const favsCtx=(profile?.favorites||[]).length>0?"\n\nFAVORITES (places/things user loves):\n"+(profile.favorites).map(f=>`- "${f.title}" (${f.category})`).join("\n"):"";
     const plansCtx=allPlans.length>0?"\n\nJOURNEYS:\n"+allPlans.map(p=>{const d=p.tasks?.filter(t=>t.done).length||0;return`- "${p.title}" (${p.date||"no date"}, ${d}/${p.tasks?.length||0} done)`;}).join("\n"):"";
     const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\n\nACTIVE ROUTINES:\n"+allRoutines.filter(r=>!r.paused).map(r=>`- "${r.title}" (${r.schedule}, ${(r.days||[]).join("/")||"flexible"}, ${r.category})`).join("\n"):"";
     const calCtx=calData?.length>0?"\n\nCALENDAR:\n"+calData.slice(0,10).map(e=>{const d=new Date(e.start);return`- ${d.toLocaleDateString()} ${e.allDay?"all day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}: ${e.title}`;}).join("\n"):"";
@@ -493,7 +502,7 @@ export default function App(){
       // Safety: ensure no empty content
       const safeApiMsgs=apiMsgs.filter(m=>m.content&&m.content.trim()).map(m=>({role:m.role,content:m.content.trim()}));
       
-      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
+      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
@@ -559,7 +568,7 @@ export default function App(){
 
   const deleteStep=id=>{const u=allSteps.filter(s=>s.id!==id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
   const markStep=(id,st)=>{if(st==="done")setFeedbackStep(allSteps.find(s=>s.id===id));const u=allSteps.map(s=>s.id===id?{...s,status:st}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
-  const loveStep=id=>{const step=allSteps.find(s=>s.id===id);const u=allSteps.map(s=>s.id===id?{...s,loved:!s.loved}:s);setAllSteps(u);if(step&&!step.loved){const pref={key:`loved_${step.category||"general"}`,value:`Loved "${step.title}"`};const np=[...preferences.filter(p=>p.key!==pref.key),pref];setPreferences(np);persist(profile,u,allPlans,chats,np);}else persist(profile,u,allPlans,chats,preferences);};
+  const loveStep=id=>{const step=allSteps.find(s=>s.id===id);const u=allSteps.map(s=>s.id===id?{...s,loved:!s.loved}:s);setAllSteps(u);if(step&&!step.loved){const pref={key:`loved_${step.category||"general"}`,value:`Loved "${step.title}"`};const np=[...preferences.filter(p=>p.key!==pref.key),pref];setPreferences(np);const fav={title:step.title,category:step.category||"general",link:step.link,addedAt:new Date().toISOString()};const favs=[fav,...(profile?.favorites||[]).filter(f=>f.title!==step.title)].slice(0,30);const p={...profile,favorites:favs};setProfile(p);persist(p,u,allPlans,chats,np);}else{if(step?.loved){const favs=(profile?.favorites||[]).filter(f=>f.title!==step.title);const p={...profile,favorites:favs};setProfile(p);persist(p,u,allPlans,chats,preferences);}else persist(profile,u,allPlans,chats,preferences);}};
   const submitFeedback=()=>{if(!feedbackText.trim()||!feedbackStep)return;sendMessage(`Completed "${feedbackStep.title}": ${feedbackText.trim()}`);setFeedbackStep(null);setFeedbackText("");setView("chat");};
   const submitMissedReason=()=>{if(!missedReason.trim()||!missedStep)return;sendMessage(`I didn't do "${missedStep.title}". Reason: ${missedReason.trim()}`);const u=allSteps.filter(s=>s.id!==missedStep.id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);setMissedStep(null);setMissedReason("");setView("chat");};
   const dismissMissed=id=>{const u=allSteps.filter(s=>s.id!==id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
@@ -637,10 +646,19 @@ export default function App(){
         </div>
       </div>
 
+      {/* Tell me more - personalization nudge */}
+      {!profile?.insights?.length&&allSteps.filter(s=>s.status==="active").length>0&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
+        <button onClick={()=>{setSegment("wellness");setView("chat");setTimeout(()=>sendMessage("I'd like to tell you more about myself so you can personalize better. Ask me a few questions — don't create any steps, just learn about me."),100);}} style={{...F,width:"100%",padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
+          <span style={{fontSize:16}}>{"\u2728"}</span>
+          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:C.t1}}>Help me personalize</div><div style={{fontSize:11,color:C.t3}}>Tell your guide about your preferences</div></div>
+          <span style={{fontSize:12,color:C.t3}}>{"\u203A"}</span>
+        </button>
+      </div>}
+
       {/* Segment selector */}
       <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
         {[...SEG_KEYS,"everything"].map(s=>{const info=SEGMENTS[s]||{label:"Everything",icon:"\u{1F4C5}",color:C.acc};const active=segment===s;const count=s==="everything"?allSteps.filter(x=>x.status==="active").length:allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
-          return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);if(s==="everything")setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
+          return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
             <span style={{fontSize:14}}>{info.icon}</span>{info.label}{count>0&&<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>}
           </button>);
         })}
@@ -779,11 +797,14 @@ export default function App(){
                 </div>
               </div></FadeIn>
             ):segSteps.length===0&&segPlans.length===0&&segRoutines.length===0?(
-              <FadeIn><div style={{textAlign:"center",padding:"44px 20px"}}>
+              <FadeIn><div style={{textAlign:"center",padding:"36px 20px"}}>
                 <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{segInfo.icon}</div>
                 <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Nothing in {segInfo.label} yet</div>
-                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:260,margin:"0 auto 20px"}}>Chat with your guide about {segInfo.desc.toLowerCase()}.</div>
-                {segment!=="everything"&&<button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"12px 28px",borderRadius:14,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff"}}>Start chatting {"\u2192"}</button>}
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto 24px"}}>Tell your guide what you're looking for and I'll create personalized steps and journeys.</div>
+                <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Talk to your guide {"\u2192"}</button>
+                <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap",marginTop:8}}>
+                  {(segment==="career"?["Help me grow my career","Find a course","Networking events"]:segment==="fun"?["Plan something with friends","Find events this weekend","Group activities"]:segment==="adventure"?["Plan a trip","Find a new experience","Weekend getaway"]:["What should I do today?","Build a workout routine","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
+                </div>
               </div></FadeIn>
             ):(<>
               {/* Weekly progress bar */}
@@ -937,112 +958,76 @@ export default function App(){
             </div>
           ))}
           <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}>{"\u{1F4AC}"}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
-          <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:20,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
+
+          {/* Favorites */}
+          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5}}>My Favorites ({(profile?.favorites||[]).length})</div>
+              {editField!=="add_fav"&&<button onClick={()=>{setEditField("add_fav");setEditVal("");}} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>+ Add</button>}
+            </div>
+            {editField==="add_fav"&&<div style={{marginBottom:12}}>
+              <input value={editVal} onChange={e=>setEditVal(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&editVal.trim()){const fav={title:editVal.trim(),category:"general",addedAt:new Date().toISOString(),manual:true};const favs=[fav,...(profile?.favorites||[])].slice(0,30);const p={...profile,favorites:favs};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);setEditVal("");}}} placeholder="Restaurant, class, place, etc." style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box",marginBottom:8}}/>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>setEditField(null)} style={{...F,flex:1,padding:8,borderRadius:10,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
+                <button onClick={()=>{if(editVal.trim()){const fav={title:editVal.trim(),category:"general",addedAt:new Date().toISOString(),manual:true};const favs=[fav,...(profile?.favorites||[])].slice(0,30);const p={...profile,favorites:favs};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);setEditVal("");}}} style={{...F,flex:1,padding:8,borderRadius:10,border:"none",background:C.accGrad,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add</button>
+              </div>
+            </div>}
+            {(profile?.favorites||[]).length===0&&editField!=="add_fav"&&<div style={{...F,fontSize:13,color:C.t3,padding:"8px 0",lineHeight:1.5}}>Heart a step to add it here, or tap + Add to save your favorite spots manually.</div>}
+            {(profile?.favorites||[]).map((fav,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<(profile.favorites.length-1)?`1px solid ${C.b1}`:"none"}}>
+              <span style={{fontSize:14}}>{catIcon(fav.category)}</span>
+              <div style={{flex:1}}>
+                <div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{fav.title}</div>
+                <div style={{...F,fontSize:11,color:C.t3}}>{fav.manual?"Added manually":"From loved step"} {"\u00B7"} {fav.category}</div>
+              </div>
+              <button onClick={()=>{const favs=(profile?.favorites||[]).filter((_,j)=>j!==i);const p={...profile,favorites:favs};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}>{"\u00D7"}</button>
+            </div>))}
+          </div>
+
+          <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
         </div>}
 
-        {settingsTab==="health"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
+                {settingsTab==="health"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}>
-            <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:profile?.health?.enabled?16:0}}>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
               <div style={{width:44,height:44,borderRadius:14,background:profile?.health?.enabled?"#E6F7F5":"#F5F5F4",display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>{profile?.health?.enabled?"\u2705":"\u{1F3CB}\uFE0F"}</div>
-              <div style={{flex:1}}>
-                <div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>Health & Fitness</div>
-                <div style={{...F,fontSize:13,color:C.t3,marginTop:2}}>{profile?.health?.enabled?"Active \u2014 personalized health & workout help":"Workouts, doctor search, insurance help"}</div>
-              </div>
-              <button onClick={()=>{const p={...profile,health:{...(profile?.health||{}),enabled:!profile?.health?.enabled}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{width:48,height:28,borderRadius:14,border:"none",cursor:"pointer",background:profile?.health?.enabled?C.teal:"#D4D4D4",position:"relative",transition:"all 0.2s"}}>
-                <div style={{width:22,height:22,borderRadius:11,background:"#fff",position:"absolute",top:3,left:profile?.health?.enabled?23:3,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/>
-              </button>
+              <div style={{flex:1}}><div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>Health & Fitness</div><div style={{...F,fontSize:13,color:C.t3,marginTop:2}}>{profile?.health?.enabled?"Active \u2014 personalized health & fitness":"Workouts, allergies, doctor search"}</div></div>
+              <button onClick={()=>{const p={...profile,health:{...(profile?.health||{}),enabled:!profile?.health?.enabled}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{width:48,height:28,borderRadius:14,border:"none",cursor:"pointer",background:profile?.health?.enabled?C.teal:"#D4D4D4",position:"relative",transition:"all 0.2s"}}><div style={{width:22,height:22,borderRadius:11,background:"#fff",position:"absolute",top:3,left:profile?.health?.enabled?23:3,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/></button>
             </div>
-            {!profile?.health?.enabled&&<div style={{...F,fontSize:13,color:C.t3,lineHeight:1.6,marginTop:12,padding:"12px 14px",background:C.cream,borderRadius:12}}>When enabled, your guide can build custom workout routines, find in-network doctors, understand your insurance, and give personalized fitness recommendations based on your goals and experience.</div>}
+            {!profile?.health?.enabled&&<div style={{...F,fontSize:13,color:C.t3,lineHeight:1.6,marginTop:12,padding:"12px 14px",background:C.cream,borderRadius:12}}>When enabled, your guide can build workout routines, find allergy-safe restaurants, search for in-network doctors, and personalize everything around your health profile.</div>}
           </div>
           {profile?.health?.enabled&&<>
-            {/* Fitness profile */}
-            <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}>
-              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Fitness profile</div>
-              <div style={{marginBottom:14}}>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Fitness level</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {["Beginner","Intermediate","Advanced"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,fitnessLevel:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.fitnessLevel===t?C.tealSoft:C.cream,border:`1.5px solid ${profile?.health?.fitnessLevel===t?C.teal:C.b2}`,color:profile?.health?.fitnessLevel===t?C.teal:C.t2,fontWeight:profile?.health?.fitnessLevel===t?600:400}}>{t}</button>))}
-                </div>
-              </div>
-              <div style={{marginBottom:14}}>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Fitness goals (select all that apply)</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {["Lose weight","Build muscle","Get toned","Improve cardio","Flexibility","Stress relief","General health","Train for event"].map(g=>{const goals=profile?.health?.fitnessGoals||[];const on=goals.includes(g);return(<button key={g} onClick={()=>{const ng=on?goals.filter(x=>x!==g):[...goals,g];const p={...profile,health:{...profile.health,fitnessGoals:ng}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.accSoft:C.cream,border:`1.5px solid ${on?C.acc:C.b2}`,color:on?C.acc:C.t2,fontWeight:on?600:400}}>{g}</button>);})}
-                </div>
-              </div>
-              <div style={{marginBottom:14}}>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Workout preferences</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {["Gym","Home workouts","Outdoor","Classes","Yoga","Running","Swimming","Sports","HIIT","Weight training"].map(g=>{const prefs=profile?.health?.workoutPrefs||[];const on=prefs.includes(g);return(<button key={g} onClick={()=>{const np=on?prefs.filter(x=>x!==g):[...prefs,g];const p={...profile,health:{...profile.health,workoutPrefs:np}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?"#E6F7F5":C.cream,border:`1.5px solid ${on?C.teal:C.b2}`,color:on?C.teal:C.t2,fontWeight:on?600:400}}>{g}</button>);})}
-                </div>
-              </div>
-              <div style={{marginBottom:14}}>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>How often can you work out?</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {["1-2x/week","3-4x/week","5-6x/week","Daily"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,workoutFreq:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.workoutFreq===t?C.accSoft:C.cream,border:`1.5px solid ${profile?.health?.workoutFreq===t?C.acc:C.b2}`,color:profile?.health?.workoutFreq===t?C.acc:C.t2,fontWeight:profile?.health?.workoutFreq===t?600:400}}>{t}</button>))}
-                </div>
-              </div>
-              <div>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Any injuries or limitations?</div>
-                {editField==="injuries"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. bad knee, lower back issues" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,injuries:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
-                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.injuries||"None"}</div><button onClick={()=>{setEditField("injuries");setEditVal(profile?.health?.injuries||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
-              </div>
+            <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
+              <button onClick={()=>setHealthSection(p=>({...p,fitness:!p.fitness}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}>{"\u{1F3CB}\uFE0F"}</span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Fitness</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Level, goals, preferences, injuries</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.fitness?"rotate(180deg)":"rotate(0)"}}>{"\u25BE"}</span></button>
+              {healthSection.fitness&&<div style={{padding:"0 20px 20px"}}>
+                <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Fitness level</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["Beginner","Intermediate","Advanced"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,fitnessLevel:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.fitnessLevel===t?C.tealSoft:C.cream,border:`1.5px solid ${profile?.health?.fitnessLevel===t?C.teal:C.b2}`,color:profile?.health?.fitnessLevel===t?C.teal:C.t2,fontWeight:profile?.health?.fitnessLevel===t?600:400}}>{t}</button>))}</div></div>
+                <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Goals</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Lose weight","Build muscle","Get toned","Improve cardio","Flexibility","Stress relief","General health","Train for event"].map(g=>{const gl=profile?.health?.fitnessGoals||[];const on=gl.includes(g);return(<button key={g} onClick={()=>{const p={...profile,health:{...profile.health,fitnessGoals:on?gl.filter(x=>x!==g):[...gl,g]}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.accSoft:C.cream,border:`1.5px solid ${on?C.acc:C.b2}`,color:on?C.acc:C.t2,fontWeight:on?600:400}}>{g}</button>);})}</div></div>
+                <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Workout preferences</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Gym","Home workouts","Outdoor","Classes","Yoga","Running","Swimming","Sports","HIIT","Weight training"].map(g=>{const wp=profile?.health?.workoutPrefs||[];const on=wp.includes(g);return(<button key={g} onClick={()=>{const p={...profile,health:{...profile.health,workoutPrefs:on?wp.filter(x=>x!==g):[...wp,g]}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?"#E6F7F5":C.cream,border:`1.5px solid ${on?C.teal:C.b2}`,color:on?C.teal:C.t2,fontWeight:on?600:400}}>{g}</button>);})}</div></div>
+                <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Frequency</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["1-2x/week","3-4x/week","5-6x/week","Daily"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,workoutFreq:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.workoutFreq===t?C.accSoft:C.cream,border:`1.5px solid ${profile?.health?.workoutFreq===t?C.acc:C.b2}`,color:profile?.health?.workoutFreq===t?C.acc:C.t2,fontWeight:profile?.health?.workoutFreq===t?600:400}}>{t}</button>))}</div></div>
+                <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Injuries or limitations</div>{editField==="injuries"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. bad knee, lower back" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,injuries:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.injuries||"None"}</div><button onClick={()=>{setEditField("injuries");setEditVal(profile?.health?.injuries||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
+              </div>}
             </div>
-            {/* Allergies & dietary restrictions */}
-            <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}>
-              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Allergies & dietary restrictions</div>
-              <div style={{...F,fontSize:12,color:C.t3,marginBottom:10}}>Select any that apply. Your guide will factor these into restaurant and food recommendations.</div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {["Gluten-free / Celiac","Dairy","Eggs","Peanuts","Tree nuts","Soy","Fish","Crustaceans (shrimp, crab, lobster)","Molluscs (clams, oysters, squid)","Wheat","Sesame","Legumes","Mustard","Sulfites","Corn","Nightshades"].map(a=>{const allergies=profile?.health?.allergies||[];const on=allergies.includes(a);return(<button key={a} onClick={()=>{const na=on?allergies.filter(x=>x!==a):[...allergies,a];const p={...profile,health:{...profile.health,allergies:na}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?"rgba(220,60,60,0.06)":C.cream,border:`1.5px solid ${on?"#DC3C3C":C.b2}`,color:on?"#DC3C3C":C.t2,fontWeight:on?600:400}}>{on?"\u26A0\uFE0F ":""}{a}</button>);})}
-              </div>
-              <div style={{marginTop:12}}>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Dietary preferences</div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Low sodium","Low sugar","Lactose-free"].map(d=>{const diets=profile?.health?.diets||[];const on=diets.includes(d);return(<button key={d} onClick={()=>{const nd=on?diets.filter(x=>x!==d):[...diets,d];const p={...profile,health:{...profile.health,diets:nd}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.tealSoft:C.cream,border:`1.5px solid ${on?C.teal:C.b2}`,color:on?C.teal:C.t2,fontWeight:on?600:400}}>{d}</button>);})}
-                </div>
-              </div>
-              <div style={{marginTop:12}}>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Other allergies or notes</div>
-                {editField==="other_allergies"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. kiwi, latex, specific medications" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,otherAllergies:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
-                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.otherAllergies||"None"}</div><button onClick={()=>{setEditField("other_allergies");setEditVal(profile?.health?.otherAllergies||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
-              </div>
+            <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
+              <button onClick={()=>setHealthSection(p=>({...p,food:!p.food}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}>{"\u{1F35D}"}</span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Food & Allergies</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Allergens, dietary preferences{(profile?.health?.allergies||[]).length>0?` \u00B7 ${profile.health.allergies.length} set`:""}</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.food?"rotate(180deg)":"rotate(0)"}}>{"\u25BE"}</span></button>
+              {healthSection.food&&<div style={{padding:"0 20px 20px"}}>
+                <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:"#DC3C3C",fontWeight:600,marginBottom:8}}>Allergens</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Gluten-free / Celiac","Dairy","Eggs","Peanuts","Tree nuts","Soy","Fish","Crustaceans (shrimp, crab, lobster)","Molluscs (clams, oysters, squid)","Wheat","Sesame","Legumes","Mustard","Sulfites","Corn","Nightshades"].map(a=>{const al=profile?.health?.allergies||[];const on=al.includes(a);return(<button key={a} onClick={()=>{const p={...profile,health:{...profile.health,allergies:on?al.filter(x=>x!==a):[...al,a]}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?"rgba(220,60,60,0.06)":C.cream,border:`1.5px solid ${on?"#DC3C3C":C.b2}`,color:on?"#DC3C3C":C.t2,fontWeight:on?600:400}}>{on?"\u26A0\uFE0F ":""}{a}</button>);})}</div></div>
+                <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.teal,fontWeight:600,marginBottom:8}}>Dietary preferences</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Low sodium","Low sugar","Lactose-free"].map(d=>{const di=profile?.health?.diets||[];const on=di.includes(d);return(<button key={d} onClick={()=>{const p={...profile,health:{...profile.health,diets:on?di.filter(x=>x!==d):[...di,d]}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.tealSoft:C.cream,border:`1.5px solid ${on?C.teal:C.b2}`,color:on?C.teal:C.t2,fontWeight:on?600:400}}>{d}</button>);})}</div></div>
+                <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Other allergies</div>{editField==="other_allergies"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. kiwi, latex, medications" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,otherAllergies:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.otherAllergies||"None"}</div><button onClick={()=>{setEditField("other_allergies");setEditVal(profile?.health?.otherAllergies||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
+              </div>}
             </div>
-            {/* Insurance info */}
-            <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}>
-              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Insurance</div>
-              <div style={{marginBottom:14}}>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Insurance Provider</div>
-                {editField==="insurance_provider"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. Blue Cross, Aetna, Cigna, United" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,provider:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
-                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.provider||"Not set"}</div><button onClick={()=>{setEditField("insurance_provider");setEditVal(profile?.health?.provider||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
-              </div>
-              <div style={{marginBottom:14}}>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Plan Type</div>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                  {["HMO","PPO","EPO","POS","Not sure"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,planType:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.planType===t?C.tealSoft:C.cream,border:`1.5px solid ${profile?.health?.planType===t?C.teal:C.b2}`,color:profile?.health?.planType===t?C.teal:C.t2,fontWeight:profile?.health?.planType===t?600:400}}>{t}</button>))}
-                </div>
-                {profile?.health?.planType==="HMO"&&<div style={{...F,fontSize:12,color:C.gold,marginTop:8,padding:"8px 12px",background:C.goldSoft,borderRadius:10}}>HMO plans require a referral from your PCP before seeing a specialist. Your guide will remind you of this.</div>}
-              </div>
-              <div>
-                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Primary Care Physician (PCP)</div>
-                {editField==="pcp"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Doctor's name or clinic" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,pcp:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
-                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.pcp||"Not set"}</div><button onClick={()=>{setEditField("pcp");setEditVal(profile?.health?.pcp||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
-              </div>
+            <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
+              <button onClick={()=>setHealthSection(p=>({...p,medical:!p.medical}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}>{"\u{1F3E5}"}</span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Medical & Insurance</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Insurance, plan type, PCP{profile?.health?.provider?` \u00B7 ${profile.health.provider}`:""}</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.medical?"rotate(180deg)":"rotate(0)"}}>{"\u25BE"}</span></button>
+              {healthSection.medical&&<div style={{padding:"0 20px 20px"}}>
+                <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Insurance Provider</div>{editField==="insurance_provider"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. Blue Cross, Aetna, Cigna" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,provider:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.provider||"Not set"}</div><button onClick={()=>{setEditField("insurance_provider");setEditVal(profile?.health?.provider||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
+                <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Plan Type</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["HMO","PPO","EPO","POS","Not sure"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...profile.health,planType:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.planType===t?C.tealSoft:C.cream,border:`1.5px solid ${profile?.health?.planType===t?C.teal:C.b2}`,color:profile?.health?.planType===t?C.teal:C.t2,fontWeight:profile?.health?.planType===t?600:400}}>{t}</button>))}</div>{profile?.health?.planType==="HMO"&&<div style={{...F,fontSize:12,color:C.gold,marginTop:8,padding:"8px 12px",background:C.goldSoft,borderRadius:10}}>HMO plans require a PCP referral before seeing specialists.</div>}</div>
+                <div><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Primary Care Physician</div>{editField==="pcp"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Doctor's name or clinic" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,pcp:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>:<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.pcp||"Not set"}</div><button onClick={()=>{setEditField("pcp");setEditVal(profile?.health?.pcp||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}</div>
+              </div>}
             </div>
-            {/* What guide helps with */}
-            <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
-              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>What your guide can help with</div>
-              {[{i:"\u{1F3CB}\uFE0F",t:"Build a custom workout routine for your goals and level"},{i:"\u{1F4C6}",t:"Create a weekly training plan with rest days"},{i:"\u{1FA7A}",t:"Find the right specialist based on your symptoms"},{i:"\u{1F3E5}",t:"Search for in-network doctors near you"},{i:"\u{1F4CB}",t:"Remind you about referrals if you have an HMO"},{i:"\u{1F4B0}",t:"Explain copays and deductibles"},{i:"\u26A0\uFE0F",t:"Adapt workouts around your injuries"}].map((x,i)=>(<div key={i} style={{display:"flex",gap:10,padding:"8px 0",borderBottom:i<6?`1px solid ${C.b1}`:"none"}}><span style={{fontSize:16}}>{x.i}</span><span style={{...F,fontSize:14,color:C.t2,lineHeight:1.5}}>{x.t}</span></div>))}
-            </div>
-            {/* Health apps */}
-            <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
-              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>
-              {[{i:"\u{1F34E}",l:"Apple Health",d:"Steps, heart rate, sleep"},{i:"\u{1F4AA}",l:"MyFitnessPal",d:"Nutrition, calories"},{i:"\u{1F49A}",l:"Fitbit",d:"Activity, sleep, heart rate"},{i:"\u{1F9E0}",l:"Headspace",d:"Meditation, mindfulness"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{fontSize:18}}>{s.i}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} \u00B7 Coming soon</div></div></div>))}
-            </div>
-            <div style={{...F,fontSize:12,color:C.t3,lineHeight:1.6,padding:"14px 16px",background:C.cream,borderRadius:14}}>Your guide is not a medical professional. Recommendations help you find healthcare providers and build fitness routines, not diagnose or treat conditions. Always consult a licensed physician for medical concerns.</div>
+            <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>{[{i:"\u{1F34E}",l:"Apple Health",d:"Steps, heart rate, sleep"},{i:"\u{1F4AA}",l:"MyFitnessPal",d:"Nutrition, calories"},{i:"\u{1F49A}",l:"Fitbit",d:"Activity, sleep"},{i:"\u{1F9E0}",l:"Headspace",d:"Meditation"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{fontSize:18}}>{s.i}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} {"\u00B7"} Coming soon</div></div></div>))}</div>
+            <div style={{...F,fontSize:12,color:C.t3,lineHeight:1.6,padding:"14px 16px",background:C.cream,borderRadius:14}}>Your guide is not a medical professional. Always consult a licensed physician for medical concerns.</div>
           </>}
         </div>}
 
-        {settingsTab==="connections"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
+{settingsTab==="connections"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
           <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
             <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F3C3}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
             {stravaData?.profile&&<div style={{padding:"10px 14px",borderRadius:12,background:C.bg,marginTop:10,display:"flex",gap:16}}><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRuns}</div><div style={{...F,fontSize:10,color:C.t3}}>Runs</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRunDistance}</div><div style={{...F,fontSize:10,color:C.t3}}>Distance</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRides}</div><div style={{...F,fontSize:10,color:C.t3}}>Rides</div></div></div>}
