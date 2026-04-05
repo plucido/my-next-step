@@ -161,7 +161,7 @@ export default function App(){
         }
         if(!res.ok){const errText=await res.text();console.error("API error:",res.status,errText);
           let errMsg=`Something went wrong (${res.status}).`;
-          try{const errJson=JSON.parse(errText);if(errJson.error?.message)errMsg+=` ${errJson.error.message.slice(0,100)}`;}catch{}
+          try{const errJson=JSON.parse(errText);if(errJson.error?.message)errMsg+=` ${errJson.error.message.slice(0,200)}`;}catch{errMsg+=` ${errText.slice(0,200)}`;}
           finalText=errMsg;break;}
         const data=await res.json();
         console.log("API attempt",attempts,"stop:",data.stop_reason,"blocks:",data.content?.length);
