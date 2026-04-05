@@ -1,5 +1,5 @@
 import { X, ChevronDown, MessageCircle, Plus, Heart, Dumbbell, UtensilsCrossed, Building2, TrendingUp, Calendar, Briefcase, Sparkles, Star, Shield, Globe } from "lucide-react";
-import { H, F, C } from "./constants.js";
+import { H, F, C, INTEREST_OPTIONS, BUDGET_OPTIONS, RELATIONSHIP_OPTIONS, WORK_OPTIONS } from "./constants.js";
 import { catIcon, Logo } from "./utils.jsx";
 import { getUserId, saveFB, deleteFB } from "./firebase.js";
 import { connectStrava, connectGCal, fetchGCal } from "./auth.js";
@@ -23,6 +23,32 @@ export default function Settings({
 }) {
 
   const saveTravel=(key,val)=>{const t={...(profile?.travel||{}),[key]:val};const p={...profile,travel:t};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);};
+  const saveQP=(key,val)=>{const p={...profile,quickProfile:{...(profile?.quickProfile||{}),[key]:val}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);};
+
+  function renderProfileChips(label, key, options, multi) {
+    var current = profile?.quickProfile?.[key];
+    var isArr = multi && Array.isArray(current);
+    var otherKey = "other_"+key;
+    return (
+      <div style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
+        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>{label}</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {options.map(function(o){
+            var on = multi ? (isArr && current.includes(o)) : current===o;
+            return <button key={o} onClick={function(){
+              if(multi){var arr=isArr?[...current]:[];saveQP(key,on?arr.filter(function(x){return x!==o;}):[...arr,o]);}
+              else{saveQP(key,on?null:o);}
+            }} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.accSoft:C.cream,border:"1.5px solid "+(on?C.acc:C.b2),color:on?C.acc:C.t2,fontWeight:on?600:400}}>{o}</button>;
+          })}
+        </div>
+        {editField===otherKey?<div style={{display:"flex",gap:8,marginTop:8}}>
+          <input value={editVal} onChange={function(e){setEditVal(e.target.value);}} placeholder="Type your own..." style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:"1.5px solid "+C.acc,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/>
+          <button onClick={function(){if(editVal.trim()){if(multi){var arr=isArr?[...current]:[];saveQP(key,[...arr,editVal.trim()]);}else{saveQP(key,editVal.trim());}setEditField(null);setEditVal("");}}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add</button>
+          <button onClick={function(){setEditField(null);setEditVal("");}} style={{...F,padding:"10px 14px",borderRadius:12,border:"1px solid "+C.b1,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
+        </div>:<button onClick={function(){setEditField(otherKey);setEditVal("");}} style={{...F,marginTop:8,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:"transparent",border:"1.5px dashed "+C.b2,color:C.t3}}>+ Other</button>}{null}
+      </div>
+    );
+  }
 
   function renderTravelPrefRow(label,key,options,current) {
     return (<div style={{marginBottom:14}}>
@@ -50,14 +76,10 @@ export default function Settings({
           </div>)}
         </div>
       ))}
-      <div style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
-        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Relationship</div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Just me","Me + partner","Family with kids","It's complicated"].map(function(o){var on=profile?.quickProfile?.relationship===o;return <button key={o} onClick={function(){var p={...profile,quickProfile:{...(profile?.quickProfile||{}),relationship:o}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:on?C.accSoft:C.cream,border:"1.5px solid "+(on?C.acc:C.b2),color:on?C.acc:C.t2,fontWeight:on?600:400}}>{o}</button>;})}</div>
-      </div>
-      <div style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
-        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Work situation</div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Student","Employed (office)","Remote / hybrid","Self-employed","Between jobs","Retired"].map(function(o){var on=profile?.quickProfile?.work===o;return <button key={o} onClick={function(){var p={...profile,quickProfile:{...(profile?.quickProfile||{}),work:o}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:on?C.accSoft:C.cream,border:"1.5px solid "+(on?C.acc:C.b2),color:on?C.acc:C.t2,fontWeight:on?600:400}}>{o}</button>;})}</div>
-      </div>
+      {renderProfileChips("Interests","interests",INTEREST_OPTIONS,true)}
+      {renderProfileChips("Monthly fun budget","budget",BUDGET_OPTIONS,false)}
+      {renderProfileChips("Relationship","relationship",RELATIONSHIP_OPTIONS,false)}
+      {renderProfileChips("Work situation","work",WORK_OPTIONS,false)}
       <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}><MessageCircle size={18}/></span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
       <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>

@@ -1,24 +1,7 @@
 import { useState } from "react";
 import { ChevronRight, ChevronLeft, Check } from "lucide-react";
-import { H, F, C } from "./constants.js";
+import { H, F, C, INTEREST_OPTIONS, BUDGET_OPTIONS, DIET_OPTIONS, ALLERGY_OPTIONS, FITNESS_OPTIONS, RELATIONSHIP_OPTIONS, WORK_OPTIONS } from "./constants.js";
 import { FadeIn } from "./utils.jsx";
-
-const INTEREST_OPTIONS = [
-  "Travel","Cooking","Fitness","Outdoors","Music","Art","Reading","Gaming",
-  "Photography","Nightlife","Sports","Yoga","Meditation","Fashion","Tech",
-  "Volunteering","Pets","Wine & Dining","Dance","Theater"
-];
-const BUDGET_OPTIONS = ["Under $100","$100-300","$300-500","$500-1000","$1000+"];
-const DIET_OPTIONS = ["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Low sodium","Low sugar","Lactose-free"];
-const ALLERGY_OPTIONS = ["Gluten-free / Celiac","Dairy","Eggs","Peanuts","Tree nuts","Soy","Fish","Crustaceans (shrimp, crab, lobster)","Wheat","Sesame","Legumes","Mustard","Sulfites","Corn","Nightshades"];
-const FITNESS_OPTIONS = [
-  { label: "Just starting", desc: "New to working out or getting back into it" },
-  { label: "Active", desc: "Work out a few times a week" },
-  { label: "Very active", desc: "Daily workouts, training for goals" },
-  { label: "Not my thing", desc: "Prefer other activities" },
-];
-const RELATIONSHIP_OPTIONS = ["Just me","Me + partner","Family with kids","It\u2019s complicated"];
-const WORK_OPTIONS = ["Student","Employed (office)","Remote / hybrid","Self-employed","Between jobs","Retired"];
 
 export default function QuickProfile({ profile, onComplete }) {
   const [step, setStep] = useState(0);

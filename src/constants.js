@@ -168,5 +168,14 @@ The step/journey cards ARE the product. Text without ---DATA--- is a failed resp
 
 export const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:null,questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:null,questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:null,questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:null,questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
 
+// ─── PROFILE OPTIONS ───
+export const INTEREST_OPTIONS = ["Travel","Cooking","Fitness","Outdoors","Music","Art","Reading","Gaming","Photography","Nightlife","Sports","Yoga","Meditation","Fashion","Tech","Volunteering","Pets","Wine & Dining","Dance","Theater"];
+export const BUDGET_OPTIONS = ["Under $100","$100-300","$300-500","$500-1000","$1000+"];
+export const DIET_OPTIONS = ["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Low sodium","Low sugar","Lactose-free"];
+export const ALLERGY_OPTIONS = ["Gluten-free / Celiac","Dairy","Eggs","Peanuts","Tree nuts","Soy","Fish","Crustaceans (shrimp, crab, lobster)","Wheat","Sesame","Legumes","Mustard","Sulfites","Corn","Nightshades"];
+export const FITNESS_OPTIONS = [{label:"Just starting",desc:"New to working out or getting back into it"},{label:"Active",desc:"Work out a few times a week"},{label:"Very active",desc:"Daily workouts, training for goals"},{label:"Not my thing",desc:"Prefer other activities"}];
+export const RELATIONSHIP_OPTIONS = ["Just me","Me + partner","Family with kids","It's complicated"];
+export const WORK_OPTIONS = ["Student","Employed (office)","Remote / hybrid","Self-employed","Between jobs","Retired"];
+
 // ─── AFFILIATE (compact) ───
 export const AFF = { "classpass.com":{tag:"mnstep-20",c:2.5},"eventbrite.com":{tag:"mnstep",c:1.5},"udemy.com":{tag:"mnstep",c:1.8},"skillshare.com":{tag:"mnstep",c:2},"mindbody.io":{tag:"mnstep-20",c:2},"meetup.com":{tag:"mnstep",c:.75},"amazon.com":{tag:"mnstep-20",c:.5},"linkedin.com/learning":{tag:"mnstep",c:2.2},"airbnb.com":{tag:"mnstep",c:3},"kayak.com":{tag:"mnstep",c:.8},"booking.com":{tag:"aid=mnstep",c:2.5},"vrbo.com":{tag:"mnstep",c:2} };
