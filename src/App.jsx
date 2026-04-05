@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+import { Footprints, Briefcase, Heart, Sparkles, Globe, Calendar, Settings, ArrowUp, MessageCircle, ChevronDown, ChevronRight, X, Check, Share2, Star, Clock, Trash2, Pause, Play, RefreshCw, Plus, MapPin, Search, Dumbbell, UtensilsCrossed, Building2, Flame, TrendingUp, Zap, Send, RotateCcw, ExternalLink, AlertTriangle, Shield } from "lucide-react";
 
 // ─── FIREBASE ───
 const firebaseConfig = {
@@ -30,16 +31,25 @@ const C = {
   accGrad: "linear-gradient(135deg, #D4522A 0%, #E8764E 100%)",
   teal: "#0F766E", tealSoft: "#E6F7F5", tealBorder: "rgba(15,118,110,0.1)",
   gold: "#B45309", goldSoft: "#FEF3C7",
-  shadow: "0 1px 2px rgba(0,0,0,0.03), 0 4px 16px rgba(0,0,0,0.04)",
+  shadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(0,0,0,0.03)",
   shadowLg: "0 4px 12px rgba(0,0,0,0.05), 0 16px 40px rgba(0,0,0,0.06)",
+  shadowHover: "0 2px 8px rgba(0,0,0,0.06), 0 8px 28px rgba(0,0,0,0.05)",
 };
+
+// ─── BRAND LOGO ───
+function Logo({size=32,color}){return<svg width={size} height={size} viewBox="0 0 40 40" fill="none"><path d="M20 4C14.5 4 10 7.5 10 12c0 3 1.5 5.5 4 7.5L20 36l6-16.5c2.5-2 4-4.5 4-7.5C30 7.5 25.5 4 20 4z" fill={color||C.acc} opacity="0.9"/><path d="M20 8c-2.8 0-5 1.8-5 4.5 0 1.8 1 3.3 2.5 4.5L20 26l2.5-9c1.5-1.2 2.5-2.7 2.5-4.5C25 9.8 22.8 8 20 8z" fill="#fff" opacity="0.3"/><circle cx="20" cy="13" r="2.5" fill="#fff"/></svg>}
+
+// ─── SEGMENT ICONS ───
+const segIcon=(key,size=18,color)=>{const props={size,strokeWidth:2,color:color||SEGMENTS[key]?.color||C.acc};switch(key){case"career":return<Briefcase {...props}/>;case"wellness":return<Heart {...props}/>;case"fun":return<Sparkles {...props}/>;case"adventure":return<Globe {...props}/>;default:return<Calendar {...props}/>;}};
+const catIconMap={fitness:<Dumbbell size={14}/>,wellness:<Heart size={14}/>,career:<Briefcase size={14}/>,learning:<TrendingUp size={14}/>,social:<Sparkles size={14}/>,events:<Calendar size={14}/>,travel:<Globe size={14}/>,products:<Star size={14}/>};
+function catIcon(cat){return catIconMap[cat]||<Zap size={14}/>;}
 
 // ─── SEGMENTS ───
 const SEGMENTS = {
-  career: { label: "Career", icon: "\u{1F680}", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking" },
-  wellness: { label: "Health", icon: "\u{1F33F}", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, nutrition, food allergies, doctor search, insurance, self-care" },
-  fun: { label: "Fun", icon: "\u{1F389}", color: "#DB2777", soft: "#FCE7F3", desc: "Friends, dating, events, hobbies, going out" },
-  adventure: { label: "Adventure", icon: "\u{1F30D}", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, bucket list, new experiences" },
+  career: { label: "Career", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking" },
+  wellness: { label: "Health", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, nutrition, food allergies, doctor search, insurance, self-care" },
+  fun: { label: "Fun", color: "#DB2777", soft: "#FCE7F3", desc: "Friends, dating, events, hobbies, going out" },
+  adventure: { label: "Adventure", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, bucket list, new experiences" },
 };
 const SEG_KEYS = ["career", "wellness", "fun", "adventure"];
 // Map AI categories to segments
@@ -50,7 +60,6 @@ const catToSeg = c => {
   if (["travel"].includes(c)) return "adventure";
   return "wellness"; // default
 };
-const catIcon = c => ({ fitness:"\u{1F3CB}", wellness:"\u{1F9D8}", career:"\u{1F4BC}", learning:"\u{1F4DA}", social:"\u{1F91D}", events:"\u{1F389}", travel:"\u2708\uFE0F", products:"\u{1F6CD}\uFE0F" })[c] || "\u2728";
 
 function getGreeting() { const h = new Date().getHours(); if (h >= 5 && h < 12) return "Good morning"; if (h >= 12 && h < 17) return "Good afternoon"; return "Good evening"; }
 function FadeIn({ children, delay = 0, style: sx }) { const [s, setS] = useState(false); useEffect(() => { const t = setTimeout(() => setS(true), delay); return () => clearTimeout(t); }, []); return <div style={{ opacity: s ? 1 : 0, transform: s ? "translateY(0)" : "translateY(10px)", transition: "all 0.35s cubic-bezier(0.16,1,0.3,1)", ...sx }}>{children}</div>; }
@@ -162,6 +171,7 @@ MANAGING ITEMS:
 - To update a journey, output it with the SAME title \u2014 it replaces the old one.
 - Loved steps = strong signal, recommend more like them.
 - FAVORITES: The user may have saved favorite restaurants, classes, and places. Use these as reference points ("You loved Uchi, so try Kata Robata").
+- PETS: If the user has pets, consider them for recommendations. Suggest pet-friendly restaurants, parks, hotels, and activities. Factor in pet care for travel planning (boarding, pet sitters, pet-friendly airlines).
 
 PERSONALIZATION MODE:
 - If the user says "tell you about myself" or "help personalize" or "learn about me", switch to LEARNING mode.
@@ -219,7 +229,7 @@ I'll set up a weekly workout routine for you!
 Types: step, plan (journey), routine, delete_step, delete_plan, delete_routine, preference
 The step/journey cards ARE the product. Text without ---DATA--- is a failed response.`;
 
-const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:"\u{1F464}",questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:"\u{1F31F}",questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:"\u{1F3E0}",questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:"\u{1F525}",questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
+const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:null,questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:null,questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:null,questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:null,questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
 
 // ─── AUTH SCREEN ───
 function AuthScreen({onAuth}){
@@ -236,7 +246,7 @@ function AuthScreen({onAuth}){
     <button onClick={()=>name.trim()&&email.includes("@")&&onAuth({name:name.trim(),email,method:"email"})} disabled={!name.trim()||!email.includes("@")} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:name.trim()&&email.includes("@")?"pointer":"default",background:name.trim()&&email.includes("@")?C.accGrad:"rgba(0,0,0,0.04)",color:name.trim()&&email.includes("@")?"#fff":C.t3}}>Create account {"\u2192"}</button>
   </div></FadeIn></div>);
   return(<div style={{...F,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,background:C.bg}}><FadeIn><div style={{width:"100%",maxWidth:400,textAlign:"center"}}>
-    <div style={{width:68,height:68,borderRadius:20,margin:"0 auto 24px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:30,color:"#fff",boxShadow:"0 8px 28px rgba(212,82,42,0.3)"}}>{"\u{1F463}"}</div>
+    <div style={{width:68,height:68,borderRadius:20,margin:"0 auto 24px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 8px 28px rgba(212,82,42,0.3)"}}><Logo size={36} color="#fff"/></div>
     <h1 style={{...H,fontSize:46,color:C.t1,lineHeight:1.05,marginBottom:14}}>My Next Step</h1>
     <p style={{...F,fontSize:17,color:C.t2,lineHeight:1.6,maxWidth:310,margin:"0 auto 44px"}}>Your AI guide that turns goals into clear, actionable steps.</p>
     <div ref={gRef} style={{display:"flex",justifyContent:"center",marginBottom:14}} />
@@ -279,14 +289,14 @@ function DeepProfileChat({profile,onFinish,existingInsights}){
     }catch{setMsgs(prev=>[...prev,{role:"assistant",content:"Hiccup \u2014 say that again?"}]);}setBusy(false);};
   const bubble=u=>({...F,maxWidth:"82%",padding:"13px 18px",borderRadius:20,fontSize:15,lineHeight:1.65,whiteSpace:"pre-wrap",...(u?{background:C.accGrad,color:"#fff",borderBottomRightRadius:6}:{background:C.card,color:C.t1,borderBottomLeftRadius:6,boxShadow:C.shadow})});
   if(!section)return(<div style={{...F,minHeight:"100vh",padding:24,background:C.bg}}><FadeIn><div style={{maxWidth:460,margin:"0 auto",paddingTop:32}}>
-    <div style={{textAlign:"center",marginBottom:36}}><div style={{width:56,height:56,borderRadius:18,margin:"0 auto 16px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,color:"#fff"}}>{"\u{1F4AC}"}</div><h2 style={{...H,fontSize:28,color:C.t1,marginBottom:8}}>Let's get to know you</h2><p style={{color:C.t2,fontSize:15,maxWidth:320,margin:"0 auto"}}>~2 min each. Makes everything more personal.</p></div>
-    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>{PROFILE_SECTIONS.map((sec,i)=>{const done=insights.some(x=>x.section===sec.id);return(<FadeIn key={sec.id} delay={i*60}><div onClick={()=>startSec(sec)} style={{padding:"18px 20px",borderRadius:18,cursor:"pointer",background:C.card,boxShadow:C.shadow,border:done?`1.5px solid ${C.teal}`:"1.5px solid transparent",display:"flex",alignItems:"center",gap:14}}><div style={{width:42,height:42,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,background:done?C.tealSoft:C.cream}}>{done?"\u2713":sec.icon}</div><div style={{flex:1}}><div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>{sec.label}</div><div style={{...F,fontSize:13,color:done?C.teal:C.t3,marginTop:3}}>{done?"Done":"~2 min"}</div></div><span style={{color:C.t3,fontSize:18}}>{"\u203A"}</span></div></FadeIn>);})}</div>
+    <div style={{textAlign:"center",marginBottom:36}}><div style={{width:56,height:56,borderRadius:18,margin:"0 auto 16px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,color:"#fff"}}><MessageCircle size={18}/></div><h2 style={{...H,fontSize:28,color:C.t1,marginBottom:8}}>Let's get to know you</h2><p style={{color:C.t2,fontSize:15,maxWidth:320,margin:"0 auto"}}>~2 min each. Makes everything more personal.</p></div>
+    <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>{PROFILE_SECTIONS.map((sec,i)=>{const done=insights.some(x=>x.section===sec.id);return(<FadeIn key={sec.id} delay={i*60}><div onClick={()=>startSec(sec)} style={{padding:"18px 20px",borderRadius:18,cursor:"pointer",background:C.card,boxShadow:C.shadow,border:done?`1.5px solid ${C.teal}`:"1.5px solid transparent",display:"flex",alignItems:"center",gap:14}}><div style={{width:42,height:42,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,background:done?C.tealSoft:C.cream}}>{done?"\u2713":sec.icon}</div><div style={{flex:1}}><div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>{sec.label}</div><div style={{...F,fontSize:13,color:done?C.teal:C.t3,marginTop:3}}>{done?"Done":"~2 min"}</div></div><span style={{color:C.t3,fontSize:18}}><ChevronRight size={16}/></span></div></FadeIn>);})}</div>
     <button onClick={()=>onFinish(insights)} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff"}}>{insights.length===0?"Skip for now \u2192":"Continue \u2192"}</button>
   </div></FadeIn></div>);
   return(<div style={{...F,display:"flex",flexDirection:"column",height:"100vh",maxWidth:480,margin:"0 auto",background:C.bg}}>
     <div style={{padding:"18px 20px",borderBottom:`1px solid ${C.b1}`,display:"flex",alignItems:"center",gap:12}}><button onClick={()=>setSection(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}>{"\u2190"}</button><div style={{...F,fontSize:16,fontWeight:600,color:C.t1}}>{section.label}</div></div>
-    <div style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>{msgs.map((m,i)=>(<div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:12}}>{m.role!=="user"&&<div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,marginRight:10,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#fff"}}>{"\u{1F463}"}</div>}<div style={bubble(m.role==="user")}>{m.content}</div></div>))}{busy&&<div style={{display:"flex",gap:10,marginBottom:12}}><div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0}}/><div style={{padding:"13px 20px",borderRadius:20,background:C.card,boxShadow:C.shadow,display:"flex",gap:6}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:C.t3,animation:`dpb 1.2s ease ${i*.15}s infinite`}}/>)}</div></div>}<div ref={endRef}/></div>
-    <div style={{padding:"12px 20px 22px"}}><div style={{display:"flex",gap:10,alignItems:"flex-end"}}><textarea ref={inpRef} value={inp} onChange={e=>{setInp(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Type your answer..." rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",resize:"none",maxHeight:150,lineHeight:1.5}}/><button onClick={send} disabled={!inp.trim()||busy} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:inp.trim()&&!busy?"pointer":"default",background:inp.trim()&&!busy?C.accGrad:"rgba(0,0,0,0.04)",color:inp.trim()&&!busy?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:1}}>{"\u2191"}</button></div></div>
+    <div style={{flex:1,overflowY:"auto",padding:"18px 20px"}}>{msgs.map((m,i)=>(<div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start",marginBottom:12}}>{m.role!=="user"&&<div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,marginRight:10,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#fff"}}><Logo size={18} color="#fff"/></div>}<div style={bubble(m.role==="user")}>{m.content}</div></div>))}{busy&&<div style={{display:"flex",gap:10,marginBottom:12}}><div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0}}/><div style={{padding:"13px 20px",borderRadius:20,background:C.card,boxShadow:C.shadow,display:"flex",gap:6}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:C.t3,animation:`dpb 1.2s ease ${i*.15}s infinite`}}/>)}</div></div>}<div ref={endRef}/></div>
+    <div style={{padding:"12px 20px 22px"}}><div style={{display:"flex",gap:10,alignItems:"flex-end"}}><textarea ref={inpRef} value={inp} onChange={e=>{setInp(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Type your answer..." rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",resize:"none",maxHeight:150,lineHeight:1.5}}/><button onClick={send} disabled={!inp.trim()||busy} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:inp.trim()&&!busy?"pointer":"default",background:inp.trim()&&!busy?C.accGrad:"rgba(0,0,0,0.04)",color:inp.trim()&&!busy?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:1}}><ArrowUp size={18}/></button></div></div>
     <style>{`@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}`}</style>
   </div>);
 }
@@ -295,7 +305,7 @@ function DeepProfileChat({profile,onFinish,existingInsights}){
 function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,onShare,delay=0}){
   const seg=SEGMENTS[catToSeg(step.category)];
   return(<FadeIn delay={delay}><div style={{padding:"18px 20px",borderRadius:18,marginBottom:10,background:C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${seg?.color||C.acc}`}}>
-    <button onClick={()=>onDelete(step.id)} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}>{"\u00D7"}</button>
+    <button onClick={()=>onDelete(step.id)} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}><X size={16}/></button>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
       <span style={{fontSize:14}}>{catIcon(step.category)}</span>
       <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.acc,textTransform:"uppercase",letterSpacing:1.5}}>{step.category}</span>
@@ -306,16 +316,16 @@ function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,onShare,delay=0})
     {step.time&&<div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>{step.time}</div>}
     {step.why&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:14}}>{step.why}</div>}
     <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
-      {step.link&&<TLink href={step.link} actionId={step.id} category={step.category} title={step.title} style={{...F,fontSize:13,fontWeight:600,padding:"9px 16px",borderRadius:12,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-block"}}>{step.linkText||"Do it"} {"\u2197"}</TLink>}
-      <button onClick={()=>onDone(step.id)} style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>Done {"\u2713"}</button>
-      <button onClick={()=>onLove(step.id)} style={{width:38,height:38,borderRadius:12,border:"none",cursor:"pointer",background:step.loved?"rgba(220,38,38,0.08)":"rgba(0,0,0,0.02)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,transition:"all 0.2s"}}>{step.loved?"\u2764\uFE0F":"\u{1F90D}"}</button>
+      {step.link&&<TLink href={step.link} actionId={step.id} category={step.category} title={step.title} style={{...F,fontSize:13,fontWeight:600,padding:"9px 16px",borderRadius:12,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-block"}}>{step.linkText||"Do it"} <ExternalLink size={11}/></TLink>}
+      <button onClick={()=>onDone(step.id)} style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>Done <Check size={14}/></button>
+      <button onClick={()=>onLove(step.id)} style={{width:38,height:38,borderRadius:12,border:"none",cursor:"pointer",background:step.loved?"rgba(220,38,38,0.08)":"rgba(0,0,0,0.02)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,transition:"all 0.2s"}}>{step.loved?<Heart size={16} fill="#DC2626" color="#DC2626"/>:<Heart size={16} color={C.t3}/>}</button>
     </div>
     <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap"}}>
       <button onClick={()=>onTalk(`Work on step: "${step.title}". Find specific options with prices and booking links.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer",fontWeight:500}}>Work on this</button>
-      <button onClick={()=>onTalk(`Make "${step.title}" even better. Find a more specific, exciting, or well-reviewed option. Upgrade it.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>{"\u2728"} Make better</button>
+      <button onClick={()=>onTalk(`Make "${step.title}" even better. Find a more specific, exciting, or well-reviewed option. Upgrade it.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Sparkles size={14}/> Make better</button>
       <button onClick={()=>onTalk(`Find alternative to "${step.title}" with prices and details.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Alternative</button>
-      <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>{"\u{1F4E4}"} Share</button>
-      {step.time&&<button onClick={()=>onAddCal(step.title,step.why,step.time)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer"}}>{"\u{1F4C5}"} Calendar</button>}
+      <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Share2 size={12}/> Share</button>
+      {step.time&&<button onClick={()=>onAddCal(step.title,step.why,step.time)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer"}}><Calendar size={12}/> Calendar</button>}
     </div>
   </div></FadeIn>);
 }
@@ -328,25 +338,25 @@ function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,onShare
   const bg=isPast&&!allDone?"rgba(220,60,60,0.02)":allDone?C.tealSoft:C.card;
   return(<FadeIn delay={delay}><div style={{marginBottom:10}}>
     <div style={{padding:"18px 20px",borderRadius:open?"18px 18px 0 0":18,cursor:"pointer",background:bg,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${borderColor}`}}>
-      <button onClick={e=>{e.stopPropagation();onDelete(pi);}} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}>{"\u00D7"}</button>
+      <button onClick={e=>{e.stopPropagation();onDelete(pi);}} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}><X size={16}/></button>
       <div onClick={()=>onToggle(pi)}>
         <div style={{...F,fontSize:16,fontWeight:600,color:C.t1,paddingRight:24}}>{plan.title}</div>
-        {plan.date&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}><span style={{fontSize:13}}>{isPast&&!allDone?"\u{1F534}":allDone?"\u2705":"\u{1F4C5}"}</span><span style={{...F,fontSize:13,color:isPast&&!allDone?"#DC3C3C":allDone?C.teal:C.t3,fontWeight:isPast?600:400}}>{plan.date}</span>{isPast&&!allDone&&<span style={{...F,fontSize:10,fontWeight:600,color:"#DC3C3C",background:"rgba(220,60,60,0.08)",padding:"2px 8px",borderRadius:6}}>Overdue</span>}{allDone&&<span style={{...F,fontSize:10,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 8px",borderRadius:6}}>Done</span>}</div>}
+        {plan.date&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}><span style={{fontSize:13}}>{isPast&&!allDone?<AlertTriangle size={13} color="#DC3C3C"/>:allDone?<Check size={13} color={C.teal}/>:<Calendar size={13} color={C.t3}/>}</span><span style={{...F,fontSize:13,color:isPast&&!allDone?"#DC3C3C":allDone?C.teal:C.t3,fontWeight:isPast?600:400}}>{plan.date}</span>{isPast&&!allDone&&<span style={{...F,fontSize:10,fontWeight:600,color:"#DC3C3C",background:"rgba(220,60,60,0.08)",padding:"2px 8px",borderRadius:6}}>Overdue</span>}{allDone&&<span style={{...F,fontSize:10,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 8px",borderRadius:6}}>Done</span>}</div>}
         <div style={{display:"flex",alignItems:"center",gap:8,marginTop:10}}><div style={{flex:1,height:4,background:C.cream,borderRadius:2}}><div style={{height:"100%",width:total?(done/total*100)+"%":"0%",background:allDone?C.teal:isPast?"#DC3C3C":C.accGrad,borderRadius:2,transition:"width 0.5s"}}/></div><span style={{...F,fontSize:11,fontWeight:600,color:allDone?C.teal:C.acc}}>{done}/{total}</span></div>
       </div>
       <div style={{display:"flex",gap:6,marginTop:10}}>
         {isPast&&!allDone&&<button onClick={()=>onTalk(`My journey "${plan.title}" is overdue (${plan.date}). Help me reschedule.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:"rgba(220,60,60,0.06)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",cursor:"pointer",fontWeight:600}}>Reschedule</button>}
         {!allDone&&(()=>{const nt=plan.tasks?.find(t=>!t.done);return nt?<button onClick={()=>onTalk(`Work on "${nt.title}" for my "${plan.title}" journey. Find specific options with prices.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Next task</button>:null;})()}
         <button onClick={()=>onTalk(`Work on journey "${plan.title}". What should I focus on?`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Work on this</button>
-        <button onClick={()=>onTalk(`Make my "${plan.title}" journey even better. Upgrade the tasks with better options, add anything I'm missing.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>{"\u2728"} Improve</button>
-        <button onClick={()=>onShare(plan)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>{"\u{1F4E4}"} Share</button>
+        <button onClick={()=>onTalk(`Make my "${plan.title}" journey even better. Upgrade the tasks with better options, add anything I'm missing.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}><Sparkles size={14}/> Improve</button>
+        <button onClick={()=>onShare(plan)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}><Share2 size={12}/> Share</button>
       </div>
     </div>
     {open&&<div style={{padding:"8px 20px 16px",background:bg,boxShadow:C.shadow,borderRadius:"0 0 18px 18px",borderTop:`1px solid ${C.b1}`}}>
       {plan.tasks?.map((task,ti)=>(<div key={ti} style={{padding:"12px 0",borderBottom:ti<plan.tasks.length-1?`1px solid ${C.b1}`:"none"}}><div style={{display:"flex",alignItems:"flex-start",gap:10}}>
         <button onClick={()=>onToggleTask(pi,ti)} style={{width:22,height:22,borderRadius:7,flexShrink:0,marginTop:1,cursor:"pointer",background:task.done?C.teal:"transparent",border:`2px solid ${task.done?C.teal:C.b2}`,display:"flex",alignItems:"center",justifyContent:"center",color:task.done?"#fff":"transparent",fontSize:12}}>{task.done?"\u2713":""}</button>
         <div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1,textDecoration:task.done?"line-through":"none",opacity:task.done?.5:1}}>{task.title}</div>
-          {task.links?.length>0&&!task.done&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:8}}>{task.links.map((l,li)=><TLink key={li} href={l.url} actionId={`j-${pi}-${ti}-${li}`} category="travel" title={task.title} style={{...F,fontSize:11,fontWeight:600,padding:"5px 12px",borderRadius:8,background:C.accSoft,color:C.acc,textDecoration:"none",display:"inline-block",border:`1px solid ${C.accBorder}`}}>{l.label} {"\u2197"}</TLink>)}</div>}
+          {task.links?.length>0&&!task.done&&<div style={{display:"flex",flexWrap:"wrap",gap:5,marginTop:8}}>{task.links.map((l,li)=><TLink key={li} href={l.url} actionId={`j-${pi}-${ti}-${li}`} category="travel" title={task.title} style={{...F,fontSize:11,fontWeight:600,padding:"5px 12px",borderRadius:8,background:C.accSoft,color:C.acc,textDecoration:"none",display:"inline-block",border:`1px solid ${C.accBorder}`}}>{l.label} <ExternalLink size={11}/></TLink>)}</div>}
         </div></div></div>))}
     </div>}
   </div></FadeIn>);
@@ -357,9 +367,9 @@ function RoutineCard({routine,onPause,onDelete,onTalk,delay=0}){
   const seg=SEGMENTS[catToSeg(routine.category)];
   const days=(routine.days||[]).map(d=>d.slice(0,3).charAt(0).toUpperCase()+d.slice(1,3)).join(", ");
   return(<FadeIn delay={delay}><div style={{padding:"16px 18px",borderRadius:18,marginBottom:10,background:routine.paused?"rgba(0,0,0,0.02)":C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${routine.paused?C.t3:seg?.color||C.teal}`,opacity:routine.paused?.5:1}}>
-    <button onClick={()=>onDelete(routine.id)} style={{position:"absolute",top:12,right:12,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button>
+    <button onClick={()=>onDelete(routine.id)} style={{position:"absolute",top:12,right:12,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}><X size={16}/></button>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-      <span style={{fontSize:14}}>{"\u{1F504}"}</span>
+      <span style={{fontSize:14}}><RotateCcw size={14}/></span>
       <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.teal,textTransform:"uppercase",letterSpacing:1.5}}>{routine.schedule}</span>
       {days&&<span style={{...F,fontSize:10,color:C.t3}}>{days}</span>}
       {routine.paused&&<span style={{...F,fontSize:9,fontWeight:600,color:C.gold,background:C.goldSoft,padding:"2px 6px",borderRadius:5}}>Paused</span>}
@@ -369,7 +379,7 @@ function RoutineCard({routine,onPause,onDelete,onTalk,delay=0}){
     <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
       <button onClick={()=>onPause(routine.id)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:routine.paused?C.tealSoft:C.cream,border:routine.paused?`1px solid ${C.tealBorder}`:"none",color:routine.paused?C.teal:C.t2,cursor:"pointer",fontWeight:routine.paused?600:400}}>{routine.paused?"Resume":"Pause"}</button>
       <button onClick={()=>onTalk(`Generate a fresh step for my "${routine.title}" routine. Search for something specific and new.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Generate now</button>
-      <button onClick={()=>onTalk(`Update my "${routine.title}" routine. Make it better or change the schedule.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>{"\u2728"} Improve</button>
+      <button onClick={()=>onTalk(`Update my "${routine.title}" routine. Make it better or change the schedule.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Sparkles size={14}/> Improve</button>
     </div>
   </div></FadeIn>);
 }
@@ -406,6 +416,8 @@ export default function App(){
   const[deleteConfirm,setDeleteConfirm]=useState(false);
   const[deleteText,setDeleteText]=useState("");
   const[healthSection,setHealthSection]=useState({fitness:true,food:true,medical:false});
+  const[petType,setPetType]=useState("Dog");
+  const[petBreed,setPetBreed]=useState("");
   const chatEnd=useRef(null);const inputRef=useRef(null);
 
   // Normalize chats from old format (work/me/social) to new (career/wellness/fun/adventure)
@@ -447,10 +459,10 @@ export default function App(){
   const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
   const handleAuth=auth=>{const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"! \u{1F463}\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("welcome");};
+  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("welcome");};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step guide. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
+    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
     else persist(full,allSteps,allPlans,chats,preferences);
     setView("steps");setScreen("main");
   };
@@ -471,6 +483,7 @@ export default function App(){
     const stepsCtx=allSteps.filter(s=>s.status==="active").length>0?"\n\nALL ACTIVE STEPS:\n"+allSteps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
     const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\n\nLOVED STEPS:\n"+allSteps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
     const favsCtx=(profile?.favorites||[]).length>0?"\n\nFAVORITES (places/things user loves):\n"+(profile.favorites).map(f=>`- "${f.title}" (${f.category})`).join("\n"):"";
+    const petsCtx=(profile?.pets||[]).length>0?"\n\nPETS:\n"+(profile.pets).map(p=>`- ${p.name} (${p.type}${p.breed?" / "+p.breed:""})`).join("\n"):"";
     const plansCtx=allPlans.length>0?"\n\nJOURNEYS:\n"+allPlans.map(p=>{const d=p.tasks?.filter(t=>t.done).length||0;return`- "${p.title}" (${p.date||"no date"}, ${d}/${p.tasks?.length||0} done)`;}).join("\n"):"";
     const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\n\nACTIVE ROUTINES:\n"+allRoutines.filter(r=>!r.paused).map(r=>`- "${r.title}" (${r.schedule}, ${(r.days||[]).join("/")||"flexible"}, ${r.category})`).join("\n"):"";
     const calCtx=calData?.length>0?"\n\nCALENDAR:\n"+calData.slice(0,10).map(e=>{const d=new Date(e.start);return`- ${d.toLocaleDateString()} ${e.allDay?"all day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}: ${e.title}`;}).join("\n"):"";
@@ -501,7 +514,7 @@ export default function App(){
       // Safety: ensure no empty content
       const safeApiMsgs=apiMsgs.filter(m=>m.content&&m.content.trim()).map(m=>({role:m.role,content:m.content.trim()}));
       
-      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
+      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
@@ -598,19 +611,19 @@ export default function App(){
   if(screen==="welcome")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style>
     <FadeIn><div style={{maxWidth:440,margin:"0 auto",padding:"60px 24px 40px"}}>
       <div style={{textAlign:"center",marginBottom:36}}>
-        <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,color:"#fff"}}>{"\u{1F463}"}</div>
+        <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 8px 28px rgba(212,82,42,0.25)"}}><Logo size={34} color="#fff"/></div>
         <h1 style={{...H,fontSize:28,color:C.t1,margin:"0 0 8px"}}>Welcome, {profile?.name}</h1>
         <p style={{...F,fontSize:15,color:C.t2,lineHeight:1.6,margin:0}}>Your guide is ready. Where would you like to start?</p>
       </div>
       <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
         {SEG_KEYS.map(s=>{const info=SEGMENTS[s];return(
           <button key={s} onClick={()=>{setSegment(s);setView("chat");setScreen("main");setTimeout(()=>inputRef.current?.focus(),200);}} style={{...F,width:"100%",padding:"18px 20px",borderRadius:18,background:C.card,boxShadow:C.shadow,border:`1.5px solid ${info.color}15`,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-            <div style={{width:48,height:48,borderRadius:16,background:info.soft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{info.icon}</div>
+            <div style={{width:48,height:48,borderRadius:16,background:info.soft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{segIcon(s)}</div>
             <div style={{flex:1}}>
               <div style={{fontSize:16,fontWeight:600,color:C.t1}}>{info.label}</div>
               <div style={{fontSize:13,color:C.t3,marginTop:3}}>{info.desc}</div>
             </div>
-            <span style={{color:info.color,fontSize:20}}>{"\u203A"}</span>
+            <span style={{color:info.color,fontSize:20}}><ChevronRight size={16}/></span>
           </button>
         );})}
       </div>
@@ -621,7 +634,7 @@ export default function App(){
   </div>);
   if(screen==="deepprofile")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepFinish} existingInsights={profile?.insights||[]}/></div>);
 
-  const segInfo=SEGMENTS[segment]||{label:"Timeline",icon:"\u{1F4C5}",color:C.acc,soft:C.accSoft,desc:"all your steps and journeys across every area of your life"};
+  const segInfo=SEGMENTS[segment]||{label:"Timeline",color:C.acc,soft:C.accSoft,desc:"all your steps and journeys across every area of your life"};
   const bubble=u=>({...F,maxWidth:"82%",padding:"13px 18px",borderRadius:20,fontSize:15,lineHeight:1.65,whiteSpace:"pre-wrap",...(u?{background:C.accGrad,color:"#fff",borderBottomRightRadius:6}:{background:C.card,color:C.t1,borderBottomLeftRadius:6,boxShadow:C.shadow})});
 
   return(
@@ -661,28 +674,28 @@ export default function App(){
             while(true){const ds=d.toDateString();if(allSteps.some(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===ds)){streak++;d.setDate(d.getDate()-1);}else break;}
             if(thisWeek===0&&streak===0)return null;
             return(<div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:12,background:streak>=3?C.goldSoft:C.cream}}>
-              {streak>0&&<><span style={{fontSize:14}}>{streak>=7?"\u{1F525}":streak>=3?"\u{1F4AA}":"\u2728"}</span><span style={{...F,fontSize:12,fontWeight:700,color:streak>=3?C.gold:C.t2}}>{streak}d</span></>}
+              {streak>0&&<><span style={{fontSize:14}}><Flame size={14} color={streak>=7?"#EF4444":C.gold}/></span><span style={{...F,fontSize:12,fontWeight:700,color:streak>=3?C.gold:C.t2}}>{streak}d</span></>}
               {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} this week</span>}
             </div>);
           })()}
-          <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>{"\u2699\uFE0F"}</button>
+          <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
         </div>
       </div>
 
       {/* Tell me more - personalization nudge */}
       {!profile?.insights?.length&&allSteps.filter(s=>s.status==="active").length>0&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
         <button onClick={()=>{setSegment("wellness");setView("chat");setTimeout(()=>sendMessage("I'd like to tell you more about myself so you can personalize better. Ask me a few questions — don't create any steps, just learn about me."),100);}} style={{...F,width:"100%",padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
-          <span style={{fontSize:16}}>{"\u2728"}</span>
+          <span style={{fontSize:16}}><Sparkles size={14}/></span>
           <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:C.t1}}>Help me personalize</div><div style={{fontSize:11,color:C.t3}}>Tell your guide about your preferences</div></div>
-          <span style={{fontSize:12,color:C.t3}}>{"\u203A"}</span>
+          <span style={{fontSize:12,color:C.t3}}><ChevronRight size={16}/></span>
         </button>
       </div>}
 
       {/* Segment selector */}
       <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
-        {[...SEG_KEYS,"everything"].map(s=>{const info=SEGMENTS[s]||{label:"Timeline",icon:"\u{1F4C5}",color:C.acc};const active=segment===s;const count=s==="everything"?allSteps.filter(x=>x.status==="active").length:allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
+        {[...SEG_KEYS,"everything"].map(s=>{const info=SEGMENTS[s]||{label:"Timeline",color:C.acc};const active=segment===s;const count=s==="everything"?allSteps.filter(x=>x.status==="active").length:allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
           return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
-            <span style={{fontSize:14}}>{info.icon}</span>{info.label}{count>0&&<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>}
+            <span style={{fontSize:14}}>{segIcon(s)}</span>{info.label}{count>0&&<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>}
           </button>);
         })}
       </div>
@@ -716,7 +729,7 @@ export default function App(){
               const hasContent=days.some(d=>(calByDate[d.toDateString()]||[]).length>0||(stepsByDate[d.toDateString()]||[]).length>0)||allSteps.filter(s=>s.status==="active").length>0||allPlans.length>0||allRoutines.length>0;
               
               if(!hasContent)return(<FadeIn><div style={{textAlign:"center",padding:"44px 20px"}}>
-                <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{"\u{1F4C5}"}</div>
+                <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}><Calendar size={20}/></div>
                 <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Your timeline</div>
                 <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto"}}>Start chatting in any segment to see your steps, journeys, and calendar events here.</div>
               </div></FadeIn>);
@@ -788,7 +801,7 @@ export default function App(){
                 {/* Completed */}
                 {doneSteps.length>0&&<div style={{marginTop:12}}>
                   <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:10}}>Completed ({doneSteps.length})</div>
-                  {doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?"\u2764\uFE0F":"\u2713"}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span></div>))}
+                  {doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span></div>))}
                 </div>}
               </div>);
             })()}
@@ -800,7 +813,7 @@ export default function App(){
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
             {segSteps.length===0&&segPlans.length===0&&segRoutines.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
               <FadeIn><div style={{textAlign:"center",padding:"36px 20px"}}>
-                <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{segInfo.icon}</div>
+                <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{segIcon(segment)}</div>
                 <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Nothing in {segInfo.label} yet</div>
                 <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto 24px"}}>Tell your guide what you're looking for and I'll create personalized steps and journeys.</div>
                 <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Talk to your guide {"\u2192"}</button>
@@ -847,7 +860,7 @@ export default function App(){
                 {segRoutines.map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onTalk={talkAbout} delay={i*50}/>)}
               </div>}
               {/* Completed steps - show in all views */}
-              {(()=>{const segDone=segment==="everything"?doneSteps:doneSteps.filter(s=>catToSeg(s.category)===segment);return segDone.length>0?<div style={{marginBottom:20}}><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({segDone.length})</div>{segDone.slice(0,segment==="everything"?5:3).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?"\u2764\uFE0F":"\u2713"}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?"\u2764\uFE0F":"\u{1F90D}"}</button><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}>{"\u00D7"}</button></div>))}{segDone.length>(segment==="everything"?5:3)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:4}}>+{segDone.length-(segment==="everything"?5:3)} more</div>}</div>:null;})()}
+              {(()=>{const segDone=segment==="everything"?doneSteps:doneSteps.filter(s=>catToSeg(s.category)===segment);return segDone.length>0?<div style={{marginBottom:20}}><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({segDone.length})</div>{segDone.slice(0,segment==="everything"?5:3).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Heart size={14} color={C.t3}/>}</button><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}><X size={16}/></button></div>))}{segDone.length>(segment==="everything"?5:3)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:4}}>+{segDone.length-(segment==="everything"?5:3)} more</div>}</div>:null;})()}
               {/* Expired steps */}
               {expiredSteps.length>0&&(segment==="everything"||expiredSteps.some(s=>catToSeg(s.category)===segment))&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#B45309",marginBottom:12}}>Expired ({(segment==="everything"?expiredSteps:expiredSteps.filter(s=>catToSeg(s.category)===segment)).length})</div>
@@ -855,7 +868,7 @@ export default function App(){
                   <span style={{fontSize:14,opacity:.6}}>{catIcon(s.category)}</span>
                   <div style={{flex:1}}><div style={{...F,fontSize:13,color:C.t1,fontWeight:500,opacity:.7}}>{s.title}</div>{s.time&&<div style={{...F,fontSize:11,color:"#B45309",marginTop:2}}>Was: {s.time}</div>}</div>
                   <button onClick={()=>{setMissedStep(s);setMissedReason("");}} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.card,border:`1px solid ${C.b2}`,color:C.t2,cursor:"pointer"}}>Why?</button>
-                  <button onClick={()=>dismissMissed(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button>
+                  <button onClick={()=>dismissMissed(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}><X size={16}/></button>
                 </div>))}
               </div>}
             </>)}
@@ -864,7 +877,7 @@ export default function App(){
             {doneSteps.length>=3&&!profile?.insights?.length&&segment!=="everything"&&(
               <FadeIn delay={200}><div style={{padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,marginBottom:16}}>
                 <div style={{display:"flex",alignItems:"center",gap:12}}>
-                  <span style={{fontSize:20}}>{"\u{1F4AC}"}</span>
+                  <span style={{fontSize:20}}><MessageCircle size={18}/></span>
                   <div style={{flex:1}}>
                     <div style={{...F,fontSize:14,fontWeight:600,color:C.acc}}>You're on a roll!</div>
                     <div style={{...F,fontSize:13,color:C.t2,marginTop:2}}>Go deeper with your guide so I can personalize even more.</div>
@@ -880,7 +893,7 @@ export default function App(){
             <div style={{padding:"8px 20px 16px",flexShrink:0,borderTop:`1px solid ${C.b1}`}}>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
                 <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){e.preventDefault();setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}}} placeholder="Quick ask your guide..." style={{...F,flex:1,padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} onFocus={e=>{e.target.style.borderColor=segInfo.color;}} onBlur={e=>{e.target.style.borderColor=C.b2;}}/>
-                <button onClick={()=>{if(input.trim()){setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}else{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}}} style={{width:44,height:44,borderRadius:14,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(212,82,42,0.2)"}}>{input.trim()?"\u2191":"\u{1F4AC}"}</button>
+                <button onClick={()=>{if(input.trim()){setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}else{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}}} style={{width:44,height:44,borderRadius:14,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(212,82,42,0.2)"}}>{input.trim()?<ArrowUp size={18}/>:<MessageCircle size={18}/>}</button>
               </div>
             </div>
           )}
@@ -892,14 +905,14 @@ export default function App(){
             {/* Empty chat state */}
             {(chats[segment]||[]).length===0&&!loading&&(
               <div style={{textAlign:"center",padding:"40px 20px"}}>
-                <div style={{width:56,height:56,borderRadius:18,margin:"0 auto 14px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{segInfo.icon}</div>
+                <div style={{width:56,height:56,borderRadius:18,margin:"0 auto 14px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{segIcon(segment)}</div>
                 <div style={{...H,fontSize:20,color:C.t1,marginBottom:6}}>Ask me anything about {segInfo.label.toLowerCase()}</div>
                 <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto"}}>{segInfo.desc}. I'll turn ideas into steps and journeys you can act on.</div>
               </div>
             )}
             {(chats[segment]||[]).map((msg,i)=>(
               <div key={i} style={{display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
-                {msg.role!=="user"&&<div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,marginRight:10,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,color:"#fff"}}>{"\u{1F463}"}</div>}
+                {msg.role!=="user"&&<div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,marginRight:10,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}><Logo size={18} color="#fff"/></div>}
                 <div style={bubble(msg.role==="user")}>{msg.content}</div>
               </div>
             ))}
@@ -921,7 +934,7 @@ export default function App(){
           <div style={{padding:"6px 20px 16px",flexShrink:0}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
               <textarea ref={inputRef} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder={`Ask about ${segInfo.label.toLowerCase()}...`} rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:18,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow,resize:"none",maxHeight:150,lineHeight:1.5}} onFocus={e=>{e.target.style.borderColor=segInfo.color;e.target.style.boxShadow=`0 0 0 3px ${segInfo.color}15`;}} onBlur={e=>{e.target.style.borderColor=C.b2;e.target.style.boxShadow=C.shadow;}}/>
-              <button onClick={()=>sendMessage()} disabled={!input.trim()||loading} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:input.trim()&&!loading?"pointer":"default",background:input.trim()&&!loading?C.accGrad:"rgba(0,0,0,0.04)",color:input.trim()&&!loading?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:1}}>{"\u2191"}</button>
+              <button onClick={()=>sendMessage()} disabled={!input.trim()||loading} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:input.trim()&&!loading?"pointer":"default",background:input.trim()&&!loading?C.accGrad:"rgba(0,0,0,0.04)",color:input.trim()&&!loading?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:1}}><ArrowUp size={18}/></button>
             </div>
             {input.length>50&&<div style={{...F,fontSize:11,color:C.t3,marginTop:6,textAlign:"right"}}>Shift+Enter for new line</div>}
           </div>
@@ -930,7 +943,7 @@ export default function App(){
 
       {/* Full settings overlay */}
       {showSettings&&<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}><div style={{maxWidth:480,margin:"0 auto"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}><h2 style={{...H,fontSize:26,color:C.t1,margin:0}}>Settings</h2><button onClick={()=>setShowSettings(false)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.t3}}>{"\u00D7"}</button></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}><h2 style={{...H,fontSize:26,color:C.t1,margin:0}}>Settings</h2><button onClick={()=>setShowSettings(false)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.t3}}><X size={16}/></button></div>
 
         <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow,marginBottom:20,display:"flex",alignItems:"center",gap:16}}>
           <div style={{width:52,height:52,borderRadius:16,background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,color:"#fff",fontWeight:700}}>{profile?.name?.charAt(0)?.toUpperCase()}</div>
@@ -942,7 +955,7 @@ export default function App(){
         </div>
 
         {settingsTab==="profile"&&<div>
-          {[{k:"name",l:"Name",i:"\u{1F464}",v:profile?.name},{k:"age",l:"Age",i:"\u{1F382}",v:profile?.setup?.age},{k:"gender",l:"Gender",i:"\u2728",v:profile?.setup?.gender},{k:"location",l:"Location",i:"\u{1F4CD}",v:profile?.setup?.location}].map(f=>(
+          {[{k:"name",l:"Name",i:null,v:profile?.name},{k:"age",l:"Age",i:null,v:profile?.setup?.age},{k:"gender",l:"Gender",i:null,v:profile?.setup?.gender},{k:"location",l:"Location",i:null,v:profile?.setup?.location}].map(f=>(
             <div key={f.k} style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
               {editField===f.k?(<div>
                 <label style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,display:"block",marginBottom:8}}>{f.l}</label>
@@ -953,13 +966,13 @@ export default function App(){
                   <button onClick={()=>{const p={...profile};if(f.k==="name")p.name=editVal.trim();else if(f.k==="age")p.setup={...p.setup,age:editVal.trim()};else if(f.k==="gender")p.setup={...p.setup,gender:genderEdit==="Other"?genderOtherEdit:genderEdit};else if(f.k==="location")p.setup={...p.setup,location:editVal.trim()};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,flex:1,padding:9,borderRadius:12,border:"none",background:C.accGrad,color:"#fff",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button>
                 </div>
               </div>):(<div style={{display:"flex",alignItems:"flex-start",gap:12}}>
-                <span style={{fontSize:16,marginTop:2}}>{f.i}</span>
+                {f.i&&<span style={{fontSize:16,marginTop:2}}>{f.i}</span>}
                 <div style={{flex:1}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:3}}>{f.l}</div><div style={{...F,fontSize:15,color:C.t1}}>{f.v||"Not set"}</div></div>
                 <button onClick={()=>{setEditField(f.k);setEditVal(f.v||"");if(f.k==="gender")setGenderEdit(f.v||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button>
               </div>)}
             </div>
           ))}
-          <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}>{"\u{1F4AC}"}</span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
+          <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}><MessageCircle size={18}/></span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
 
           {/* Favorites */}
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
@@ -981,7 +994,33 @@ export default function App(){
                 <div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{fav.title}</div>
                 <div style={{...F,fontSize:11,color:C.t3}}>{fav.manual?"Added manually":"From loved step"} {"\u00B7"} {fav.category}</div>
               </div>
-              <button onClick={()=>{const favs=(profile?.favorites||[]).filter((_,j)=>j!==i);const p={...profile,favorites:favs};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}>{"\u00D7"}</button>
+              <button onClick={()=>{const favs=(profile?.favorites||[]).filter((_,j)=>j!==i);const p={...profile,favorites:favs};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}><X size={16}/></button>
+            </div>))}
+          </div>
+
+          {/* Pets */}
+          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5}}>My Pets ({(profile?.pets||[]).length})</div>
+              {editField!=="add_pet"&&<button onClick={()=>{setEditField("add_pet");setEditVal("");}} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}><Plus size={12}/> Add</button>}
+            </div>
+            {editField==="add_pet"&&<div style={{marginBottom:12,padding:14,borderRadius:14,background:C.bg}}>
+              <div style={{marginBottom:10}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Name</div><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="Pet's name" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"}}/></div>
+              <div style={{marginBottom:10}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Type</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Dog","Cat","Bird","Fish","Rabbit","Reptile","Other"].map(t=>(<button key={t} onClick={()=>setPetType(t)} style={{...F,padding:"6px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:petType===t?C.accSoft:C.cream,border:`1.5px solid ${petType===t?C.acc:C.b2}`,color:petType===t?C.acc:C.t2,fontWeight:petType===t?600:400}}>{t}</button>))}</div></div>
+              <div style={{marginBottom:10}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Breed (optional)</div><input value={petBreed} onChange={e=>setPetBreed(e.target.value)} placeholder="e.g. Golden Retriever" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"}}/></div>
+              <div style={{display:"flex",gap:8,marginTop:12}}>
+                <button onClick={()=>{setEditField(null);setPetType("Dog");setPetBreed("");}} style={{...F,flex:1,padding:8,borderRadius:10,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
+                <button onClick={()=>{if(editVal.trim()){const pet={name:editVal.trim(),type:petType,breed:petBreed.trim(),addedAt:new Date().toISOString()};const pets=[...(profile?.pets||[]),pet];const p={...profile,pets};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);setEditVal("");setPetType("Dog");setPetBreed("");}}} style={{...F,flex:1,padding:8,borderRadius:10,border:"none",background:C.accGrad,color:"#fff",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add pet</button>
+              </div>
+            </div>}
+            {(profile?.pets||[]).length===0&&editField!=="add_pet"&&<div style={{...F,fontSize:13,color:C.t3,padding:"8px 0",lineHeight:1.5}}>Add your pets so your guide can suggest pet-friendly restaurants, parks, travel, and activities.</div>}
+            {(profile?.pets||[]).map((pet,i)=>(<div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 0",borderBottom:i<(profile.pets.length-1)?`1px solid ${C.b1}`:"none"}}>
+              <div style={{width:36,height:36,borderRadius:12,background:C.cream,display:"flex",alignItems:"center",justifyContent:"center"}}><Heart size={16} color={C.teal}/></div>
+              <div style={{flex:1}}>
+                <div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>{pet.name}</div>
+                <div style={{...F,fontSize:12,color:C.t3}}>{pet.type}{pet.breed?` · ${pet.breed}`:""}</div>
+              </div>
+              <button onClick={()=>{const pets=(profile?.pets||[]).filter((_,j)=>j!==i);const p={...profile,pets};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer"}}><X size={14}/></button>
             </div>))}
           </div>
 
@@ -991,7 +1030,7 @@ export default function App(){
                         {settingsTab==="health"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
           {/* FITNESS - always visible */}
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
-            <button onClick={()=>setHealthSection(p=>({...p,fitness:!p.fitness}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}>{"\u{1F3CB}\uFE0F"}</span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Fitness</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Level, goals, preferences, injuries</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.fitness?"rotate(180deg)":"rotate(0)"}}>{"\u25BE"}</span></button>
+            <button onClick={()=>setHealthSection(p=>({...p,fitness:!p.fitness}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}><Dumbbell size={20}/></span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Fitness</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Level, goals, preferences, injuries</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.fitness?"rotate(180deg)":"rotate(0)"}}><ChevronDown size={16}/></span></button>
             {healthSection.fitness&&<div style={{padding:"0 20px 20px"}}>
               <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Fitness level</div><div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{["Beginner","Intermediate","Advanced"].map(t=>(<button key={t} onClick={()=>{const p={...profile,health:{...(profile?.health||{}),fitnessLevel:t}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"8px 14px",borderRadius:10,fontSize:13,cursor:"pointer",background:profile?.health?.fitnessLevel===t?C.tealSoft:C.cream,border:`1.5px solid ${profile?.health?.fitnessLevel===t?C.teal:C.b2}`,color:profile?.health?.fitnessLevel===t?C.teal:C.t2,fontWeight:profile?.health?.fitnessLevel===t?600:400}}>{t}</button>))}</div></div>
               <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Goals</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Lose weight","Build muscle","Get toned","Improve cardio","Flexibility","Stress relief","General health","Train for event"].map(g=>{const gl=profile?.health?.fitnessGoals||[];const on=gl.includes(g);return(<button key={g} onClick={()=>{const p={...profile,health:{...(profile?.health||{}),fitnessGoals:on?gl.filter(x=>x!==g):[...gl,g]}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.accSoft:C.cream,border:`1.5px solid ${on?C.acc:C.b2}`,color:on?C.acc:C.t2,fontWeight:on?600:400}}>{g}</button>);})}</div></div>
@@ -1003,7 +1042,7 @@ export default function App(){
 
           {/* FOOD & ALLERGIES - always visible */}
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
-            <button onClick={()=>setHealthSection(p=>({...p,food:!p.food}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}>{"\u{1F35D}"}</span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Food & Allergies</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Allergens, dietary preferences{(profile?.health?.allergies||[]).length>0?` \u00B7 ${profile.health.allergies.length} set`:""}</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.food?"rotate(180deg)":"rotate(0)"}}>{"\u25BE"}</span></button>
+            <button onClick={()=>setHealthSection(p=>({...p,food:!p.food}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}><UtensilsCrossed size={20}/></span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Food & Allergies</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Allergens, dietary preferences{(profile?.health?.allergies||[]).length>0?` \u00B7 ${profile.health.allergies.length} set`:""}</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.food?"rotate(180deg)":"rotate(0)"}}><ChevronDown size={16}/></span></button>
             {healthSection.food&&<div style={{padding:"0 20px 20px"}}>
               <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:"#DC3C3C",fontWeight:600,marginBottom:8}}>Allergens</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Gluten-free / Celiac","Dairy","Eggs","Peanuts","Tree nuts","Soy","Fish","Crustaceans (shrimp, crab, lobster)","Molluscs (clams, oysters, squid)","Wheat","Sesame","Legumes","Mustard","Sulfites","Corn","Nightshades"].map(a=>{const al=profile?.health?.allergies||[];const on=al.includes(a);return(<button key={a} onClick={()=>{const p={...profile,health:{...(profile?.health||{}),allergies:on?al.filter(x=>x!==a):[...al,a]}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?"rgba(220,60,60,0.06)":C.cream,border:`1.5px solid ${on?"#DC3C3C":C.b2}`,color:on?"#DC3C3C":C.t2,fontWeight:on?600:400}}>{on?"\u26A0\uFE0F ":""}{a}</button>);})}</div></div>
               <div style={{marginBottom:14}}><div style={{...F,fontSize:12,color:C.teal,fontWeight:600,marginBottom:8}}>Dietary preferences</div><div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Low sodium","Low sugar","Lactose-free"].map(d=>{const di=profile?.health?.diets||[];const on=di.includes(d);return(<button key={d} onClick={()=>{const p={...profile,health:{...(profile?.health||{}),diets:on?di.filter(x=>x!==d):[...di,d]}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.tealSoft:C.cream,border:`1.5px solid ${on?C.teal:C.b2}`,color:on?C.teal:C.t2,fontWeight:on?600:400}}>{d}</button>);})}</div></div>
@@ -1014,7 +1053,7 @@ export default function App(){
           {/* MEDICAL & INSURANCE - opt-in */}
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
             <div style={{padding:"16px 20px",display:"flex",alignItems:"center",gap:12}}>
-              <span style={{fontSize:20}}>{"\u{1F3E5}"}</span>
+              <span style={{fontSize:20}}><Building2 size={20}/></span>
               <div style={{flex:1}}><div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>Medical & Insurance</div><div style={{...F,fontSize:12,color:C.t3,marginTop:2}}>{profile?.health?.medicalEnabled?"Find in-network doctors, manage referrals":"Optional \u2014 help finding doctors & understanding insurance"}</div></div>
               <button onClick={()=>{const p={...profile,health:{...(profile?.health||{}),medicalEnabled:!profile?.health?.medicalEnabled}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{width:48,height:28,borderRadius:14,border:"none",cursor:"pointer",background:profile?.health?.medicalEnabled?C.teal:"#D4D4D4",position:"relative",transition:"all 0.2s"}}><div style={{width:22,height:22,borderRadius:11,background:"#fff",position:"absolute",top:3,left:profile?.health?.medicalEnabled?23:3,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/></button>
             </div>
@@ -1026,20 +1065,20 @@ export default function App(){
           </div>
 
           {/* Health apps */}
-          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>{[{i:"\u{1F34E}",l:"Apple Health",d:"Steps, heart rate, sleep"},{i:"\u{1F4AA}",l:"MyFitnessPal",d:"Nutrition, calories"},{i:"\u{1F49A}",l:"Fitbit",d:"Activity, sleep"},{i:"\u{1F9E0}",l:"Headspace",d:"Meditation"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{fontSize:18}}>{s.i}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} {"\u00B7"} Coming soon</div></div></div>))}</div>
+          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>{[{icon:<Heart size={18} color="#FF2D55"/>,l:"Apple Health",d:"Steps, heart rate, sleep"},{icon:<Dumbbell size={18} color="#0073CF"/>,l:"MyFitnessPal",d:"Nutrition, calories"},{icon:<Heart size={18} color="#00B0B9"/>,l:"Fitbit",d:"Activity, sleep"},{icon:<Sparkles size={18} color="#F47D31"/>,l:"Headspace",d:"Meditation"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} · Coming soon</div></div></div>))}</div>
           <div style={{...F,fontSize:12,color:C.t3,lineHeight:1.6,padding:"14px 16px",background:C.cream,borderRadius:14}}>Your guide is not a medical professional. Always consult a licensed physician for medical concerns.</div>
         </div>}
 
 {settingsTab==="connections"&&<div style={{display:"flex",flexDirection:"column",gap:8}}>
           <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F3C3}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
+            <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}><TrendingUp size={20}/></span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:12,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={async()=>{deleteFB(getUserId(profile),"strava");setStravaData(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={connectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:C.accSoft,color:C.acc,border:`1px solid ${C.accBorder}`,cursor:"pointer"}}>Connect</button>}</div>
             {stravaData?.profile&&<div style={{padding:"10px 14px",borderRadius:12,background:C.bg,marginTop:10,display:"flex",gap:16}}><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRuns}</div><div style={{...F,fontSize:10,color:C.t3}}>Runs</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRunDistance}</div><div style={{...F,fontSize:10,color:C.t3}}>Distance</div></div><div><div style={{...F,fontSize:18,fontWeight:700,color:"#FC4C02"}}>{stravaData.profile.allTimeRides}</div><div style={{...F,fontSize:10,color:C.t3}}>Rides</div></div></div>}
           </div>
           <div style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
-            <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}>{"\u{1F4C5}"}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:12,color:calData?"#4285F4":C.t3}}>{calData?`Connected \u00B7 ${calData.length} events`:"Not connected"}</div></div>{calData?<button onClick={async()=>{deleteFB(getUserId(profile),"calendar");setCalData(null);setCalToken(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={()=>connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);saveFB(getUserId(profile),"calendar",{token:r.access_token,events:ev});})} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:"rgba(66,133,244,0.06)",color:"#4285F4",border:"1px solid rgba(66,133,244,0.1)",cursor:"pointer"}}>Connect</button>}</div>
+            <div style={{display:"flex",alignItems:"center",gap:12}}><span style={{fontSize:20}}><Calendar size={20}/></span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:12,color:calData?"#4285F4":C.t3}}>{calData?`Connected \u00B7 ${calData.length} events`:"Not connected"}</div></div>{calData?<button onClick={async()=>{deleteFB(getUserId(profile),"calendar");setCalData(null);setCalToken(null);}} style={{...F,fontSize:12,padding:"6px 14px",borderRadius:10,background:"rgba(220,60,60,0.04)",color:"#DC3C3C",border:"1px solid rgba(220,60,60,0.1)",cursor:"pointer"}}>Disconnect</button>:<button onClick={()=>connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);saveFB(getUserId(profile),"calendar",{token:r.access_token,events:ev});})} style={{...F,fontSize:12,fontWeight:600,padding:"6px 14px",borderRadius:10,background:"rgba(66,133,244,0.06)",color:"#4285F4",border:"1px solid rgba(66,133,244,0.1)",cursor:"pointer"}}>Connect</button>}</div>
             {calData?.length>0&&<div style={{marginTop:10}}>{calData.slice(0,4).map((e,i)=>{const d=new Date(e.start);return<div key={i} style={{display:"flex",gap:8,padding:"6px 14px",borderRadius:10,background:C.bg,marginBottom:4,alignItems:"center"}}><span style={{...F,fontSize:11,fontWeight:600,color:"#4285F4",minWidth:55}}>{d.toLocaleDateString([],{month:"short",day:"numeric"})}</span><span style={{...F,fontSize:12,color:C.t2,flex:1}}>{e.title}</span></div>;})}{calData.length>4&&<div style={{...F,fontSize:11,color:C.t3,textAlign:"center",marginTop:4}}>+{calData.length-4} more</div>}</div>}
           </div>
-          {[{i:"in",l:"LinkedIn",c:"#0A66C2"},{i:"\u{1F4F7}",l:"Instagram",c:"#E4405F"},{i:"\u{1F3B5}",l:"Spotify",c:"#1DB954"}].map(s=>(<div key={s.l} style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{fontSize:20,width:24,textAlign:"center"}}>{s.i}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>))}
+          {[{icon:<Briefcase size={20} color="#0A66C2"/>,l:"LinkedIn"},{icon:<Sparkles size={20} color="#E4405F"/>,l:"Instagram"},{icon:<Star size={20} color="#1DB954"/>,l:"Spotify"}].map(s=>(<div key={s.l} style={{padding:16,borderRadius:16,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:12,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>))}
         </div>}
 
         {settingsTab==="insights"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -1066,12 +1105,12 @@ export default function App(){
           {profile?.insights?.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Profile insights ({profile.insights.length})</div>{profile.insights.map((ins,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<profile.insights.length-1?`1px solid ${C.b1}`:"none"}}>{ins.text}</div>))}</div>}
           {/* Learned preferences */}
           {preferences.length>0&&<div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Learned preferences</div>{preferences.map((p,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<preferences.length-1?`1px solid ${C.b1}`:"none"}}><span style={{fontWeight:600,color:C.t1,textTransform:"capitalize"}}>{p.key?.replace(/_/g," ")}:</span> {p.value}</div>))}</div>}
-          {totalCompleted===0&&!profile?.insights?.length&&!preferences.length&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:28,marginBottom:8}}>{"\u{1F9E0}"}</div><div style={{...F,fontSize:14,color:C.t2}}>Complete some steps to see your patterns here.</div></div>}
+          {totalCompleted===0&&!profile?.insights?.length&&!preferences.length&&<div style={{textAlign:"center",padding:"40px 20px"}}><div style={{fontSize:28,marginBottom:8}}><Sparkles size={18} color="#F47D31"/></div><div style={{...F,fontSize:14,color:C.t2}}>Complete some steps to see your patterns here.</div></div>}
         </div>}
 
         {settingsTab==="about"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}><div style={{width:40,height:40,borderRadius:12,background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,color:"#fff"}}>{"\u{1F463}"}</div><div><div style={{...H,fontSize:16,color:C.t1}}>My Next Step</div><div style={{...F,fontSize:12,color:C.t3}}>v1.0 Beta</div></div></div>
+            <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}><div style={{width:40,height:40,borderRadius:12,background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}><Logo size={24} color="#fff"/></div><div><div style={{...H,fontSize:16,color:C.t1}}>My Next Step</div><div style={{...F,fontSize:12,color:C.t3}}>v1.0 Beta</div></div></div>
             <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6}}>Your AI guide that turns goals into actionable steps.</div>
           </div>
           <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}>
@@ -1099,7 +1138,7 @@ export default function App(){
 
         {/* Legal modals */}
         {legalModal&&<div style={{position:"fixed",inset:0,zIndex:300,background:"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}} onClick={()=>setLegalModal(null)}><div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:480,maxHeight:"80vh",overflowY:"auto",background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{...H,fontSize:20,color:C.t1}}>{legalModal==="terms"?"Terms of Service":legalModal==="privacy"?"Privacy Policy":"Affiliate Disclosure"}</div><button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}>{"\u00D7"}</button></div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}><div style={{...H,fontSize:20,color:C.t1}}>{legalModal==="terms"?"Terms of Service":legalModal==="privacy"?"Privacy Policy":"Affiliate Disclosure"}</div><button onClick={()=>setLegalModal(null)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:18}}><X size={16}/></button></div>
           <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.8}}>
             {legalModal==="terms"&&<div>
               <p>Last updated: April 2026</p>
