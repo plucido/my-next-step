@@ -37,7 +37,7 @@ const C = {
 // ─── SEGMENTS ───
 const SEGMENTS = {
   career: { label: "Career", icon: "\u{1F680}", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking" },
-  wellness: { label: "Wellness", icon: "\u{1F33F}", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, health, habits, self-care, mental health" },
+  wellness: { label: "Health", icon: "\u{1F33F}", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, health, habits, self-care, mental health" },
   fun: { label: "Fun", icon: "\u{1F389}", color: "#DB2777", soft: "#FCE7F3", desc: "Friends, dating, events, hobbies, going out" },
   adventure: { label: "Adventure", icon: "\u{1F30D}", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, bucket list, new experiences" },
 };
@@ -95,7 +95,7 @@ async function addGCalEvent(token,title,desc,time){try{const s=new Date();const 
 // ─── SYSTEM PROMPT ───
 const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm life guide app.
 
-The app has 4 segments: Career, Wellness, Fun, Adventure. You're chatting in one segment but know everything across all.
+The app has 4 segments: Career, Health (wellness/fitness), Fun, Adventure. You're chatting in one segment but know everything across all.
 
 CRITICAL FORMAT RULES:
 - ABSOLUTELY NO MARKDOWN EVER. No asterisks, no bold (**), no bullets (\u2022), no headers (#), no numbered lists, no colons followed by lists. PLAIN CONVERSATIONAL TEXT ONLY.
@@ -130,6 +130,13 @@ SPECIFICITY:
 - Use web search to find real options.
 
 BUDGET: Ask naturally when relevant. Store as preference.
+
+ALLERGIES & DIETARY RESTRICTIONS (when health profile has them):
+- ALWAYS check the user's allergies and dietary preferences before recommending restaurants, food experiences, or meal plans.
+- If they have Gluten-free/Celiac, NEVER recommend places without GF options. Search for "gluten free [cuisine] [location]".
+- If they have food allergies, mention it when creating restaurant steps: "They have GF options and can accommodate nut allergies."
+- For dietary preferences (vegan, keto, etc.), filter recommendations accordingly.
+- When in doubt about a restaurant's allergy accommodations, note it: "Call ahead to confirm they can handle your [allergy]."
 
 HEALTH ASSISTANT (only when user has health enabled):
 - Help users find the RIGHT type of doctor for their symptoms. Use web search to find highly-rated, in-network options near them.
@@ -462,7 +469,7 @@ export default function App(){
     const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\n\nACTIVE ROUTINES:\n"+allRoutines.filter(r=>!r.paused).map(r=>`- "${r.title}" (${r.schedule}, ${(r.days||[]).join("/")||"flexible"}, ${r.category})`).join("\n"):"";
     const calCtx=calData?.length>0?"\n\nCALENDAR:\n"+calData.slice(0,10).map(e=>{const d=new Date(e.start);return`- ${d.toLocaleDateString()} ${e.allDay?"all day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}: ${e.title}`;}).join("\n"):"";
     const profileCtx=profile?.setup?`\nAge: ${profile.setup.age||"?"} | Gender: ${profile.setup.gender||"?"}`:"";
-    const healthCtx=profile?.health?.enabled?`\n\nHEALTH & FITNESS PROFILE (user opted in):\nFitness level: ${profile.health.fitnessLevel||"not set"}\nGoals: ${(profile.health.fitnessGoals||[]).join(", ")||"not set"}\nPrefers: ${(profile.health.workoutPrefs||[]).join(", ")||"not set"}\nFrequency: ${profile.health.workoutFreq||"not set"}\nInjuries/limits: ${profile.health.injuries||"none"}\nInsurance: ${profile.health.provider||"not set"}\nPlan type: ${profile.health.planType||"not set"}${profile.health.planType==="HMO"?" (REQUIRES PCP REFERRAL for specialists)":""}\nPCP: ${profile.health.pcp||"not set"}`:"";
+    const healthCtx=profile?.health?.enabled?`\n\nHEALTH & FITNESS PROFILE (user opted in):\nFitness level: ${profile.health.fitnessLevel||"not set"}\nGoals: ${(profile.health.fitnessGoals||[]).join(", ")||"not set"}\nPrefers: ${(profile.health.workoutPrefs||[]).join(", ")||"not set"}\nFrequency: ${profile.health.workoutFreq||"not set"}\nInjuries/limits: ${profile.health.injuries||"none"}\nAllergies: ${(profile.health.allergies||[]).join(", ")||"none"}\nDietary preferences: ${(profile.health.diets||[]).join(", ")||"none"}${profile.health.otherAllergies?"\nOther allergies: "+profile.health.otherAllergies:""}\nInsurance: ${profile.health.provider||"not set"}\nPlan type: ${profile.health.planType||"not set"}${profile.health.planType==="HMO"?" (REQUIRES PCP REFERRAL for specialists)":""}\nPCP: ${profile.health.pcp||"not set"}`:"";
     // Cross-segment context summary
     const otherSegs=SEG_KEYS.filter(s=>s!==segment);
     const crossCtx=otherSegs.map(s=>{const msgs=chats[s]||[];if(!msgs.length)return"";const last=msgs.filter(m=>m.role==="user").slice(-2).map(m=>m.content).join(", ");return last?`\nIn ${SEGMENTS[s].label}: recently discussed "${last.slice(0,80)}"`:"";}).filter(Boolean).join("");
@@ -974,6 +981,25 @@ export default function App(){
                 <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Any injuries or limitations?</div>
                 {editField==="injuries"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. bad knee, lower back issues" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,injuries:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
                 :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.injuries||"None"}</div><button onClick={()=>{setEditField("injuries");setEditVal(profile?.health?.injuries||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
+              </div>
+            </div>
+            {/* Allergies & dietary restrictions */}
+            <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}>
+              <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:14}}>Allergies & dietary restrictions</div>
+              <div style={{...F,fontSize:12,color:C.t3,marginBottom:10}}>Select any that apply. Your guide will factor these into restaurant and food recommendations.</div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                {["Gluten-free / Celiac","Dairy","Eggs","Peanuts","Tree nuts","Soy","Fish","Crustaceans (shrimp, crab, lobster)","Molluscs (clams, oysters, squid)","Wheat","Sesame","Legumes","Mustard","Sulfites","Corn","Nightshades"].map(a=>{const allergies=profile?.health?.allergies||[];const on=allergies.includes(a);return(<button key={a} onClick={()=>{const na=on?allergies.filter(x=>x!==a):[...allergies,a];const p={...profile,health:{...profile.health,allergies:na}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?"rgba(220,60,60,0.06)":C.cream,border:`1.5px solid ${on?"#DC3C3C":C.b2}`,color:on?"#DC3C3C":C.t2,fontWeight:on?600:400}}>{on?"\u26A0\uFE0F ":""}{a}</button>);})}
+              </div>
+              <div style={{marginTop:12}}>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Dietary preferences</div>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  {["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Low sodium","Low sugar","Lactose-free"].map(d=>{const diets=profile?.health?.diets||[];const on=diets.includes(d);return(<button key={d} onClick={()=>{const nd=on?diets.filter(x=>x!==d):[...diets,d];const p={...profile,health:{...profile.health,diets:nd}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);}} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.tealSoft:C.cream,border:`1.5px solid ${on?C.teal:C.b2}`,color:on?C.teal:C.t2,fontWeight:on?600:400}}>{d}</button>);})}
+                </div>
+              </div>
+              <div style={{marginTop:12}}>
+                <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>Other allergies or notes</div>
+                {editField==="other_allergies"?<div style={{display:"flex",gap:8}}><input value={editVal} onChange={e=>setEditVal(e.target.value)} placeholder="e.g. kiwi, latex, specific medications" style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:`1.5px solid ${C.acc}`,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/><button onClick={()=>{const p={...profile,health:{...profile.health,otherAllergies:editVal.trim()}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);setEditField(null);}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>Save</button></div>
+                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{...F,fontSize:14,color:C.t1,flex:1}}>{profile?.health?.otherAllergies||"None"}</div><button onClick={()=>{setEditField("other_allergies");setEditVal(profile?.health?.otherAllergies||"");}} style={{...F,fontSize:13,color:C.acc,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>Edit</button></div>}
               </div>
             </div>
             {/* Insurance info */}
