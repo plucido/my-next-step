@@ -52,8 +52,10 @@ function ProgressRing({ progress, size = 44, stroke = 4 }) {
 }
 
 // ─── SUGGESTION CHIPS ───
-function SuggestionChips({ onSelect }) {
-  const chips = ["Find me a class", "Plan a trip", "What should I do today?", "Help me with a goal"];
+function SuggestionChips({ onSelect, hasSteps, hasPlans }) {
+  const initial = ["Find me a class", "Plan a trip", "What should I do today?", "Help me with a goal"];
+  const withSteps = ["Give me new steps", "Change my focus", "I want to try something new", "Plan a trip"];
+  const chips = hasSteps ? withSteps : initial;
   return (
     <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "0 0 8px", scrollbarWidth: "none" }}>
       {chips.map(c => (
@@ -241,7 +243,7 @@ function DeepProfileChat({profile,onFinish,existingInsights}){
         {busy&&<div style={{display:"flex",gap:10,marginBottom:12}}><div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0}} /><div style={{padding:"13px 20px",borderRadius:20,background:C.card,boxShadow:C.shadow,display:"flex",gap:6}}>{[0,1,2].map(i=><div key={i} style={{width:6,height:6,borderRadius:"50%",background:C.t3,animation:`dpb 1.2s ease-in-out ${i*.15}s infinite`}} />)}</div></div>}
         <div ref={endRef} />
       </div>
-      <div style={{padding:"12px 20px 22px",flexShrink:0}}><div style={{display:"flex",gap:10}}><input ref={inpRef} value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Type your answer..." style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} /><button onClick={send} disabled={!inp.trim()||busy} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:inp.trim()&&!busy?"pointer":"default",background:inp.trim()&&!busy?C.accGrad:"rgba(0,0,0,0.04)",color:inp.trim()&&!busy?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:inp.trim()&&!busy?"0 2px 10px rgba(212,82,42,0.2)":"none"}}>{"\u2191"}</button></div></div>
+      <div style={{padding:"12px 20px 22px",flexShrink:0}}><div style={{display:"flex",gap:10,alignItems:"flex-end"}}><textarea ref={inpRef} value={inp} onChange={e=>{setInp(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} placeholder="Type your answer..." rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow,resize:"none",maxHeight:150,lineHeight:1.5,overflow:"auto"}} /><button onClick={send} disabled={!inp.trim()||busy} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:inp.trim()&&!busy?"pointer":"default",background:inp.trim()&&!busy?C.accGrad:"rgba(0,0,0,0.04)",color:inp.trim()&&!busy?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:inp.trim()&&!busy?"0 2px 10px rgba(212,82,42,0.2)":"none",marginBottom:1}}>{"\u2191"}</button></div></div>
       <style>{`@keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}`}</style>
     </div>
   );
@@ -312,7 +314,34 @@ export default function App(){
   const[stravaData,setStravaData]=useState(null);
   const[showEarnings,setShowEarnings]=useState(false);
   const[showSettings,setShowSettings]=useState(false);
+  const[missedStep,setMissedStep]=useState(null);
+  const[missedReason,setMissedReason]=useState("");
   const chatEnd=useRef(null);const inputRef=useRef(null);
+
+  const timeAgo=iso=>{if(!iso)return"";const d=Date.now()-new Date(iso).getTime();const m=Math.floor(d/6e4);if(m<1)return"Just now";if(m<60)return m+"m ago";const h=Math.floor(m/60);if(h<24)return h+"h ago";return Math.floor(h/24)+"d ago";};
+
+  const checkExpired=useCallback(()=>{
+    const now=new Date();const hour=now.getHours();let changed=false;
+    const updated=steps.map(s=>{
+      if(s.status!=="active")return s;
+      const t=(s.time||"").toLowerCase();
+      const age=s.createdAt?(Date.now()-new Date(s.createdAt).getTime())/36e5:0;
+      let expired=false;
+      if(age>48)expired=true;
+      if(t.includes("tonight")&&age>14)expired=true;
+      if(t.includes("this morning")&&hour>13&&age>6)expired=true;
+      if(t.includes("today")&&age>24)expired=true;
+      if(t.includes("before noon")&&hour>13&&age>4)expired=true;
+      if(expired){changed=true;return{...s,status:"expired"};}
+      return s;
+    });
+    if(changed){setSteps(updated);persist(profile,updated,plans,messages,preferences);}
+  },[steps]);
+
+  useEffect(()=>{checkExpired();const i=setInterval(checkExpired,3e5);return()=>clearInterval(i);},[steps.length]);
+
+  const submitMissedReason=()=>{if(!missedReason.trim()||!missedStep)return;sendMessage(`I didn't do "${missedStep.title}". Reason: ${missedReason.trim()}`);const u=steps.filter(s=>s.id!==missedStep.id);setSteps(u);persist(profile,u,plans,messages,preferences);setMissedStep(null);setMissedReason("");setMode("chat");};
+  const dismissMissed=id=>{const u=steps.filter(s=>s.id!==id);setSteps(u);persist(profile,u,plans,messages,preferences);};
 
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[messages,loading]);
   useEffect(()=>{const p=new URLSearchParams(window.location.search);const code=p.get("code");if(code&&p.get("scope")?.includes("read")){window.history.replaceState({},"",window.location.pathname);exchangeStravaCode(code).then(async d=>{if(d?.access_token){const pr=await fetchStravaProfile(d.access_token);const full={...d,profile:pr};setStravaData(full);window.storage.set("mns-strava",JSON.stringify(full)).catch(()=>{});}});}},[]);
@@ -334,6 +363,7 @@ export default function App(){
   const sendMessage=async text=>{
     const msg=text||input.trim();if(!msg||loading)return;
     const userMsg={role:"user",content:msg};const updated=[...messages,userMsg];setMessages(updated);setInput("");setLoading(true);
+    if(inputRef.current)inputRef.current.style.height="auto";
     const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs (${sp.allTimeRunDistance}), ${sp.allTimeRides} rides (${sp.allTimeRideDistance})`:"";
     const stepsCtx=steps.filter(s=>s.status==="active").length>0?"\n\nACTIVE STEPS: "+steps.filter(s=>s.status==="active").map(s=>`"${s.title}"`).join(", "):"";
@@ -350,7 +380,7 @@ export default function App(){
       let displayText=raw,newSteps=[...steps],newPlans=[...plans],newPrefs=[...preferences];
       if(raw.includes("---DATA---")){const parts=raw.split("---DATA---");displayText=parts[0].trim();
         try{for(const item of JSON.parse(parts[1].trim())){
-          if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random()},...newSteps];
+          if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
           else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false}))},...newPlans.filter(p=>p.title!==item.title)];
           else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
           else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
@@ -376,6 +406,7 @@ export default function App(){
 
   const activeSteps=steps.filter(s=>s.status==="active");
   const doneSteps=steps.filter(s=>s.status==="done");
+  const expiredSteps=steps.filter(s=>s.status==="expired");
   const streak=getStreak(steps);
 
   if(screen==="auth")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><AuthScreen onAuth={handleAuth}/></div>);
@@ -400,6 +431,23 @@ export default function App(){
             <div style={{display:"flex",gap:8,marginBottom:16,flexWrap:"wrap"}}>{["Loved it!","It was okay","Not for me","Too expensive","Too far","More like this"].map(q=>(<button key={q} onClick={()=>setFeedbackText(q)} style={{...F,padding:"9px 16px",borderRadius:12,fontSize:13,cursor:"pointer",background:feedbackText===q?C.accSoft:C.cream,border:`1.5px solid ${feedbackText===q?C.acc:C.b2}`,color:feedbackText===q?C.acc:C.t2,fontWeight:feedbackText===q?600:400,transition:"all 0.15s"}}>{q}</button>))}</div>
             <textarea value={feedbackText} onChange={e=>setFeedbackText(e.target.value)} rows={2} placeholder="Or type your thoughts..." style={{...F,width:"100%",padding:"13px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:16}} />
             <div style={{display:"flex",gap:10}}><button onClick={()=>{setFeedbackStep(null);setFeedbackText("");}} style={{...F,flex:1,padding:13,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:15,cursor:"pointer"}}>Skip</button><button onClick={submitFeedback} disabled={!feedbackText.trim()} style={{...F,flex:1,padding:13,borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:feedbackText.trim()?"pointer":"default",background:feedbackText.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:feedbackText.trim()?"#fff":C.t3,boxShadow:feedbackText.trim()?"0 2px 10px rgba(212,82,42,0.2)":"none"}}>Submit</button></div>
+          </div>
+        </div>
+      )}
+
+      {/* Missed step modal */}
+      {missedStep&&(
+        <div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
+          <div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
+            <div style={{...F,fontSize:12,color:"#B45309",fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Missed step</div>
+            <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>{missedStep.title}</div>
+            <div style={{...F,fontSize:14,color:C.t3,marginBottom:18,lineHeight:1.5}}>This step has expired. Telling your coach why helps improve future recommendations.</div>
+            <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{["Forgot about it","Didn't have time","Changed my mind","Too far away","Found something better","Not interested anymore"].map(q=>(<button key={q} onClick={()=>setMissedReason(q)} style={{...F,padding:"8px 14px",borderRadius:12,fontSize:13,cursor:"pointer",background:missedReason===q?C.goldSoft:C.cream,border:`1.5px solid ${missedReason===q?"#B45309":C.b2}`,color:missedReason===q?"#B45309":C.t2,fontWeight:missedReason===q?600:400,transition:"all 0.15s"}}>{q}</button>))}</div>
+            <textarea value={missedReason} onChange={e=>setMissedReason(e.target.value)} rows={2} placeholder="Or tell us more..." style={{...F,width:"100%",padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:16}} />
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:13,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove it</button>
+              <button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:13,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell coach</button>
+            </div>
           </div>
         </div>
       )}
@@ -443,7 +491,7 @@ export default function App(){
         {/* STEPS */}
         {mode==="steps"&&(
           <div style={{flex:1,overflowY:"auto",padding:"10px 22px 80px"}}>
-            {activeSteps.length===0&&doneSteps.length===0?(
+            {activeSteps.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
               <FadeIn><div style={{textAlign:"center",padding:"48px 20px"}}>
                 <div style={{width:72,height:72,borderRadius:22,margin:"0 auto 18px",background:C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:32}}>{"\u{1F463}"}</div>
                 <div style={{...H,fontSize:22,color:C.t1,marginBottom:10}}>Ready for your first step?</div>
@@ -458,6 +506,7 @@ export default function App(){
                     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
                       <span style={{fontSize:16}}>{catIcon(step.category)}</span>
                       <span style={{...F,fontSize:11,fontWeight:700,color:catColor(step.category),textTransform:"uppercase",letterSpacing:1.5}}>{step.category}</span>
+                      {step.createdAt&&<span style={{...F,fontSize:11,color:C.t3,marginLeft:"auto"}}>{timeAgo(step.createdAt)}</span>}
                     </div>
                     <div style={{...F,fontSize:16,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:5,paddingRight:28}}>{step.title}</div>
                     {step.time&&<div style={{...F,fontSize:13,color:C.t3,marginBottom:8}}>{step.time}</div>}
@@ -469,7 +518,28 @@ export default function App(){
                     </div>
                   </div></FadeIn>
                 ))}</div>}
-              {doneSteps.length>0&&<div><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:14}}>Completed ({doneSteps.length})</div>{doneSteps.slice(0,5).map(s=>(<div key={s.id} style={{padding:"14px 18px",borderRadius:16,marginBottom:8,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.55}}><span style={{color:C.teal,fontSize:16}}>{"\u2713"}</span><span style={{...F,fontSize:14,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button></div>))}</div>}
+              {activeSteps.length===0&&doneSteps.length>0&&expiredSteps.length===0&&(
+                <FadeIn><div style={{textAlign:"center",padding:"28px 20px",marginBottom:20}}>
+                  <div style={{fontSize:40,marginBottom:10}}>{"\u{1F389}"}</div>
+                  <div style={{...H,fontSize:20,color:C.t1,marginBottom:6}}>All caught up!</div>
+                  <div style={{...F,fontSize:14,color:C.t2,marginBottom:16}}>You've completed all your steps. Nice work.</div>
+                  <button onClick={()=>{setMode("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"11px 24px",borderRadius:14,border:"none",fontSize:14,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 2px 10px rgba(212,82,42,0.15)"}}>Get more steps {"\u2192"}</button>
+                </div></FadeIn>
+              )}
+              {expiredSteps.length>0&&<div style={{marginBottom:24}}><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:"#B45309",marginBottom:14}}>Expired ({expiredSteps.length})</div>
+                {expiredSteps.map(s=>(<div key={s.id} style={{padding:"16px 18px",borderRadius:16,marginBottom:8,background:C.goldSoft,border:"1px solid rgba(180,83,9,0.1)",display:"flex",alignItems:"center",gap:12}}>
+                  <span style={{fontSize:16,opacity:.6}}>{catIcon(s.category)}</span>
+                  <div style={{flex:1}}>
+                    <div style={{...F,fontSize:14,color:C.t1,fontWeight:500,opacity:.7}}>{s.title}</div>
+                    {s.time&&<div style={{...F,fontSize:12,color:"#B45309",marginTop:2}}>Was: {s.time}</div>}
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>{setMissedStep(s);setMissedReason("");}} style={{...F,fontSize:12,padding:"6px 12px",borderRadius:10,background:C.card,border:`1px solid ${C.b2}`,color:C.t2,cursor:"pointer"}}>Why?</button>
+                    <button onClick={()=>dismissMissed(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button>
+                  </div>
+                </div>))}
+              </div>}
+              {doneSteps.length>0&&<div><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:14}}>Completed ({doneSteps.length})</div>{doneSteps.slice(0,10).map(s=>(<div key={s.id} style={{padding:"14px 18px",borderRadius:16,marginBottom:8,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:.55}}><span style={{color:C.teal,fontSize:16}}>{"\u2713"}</span><span style={{...F,fontSize:14,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:14}}>{"\u00D7"}</button></div>))}</div>}
             </>)}
           </div>
         )}
@@ -485,17 +555,45 @@ export default function App(){
                 <button onClick={()=>{setMode("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:16,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 20px rgba(212,82,42,0.25)"}}>Talk to your coach {"\u2192"}</button>
               </div></FadeIn>
             ):(<><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:14}}>Your plans ({plans.length})</div>
-              {plans.map((plan,pi)=>{const open=expandedPlan===pi,done=plan.tasks?.filter(t=>t.done).length||0,total=plan.tasks?.length||0;return(<FadeIn key={pi} delay={pi*60}><div style={{marginBottom:12}}>
-                <div style={{padding:"20px 22px",borderRadius:open?"20px 20px 0 0":20,cursor:"pointer",background:C.card,boxShadow:C.shadow,position:"relative"}}>
+              {plans.map((plan,pi)=>{const open=expandedPlan===pi,done=plan.tasks?.filter(t=>t.done).length||0,total=plan.tasks?.length||0;
+                // Check if plan date has passed
+                const dateStr=plan.date||"";
+                let isPast=false,parsedDate=null;
+                if(dateStr){
+                  // Try to extract a date - handles "May 15-18, 2026", "June 2026", "May 15, 2026", etc.
+                  const match=dateStr.match(/(\w+\s+\d{1,2})(?:[^,\d]*(\d{4}))?|(\w+\s+\d{4})/);
+                  if(match){
+                    try{
+                      // Get the end date if range (e.g. "May 15-18" -> May 18)
+                      const rangeMatch=dateStr.match(/(\w+)\s+\d{1,2}\s*[-\u2013]\s*(\d{1,2}),?\s*(\d{4})/);
+                      if(rangeMatch){parsedDate=new Date(`${rangeMatch[1]} ${rangeMatch[2]}, ${rangeMatch[3]}`);}
+                      else{const simple=dateStr.match(/(\w+\s+\d{1,2}),?\s*(\d{4})/);if(simple)parsedDate=new Date(`${simple[1]}, ${simple[2]}`);}
+                      if(parsedDate&&!isNaN(parsedDate)){parsedDate.setHours(23,59,59);isPast=parsedDate<new Date();}
+                    }catch{}
+                  }
+                }
+                const allDone=total>0&&done===total;
+                const borderColor=isPast&&!allDone?"#DC3C3C":allDone?C.teal:C.b1;
+                const cardBg=isPast&&!allDone?"rgba(220,60,60,0.02)":allDone?C.tealSoft:C.card;
+                return(<FadeIn key={pi} delay={pi*60}><div style={{marginBottom:12}}>
+                <div style={{padding:"20px 22px",borderRadius:open?"20px 20px 0 0":20,cursor:"pointer",background:cardBg,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${borderColor}`}}>
                   <button onClick={e=>{e.stopPropagation();deletePlan(pi);}} style={{position:"absolute",top:16,right:16,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16,padding:"2px 6px"}}>{"\u00D7"}</button>
                   <div onClick={()=>setExpandedPlan(open?null:pi)}>
                     <div style={{...F,fontSize:17,fontWeight:600,color:C.t1,paddingRight:28}}>{plan.title}</div>
-                    {plan.date&&<div style={{...F,fontSize:13,color:C.t3,marginTop:5}}>{plan.date}</div>}
-                    <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}><div style={{flex:1,height:5,background:C.cream,borderRadius:3}}><div style={{height:"100%",width:total?(done/total*100)+"%":"0%",background:C.accGrad,borderRadius:3,transition:"width 0.6s ease"}}/></div><span style={{...F,fontSize:12,fontWeight:600,color:C.acc}}>{done}/{total}</span></div>
+                    {plan.date&&<div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
+                      <span style={{fontSize:14}}>{isPast&&!allDone?"\u{1F534}":allDone?"\u2705":"\u{1F4C5}"}</span>
+                      <span style={{...F,fontSize:13,color:isPast&&!allDone?"#DC3C3C":allDone?C.teal:C.t3,fontWeight:isPast&&!allDone?600:400}}>{plan.date}</span>
+                      {isPast&&!allDone&&<span style={{...F,fontSize:11,fontWeight:600,color:"#DC3C3C",background:"rgba(220,60,60,0.08)",padding:"2px 8px",borderRadius:6}}>Overdue</span>}
+                      {allDone&&<span style={{...F,fontSize:11,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 8px",borderRadius:6}}>Complete</span>}
+                    </div>}
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginTop:12}}><div style={{flex:1,height:5,background:isPast&&!allDone?"rgba(220,60,60,0.08)":C.cream,borderRadius:3}}><div style={{height:"100%",width:total?(done/total*100)+"%":"0%",background:allDone?C.teal:isPast&&!allDone?"#DC3C3C":C.accGrad,borderRadius:3,transition:"width 0.6s ease"}}/></div><span style={{...F,fontSize:12,fontWeight:600,color:allDone?C.teal:isPast&&!allDone?"#DC3C3C":C.acc}}>{done}/{total}</span></div>
                   </div>
-                  <button onClick={()=>talkAbout(`Let's discuss: "${plan.title}"`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer",marginTop:12}}>Discuss plan</button>
+                  <div style={{display:"flex",gap:8,marginTop:12}}>
+                    {isPast&&!allDone&&<button onClick={()=>talkAbout(`My plan "${plan.title}" is overdue (was ${plan.date}). Help me reschedule or adjust it.`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:"rgba(220,60,60,0.06)",border:"1px solid rgba(220,60,60,0.12)",color:"#DC3C3C",cursor:"pointer",fontWeight:600}}>Reschedule</button>}
+                    <button onClick={()=>talkAbout(`Let's discuss: "${plan.title}"`)} style={{...F,fontSize:12,padding:"7px 14px",borderRadius:10,background:C.cream,border:"none",color:C.t3,cursor:"pointer"}}>Discuss plan</button>
+                  </div>
                 </div>
-                {open&&<div style={{padding:"10px 22px 20px",background:C.card,boxShadow:C.shadow,borderRadius:"0 0 20px 20px",borderTop:`1px solid ${C.b1}`}}>
+                {open&&<div style={{padding:"10px 22px 20px",background:cardBg,boxShadow:C.shadow,borderRadius:"0 0 20px 20px",borderTop:`1px solid ${C.b1}`}}>
                   {plan.tasks?.map((task,ti)=>(<div key={ti} style={{padding:"14px 0",borderBottom:ti<plan.tasks.length-1?`1px solid ${C.b1}`:"none"}}><div style={{display:"flex",alignItems:"flex-start",gap:12}}>
                     <button onClick={()=>togglePlanTask(pi,ti)} style={{width:24,height:24,borderRadius:8,flexShrink:0,marginTop:1,cursor:"pointer",background:task.done?C.teal:"transparent",border:`2px solid ${task.done?C.teal:C.b2}`,display:"flex",alignItems:"center",justifyContent:"center",color:task.done?"#fff":"transparent",fontSize:13,transition:"all 0.15s"}}>{task.done?"\u2713":""}</button>
                     <div style={{flex:1}}><div style={{...F,fontSize:15,fontWeight:500,color:C.t1,textDecoration:task.done?"line-through":"none",opacity:task.done?.5:1}}>{task.title}</div>
@@ -524,12 +622,15 @@ export default function App(){
             <div ref={chatEnd} />
           </div>
           <div style={{padding:"6px 22px 6px",flexShrink:0}}>
-            {messages.length<=2&&<SuggestionChips onSelect={text=>{setInput(text);setTimeout(()=>sendMessage(text),50);}} />}
+            {messages.length<=4&&<SuggestionChips onSelect={text=>{setInput(text);setTimeout(()=>sendMessage(text),50);}} hasSteps={activeSteps.length>0} hasPlans={plans.length>0} />}
           </div>
-          <div style={{padding:"6px 22px 20px",flexShrink:0}}><div style={{display:"flex",gap:10}}>
-            <input ref={inputRef} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendMessage()} placeholder="What do you want to do?" style={{...F,flex:1,padding:"14px 18px",fontSize:15,borderRadius:18,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow,transition:"border-color 0.2s,box-shadow 0.2s"}} onFocus={e=>{e.target.style.borderColor=C.acc;e.target.style.boxShadow=`0 0 0 3px ${C.accSoft}`;}} onBlur={e=>{e.target.style.borderColor=C.b2;e.target.style.boxShadow=C.shadow;}} />
-            <button onClick={()=>sendMessage()} disabled={!input.trim()||loading} style={{width:48,height:48,borderRadius:16,border:"none",flexShrink:0,cursor:input.trim()&&!loading?"pointer":"default",background:input.trim()&&!loading?C.accGrad:"rgba(0,0,0,0.04)",color:input.trim()&&!loading?"#fff":C.t3,fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:input.trim()&&!loading?"0 3px 12px rgba(212,82,42,0.25)":"none",transition:"all 0.2s"}}>{"\u2191"}</button>
-          </div></div>
+          <div style={{padding:"6px 22px 16px",flexShrink:0}}>
+            <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
+              <textarea ref={inputRef} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder="What do you want to do?" rows={1} style={{...F,flex:1,padding:"14px 18px",fontSize:15,borderRadius:18,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow,transition:"border-color 0.2s,box-shadow 0.2s",resize:"none",maxHeight:150,lineHeight:1.5,overflow:"auto"}} onFocus={e=>{e.target.style.borderColor=C.acc;e.target.style.boxShadow=`0 0 0 3px ${C.accSoft}`;}} onBlur={e=>{e.target.style.borderColor=C.b2;e.target.style.boxShadow=C.shadow;}} />
+              <button onClick={()=>sendMessage()} disabled={!input.trim()||loading} style={{width:48,height:48,borderRadius:16,border:"none",flexShrink:0,cursor:input.trim()&&!loading?"pointer":"default",background:input.trim()&&!loading?C.accGrad:"rgba(0,0,0,0.04)",color:input.trim()&&!loading?"#fff":C.t3,fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:input.trim()&&!loading?"0 3px 12px rgba(212,82,42,0.25)":"none",transition:"all 0.2s",marginBottom:1}}>{"\u2191"}</button>
+            </div>
+            {input.length>50&&<div style={{...F,fontSize:11,color:C.t3,marginTop:6,textAlign:"right"}}>Shift+Enter for new line</div>}
+          </div>
         </>)}
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
