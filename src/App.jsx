@@ -63,7 +63,7 @@ function trackClick(id,url,cat,title){try{const c=JSON.parse(localStorage.getIte
 function TLink({href,actionId,category,title,children,style:sx}){return<a href={wrapLink(href,actionId)} target="_blank" rel="noopener noreferrer" onClick={()=>trackClick(actionId,href,category,title)} style={sx}>{children}</a>;}
 
 // ─── MARKDOWN CLEANER ───
-function clean(text){if(!text)return text;let t=text;t=t.replace(/\*\*\*(.*?)\*\*\*/g,"$1");t=t.replace(/\*\*(.*?)\*\*/g,"$1");t=t.replace(/\*(.*?)\*/g,"$1");t=t.replace(/^#{1,6}\s+/gm,"");t=t.replace(/^[\-]\s+/gm,"\u2022 ");t=t.replace(/`([^`]+)`/g,"$1");t=t.replace(/```[\s\S]*?```/g,"");t=t.replace(/_{2}(.*?)_{2}/g,"$1");t=t.replace(/~{2}(.*?)~{2}/g,"$1");const lr=/\[([^\]]+)\]\([^)]+\)/g;t=t.replace(lr,"$1");return t.trim();}
+function clean(text){if(!text)return text;let t=text;t=t.replace(/\*\*\*(.*?)\*\*\*/g,"$1");t=t.replace(/\*\*(.*?)\*\*/g,"$1");t=t.replace(/\*(.*?)\*/g,"$1");t=t.replace(/^#{1,6}\s+/gm,"");t=t.replace(/^[\-\*]\s+/gm,"");t=t.replace(/^\d+\.\s+/gm,"");t=t.replace(/`([^`]+)`/g,"$1");t=t.replace(/```[\s\S]*?```/g,"");t=t.replace(/_{2}(.*?)_{2}/g,"$1");t=t.replace(/~{2}(.*?)~{2}/g,"$1");t=t.replace(/\[([^\]]+)\]\([^)]+\)/g,"$1");t=t.replace(/\u2022\s*/g,"");t=t.replace(/^[A-Z][A-Z\s]+:/gm,"");t=t.replace(/\n{3,}/g,"\n\n");return t.trim();}
 
 // ─── AUTH HELPERS ───
 function loadGSI(){return new Promise(r=>{if(document.getElementById("gsi"))return r();const s=document.createElement("script");s.id="gsi";s.src="https://accounts.google.com/gsi/client";s.onload=r;document.head.appendChild(s);});}
@@ -78,45 +78,53 @@ async function fetchGCal(token){try{const now=new Date().toISOString(),end=new D
 async function addGCalEvent(token,title,desc,time){try{const s=new Date();const tl=(time||"").toLowerCase();if(tl.includes("tomorrow"))s.setDate(s.getDate()+1);if(tl.includes("tonight")||tl.includes("pm")){const m=tl.match(/(\d{1,2})\s*pm/);s.setHours(m?parseInt(m[1])+12:19,0,0);}if(tl.includes("am")){const m=tl.match(/(\d{1,2})\s*am/);if(m)s.setHours(parseInt(m[1]),0,0);}if(tl.includes("weekend")){s.setDate(s.getDate()+(6-s.getDay()+7)%7||7);s.setHours(10,0,0);}const e=new Date(s.getTime()+36e5);const tz=Intl.DateTimeFormat().resolvedOptions().timeZone;const r=await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events",{method:"POST",headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"},body:JSON.stringify({summary:title,description:desc||"From My Next Step",start:{dateTime:s.toISOString(),timeZone:tz},end:{dateTime:e.toISOString(),timeZone:tz}})});return r.ok;}catch{return false;}}
 
 // ─── SYSTEM PROMPT ───
-const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm, personal life coach.
+const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm life coach app.
 
-The app has 4 life segments: Career (work, professional growth), Wellness (fitness, health, self-care), Fun (friends, events, hobbies), Adventure (trips, travel, new experiences).
-The user is currently chatting in one segment. Focus on that area, but use everything you know about them across all segments.
+The app has 4 segments: Career, Wellness, Fun, Adventure. You're chatting in one segment but know everything across all.
 
-WHEN TO CREATE STEPS/JOURNEYS:
-- If the user says what they want, MAKE IT immediately.
-- If they confirm ("yeah", "do it", "sounds good"), CREATE right away.
-- If vague, ask ONE question then act.
-- When in doubt, CREATE. A dismissable step beats an empty conversation.
+CRITICAL FORMAT RULES:
+- ABSOLUTELY NO MARKDOWN EVER. No asterisks, no bold (**), no bullets (\u2022), no headers (#), no numbered lists, no colons followed by lists. PLAIN CONVERSATIONAL TEXT ONLY.
+- Write like you're texting a friend. Short sentences. Line breaks between ideas.
+- Keep your chat response to 2-3 SHORT sentences max. The step/journey cards show all the detail.
+- DO NOT dump research findings as a wall of text. Put specific recommendations into steps and journey tasks instead.
+
+BAD (never do this):
+"FLIGHTS: United runs $1,122... HOTELS: \u2022 San Firenze Suites..."
+
+GOOD (do this):
+"Ooh Florence in September is dreamy! I found some great flights and hotels for you \u2014 check out the cards below."
+Then put the actual recommendations in ---DATA--- as steps/journeys.
+
+ALWAYS CREATE STEPS OR JOURNEYS:
+- Every response that discusses doing something MUST include ---DATA--- with steps or a journey.
+- If you searched the web and found info, put those findings INTO step/journey cards, not in the chat text.
+- A trip discussion = create a journey with specific tasks. Always.
+- A class/restaurant/event recommendation = create a step. Always.
+- If the user is just chatting/venting with no action needed, you can skip ---DATA---.
+- When in doubt, CREATE. Users can dismiss what they don't want.
 
 SPECIFICITY:
-- NEVER give vague tasks like "Book a hotel". Always recommend SPECIFIC places with names, prices, details.
-- Use web search to find real options before recommending.
-- Include prices. Pre-fill links with search parameters.
+- Every step and journey task must name a SPECIFIC place, price, and link. Never "Book a hotel" \u2014 instead "Book Hotel Brunelleschi, ~$350/night, Duomo views".
+- Use web search to find real options.
 
-BUDGET: Ask about budget naturally when relevant. Store it as a preference.
+BUDGET: Ask naturally when relevant. Store as preference.
 
 MANAGING ITEMS:
-- Delete irrelevant steps/journeys when conversation shifts.
-- To update a journey, output it with the SAME title. It replaces the old one.
-- If user has LOVED steps, recommend more in that style.
-- If Google Calendar is connected, avoid scheduling conflicts.
+- Delete old steps/journeys when conversation shifts.
+- To update a journey, output it with the SAME title \u2014 it replaces the old one.
+- Loved steps = strong signal, recommend more like them.
 
-TONE:
-- Write like a friend texting. Casual, warm, no fluff.
-- NEVER use markdown: no asterisks, bold, bullets, headers. Plain text only.
-- 1-3 sentences. Cards do the work.
+OUTPUT FORMAT:
+Your response should be: short casual chat text, then ---DATA---, then a JSON array.
 
-OUTPUT FORMAT (after "---DATA---"):
-All in one JSON array:
-{"type":"step","title":"6pm Vinyasa at Black Swan Yoga","why":"$15, 10min from you","link":"https://...","linkText":"Book","category":"fitness","time":"Tonight 6pm"}
-{"type":"plan","title":"Austin Trip","date":"May 15-18, 2026","tasks":[{"title":"Book Southwest HOU-AUS ~$89","links":[{"label":"Kayak","url":"https://..."}]}]}
-{"type":"delete_step","title":"yoga"}
-{"type":"delete_plan","title":"Austin"}
-{"type":"preference","key":"budget_hotels","value":"$150-200/night"}
+Example response:
+"Florence in September is perfect! Warm days, wine harvest season, and way fewer tourists. Here's your trip \u2014 let me know if you want to adjust anything."
+
+---DATA---
+[{"type":"plan","title":"Florence Romantic Getaway","date":"Sep 15-22, 2026","tasks":[{"title":"Book Alaska/Condor flight HOU-FLR, ~$893 roundtrip","links":[{"label":"Google Flights","url":"https://www.google.com/travel/flights?q=flights+houston+to+florence+september+2026"}]},{"title":"Book Hotel Brunelleschi, ~$350/night, Duomo views","links":[{"label":"Booking.com","url":"https://www.booking.com/searchresults.html?ss=Hotel+Brunelleschi+Florence&checkin=2026-09-15&checkout=2026-09-22"}]},{"title":"Reserve dinner at Osteria dell'Enoteca, Fri 8pm","links":[{"label":"Search","url":"https://www.google.com/search?q=Osteria+dell+Enoteca+Florence+reservation"}]},{"title":"Book Chianti wine tour, ~$85pp, grape harvest season","links":[{"label":"Viator","url":"https://www.viator.com/Florence-tours/Wine-Tasting/d519-g6-c42"}]}]},{"type":"preference","key":"budget_travel","value":"interested in ~$900 flights, mid-range hotels"}]
 
 Categories: fitness, wellness, career, learning, social, events, travel, products
-ALWAYS output ---DATA--- when you can. Create aggressively.`;
+ALWAYS output ---DATA--- with steps/journeys. The cards ARE the product.`;
 
 const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:"\u{1F464}",questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:"\u{1F31F}",questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:"\u{1F3E0}",questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:"\u{1F525}",questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
 
