@@ -1101,7 +1101,7 @@ export default function App(){
           <button onClick={resetAll} style={{...F,width:"100%",padding:"14px",borderRadius:14,marginTop:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:14,cursor:"pointer"}}>Sign out</button>
         </div>}
 
-                        {settingsTab==="health"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {settingsTab==="health"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
           {/* FITNESS - always visible */}
           <div style={{borderRadius:18,background:C.card,boxShadow:C.shadow,overflow:"hidden"}}>
             <button onClick={()=>setHealthSection(p=>({...p,fitness:!p.fitness}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}><Dumbbell size={20}/></span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Fitness</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Level, goals, preferences, injuries</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.fitness?"rotate(180deg)":"rotate(0)"}}><ChevronDown size={16}/></span></button>
@@ -1139,7 +1139,7 @@ export default function App(){
           </div>
 
           {/* Health apps */}
-          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>{[{icon:<Heart size={18} color="#FF2D55"/>,l:"Apple Health",d:"Steps, heart rate, sleep"},{icon:<Dumbbell size={18} color="#0073CF"/>,l:"MyFitnessPal",d:"Nutrition, calories"},{icon:<Heart size={18} color="#00B0B9"/>,l:"Fitbit",d:"Activity, sleep"},{icon:<Sparkles size={18} color="#F47D31"/>,l:"Headspace",d:"Meditation"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} · Coming soon</div></div></div>))}</div>
+          <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:8}}>Health apps</div>{[{icon:<Heart size={18} color="#FF2D55"/>,l:"Apple Health",d:"Steps, heart rate, sleep"},{icon:<Dumbbell size={18} color="#0073CF"/>,l:"MyFitnessPal",d:"Nutrition, calories"},{icon:<Heart size={18} color="#00B0B9"/>,l:"Fitbit",d:"Activity, sleep"},{icon:<Sparkles size={18} color="#F47D31"/>,l:"Headspace",d:"Meditation"}].map(s=>(<div key={s.l} style={{display:"flex",alignItems:"center",gap:12,padding:"10px 0",borderBottom:`1px solid ${C.b1}`,opacity:.4}}><span style={{width:24,display:"flex",justifyContent:"center"}}>{s.icon}</span><div style={{flex:1}}><div style={{...F,fontSize:14,fontWeight:500,color:C.t1}}>{s.l}</div><div style={{...F,fontSize:12,color:C.t3}}>{s.d} {"·"} Coming soon</div></div></div>))}</div>
           <div style={{...F,fontSize:12,color:C.t3,lineHeight:1.6,padding:"14px 16px",background:C.cream,borderRadius:14}}>Your guide is not a medical professional. Always consult a licensed physician for medical concerns.</div>
         </div>}
 
@@ -1253,7 +1253,8 @@ export default function App(){
             </div>}
           </div>
         </div></div>}
+
+      {/* end settings */}
       </div></div>}
-    </div>
-  );
+    </div>);
 }
