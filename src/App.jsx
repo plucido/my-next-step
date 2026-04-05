@@ -447,7 +447,7 @@ export default function App(){
   const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
   const handleAuth=auth=>{const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"! \u{1F463}\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("main");};
+  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"! \u{1F463}\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); setScreen("welcome");};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
     if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! ${"\u{1F463}"}\n\nI'm your Next Step guide. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,fun:[],adventure:[]});persist(full,[],[],{career:[],wellness:w,fun:[],adventure:[]},[]); }
@@ -595,9 +595,33 @@ export default function App(){
 
   if(screen==="auth")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><AuthScreen onAuth={handleAuth}/></div>);
   if(screen==="setup")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SetupScreen profile={profile} onComplete={handleSetup}/></div>);
+  if(screen==="welcome")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style>
+    <FadeIn><div style={{maxWidth:440,margin:"0 auto",padding:"60px 24px 40px"}}>
+      <div style={{textAlign:"center",marginBottom:36}}>
+        <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,color:"#fff"}}>{"\u{1F463}"}</div>
+        <h1 style={{...H,fontSize:28,color:C.t1,margin:"0 0 8px"}}>Welcome, {profile?.name}</h1>
+        <p style={{...F,fontSize:15,color:C.t2,lineHeight:1.6,margin:0}}>Your guide is ready. Where would you like to start?</p>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
+        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];return(
+          <button key={s} onClick={()=>{setSegment(s);setView("chat");setScreen("main");setTimeout(()=>inputRef.current?.focus(),200);}} style={{...F,width:"100%",padding:"18px 20px",borderRadius:18,background:C.card,boxShadow:C.shadow,border:`1.5px solid ${info.color}15`,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+            <div style={{width:48,height:48,borderRadius:16,background:info.soft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{info.icon}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:16,fontWeight:600,color:C.t1}}>{info.label}</div>
+              <div style={{fontSize:13,color:C.t3,marginTop:3}}>{info.desc}</div>
+            </div>
+            <span style={{color:info.color,fontSize:20}}>{"\u203A"}</span>
+          </button>
+        );})}
+      </div>
+      <div style={{textAlign:"center"}}>
+        <button onClick={()=>setScreen("main")} style={{...F,fontSize:14,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"12px 24px"}}>Skip for now {"\u2192"}</button>
+      </div>
+    </div></FadeIn>
+  </div>);
   if(screen==="deepprofile")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepFinish} existingInsights={profile?.insights||[]}/></div>);
 
-  const segInfo=SEGMENTS[segment]||{label:"Everything",icon:"\u{1F4C5}",color:C.acc,soft:C.accSoft,desc:"all your steps and journeys across every area of your life"};
+  const segInfo=SEGMENTS[segment]||{label:"Timeline",icon:"\u{1F4C5}",color:C.acc,soft:C.accSoft,desc:"all your steps and journeys across every area of your life"};
   const bubble=u=>({...F,maxWidth:"82%",padding:"13px 18px",borderRadius:20,fontSize:15,lineHeight:1.65,whiteSpace:"pre-wrap",...(u?{background:C.accGrad,color:"#fff",borderBottomRightRadius:6}:{background:C.card,color:C.t1,borderBottomLeftRadius:6,boxShadow:C.shadow})});
 
   return(
@@ -656,7 +680,7 @@ export default function App(){
 
       {/* Segment selector */}
       <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
-        {[...SEG_KEYS,"everything"].map(s=>{const info=SEGMENTS[s]||{label:"Everything",icon:"\u{1F4C5}",color:C.acc};const active=segment===s;const count=s==="everything"?allSteps.filter(x=>x.status==="active").length:allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
+        {[...SEG_KEYS,"everything"].map(s=>{const info=SEGMENTS[s]||{label:"Timeline",icon:"\u{1F4C5}",color:C.acc};const active=segment===s;const count=s==="everything"?allSteps.filter(x=>x.status==="active").length:allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
           return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
             <span style={{fontSize:14}}>{info.icon}</span>{info.label}{count>0&&<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>}
           </button>);
