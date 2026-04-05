@@ -9,8 +9,8 @@ const INTEREST_OPTIONS = [
   "Volunteering","Pets","Wine & Dining","Dance","Theater"
 ];
 const BUDGET_OPTIONS = ["Under $100","$100-300","$300-500","$500-1000","$1000+"];
-const DIET_OPTIONS = ["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Gluten-free"];
-const ALLERGY_OPTIONS = ["Dairy","Nuts","Shellfish","Soy","Eggs"];
+const DIET_OPTIONS = ["Vegetarian","Vegan","Pescatarian","Keto","Paleo","Halal","Kosher","Low sodium","Low sugar","Lactose-free"];
+const ALLERGY_OPTIONS = ["Gluten-free / Celiac","Dairy","Eggs","Peanuts","Tree nuts","Soy","Fish","Crustaceans (shrimp, crab, lobster)","Wheat","Sesame","Legumes","Mustard","Sulfites","Corn","Nightshades"];
 const FITNESS_OPTIONS = [
   { label: "Just starting", desc: "New to working out or getting back into it" },
   { label: "Active", desc: "Work out a few times a week" },
@@ -26,6 +26,7 @@ export default function QuickProfile({ profile, onComplete }) {
   const [budget, setBudget] = useState("");
   const [diet, setDiet] = useState([]);
   const [allergies, setAllergies] = useState([]);
+  const [otherAllergies, setOtherAllergies] = useState("");
   const [fitness, setFitness] = useState("");
   const [relationship, setRelationship] = useState("");
   const [work, setWork] = useState("");
@@ -63,6 +64,7 @@ export default function QuickProfile({ profile, onComplete }) {
       budget: budget,
       diet: diet,
       allergies: allergies,
+      otherAllergies: otherAllergies,
       fitness: fitness,
       relationship: relationship,
       work: work,
@@ -194,14 +196,18 @@ export default function QuickProfile({ profile, onComplete }) {
             );
           })}
         </div>
-        <p style={{ ...F, fontSize: 12, color: C.t3, margin: "0 0 8px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>Allergies</p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+        <p style={{ ...F, fontSize: 12, color: "#DC3C3C", fontWeight: 600, margin: "0 0 8px 0", textTransform: "uppercase", letterSpacing: 0.5 }}>Allergens</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
           {ALLERGY_OPTIONS.map(function(item) {
             var on = allergies.includes(item);
             return (
-              <button key={item} onClick={function(){ toggleAllergy(item); }} style={on ? chipOn : chipOff}>{item}</button>
+              <button key={item} onClick={function(){ toggleAllergy(item); }} style={on ? {...chipOn, background:"rgba(220,60,60,0.06)", borderColor:"#DC3C3C", color:"#DC3C3C"} : chipOff}>{on ? "\u26A0\uFE0F " : ""}{item}</button>
             );
           })}
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <p style={{ ...F, fontSize: 12, color: C.t3, margin: "0 0 6px 0" }}>Other allergies</p>
+          <input value={otherAllergies} onChange={function(e){setOtherAllergies(e.target.value);}} placeholder="e.g. kiwi, latex, medications" style={{ ...F, width: "100%", padding: "10px 14px", fontSize: 14, borderRadius: 12, border: "1.5px solid " + C.b2, background: C.card, color: C.t1, outline: "none", boxSizing: "border-box" }} />
         </div>
         <button onClick={function(){ toggleDiet("No restrictions"); }} style={diet.includes("No restrictions") ? chipOn : chipOff}>No restrictions</button>
         {renderNav("Next")}
