@@ -591,7 +591,7 @@ export default function App(){
 
       {transitionMsg&&<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:150,padding:"14px 28px",borderRadius:20,background:C.accGrad,color:"#fff",boxShadow:"0 8px 32px rgba(212,82,42,0.3)",display:"flex",alignItems:"center",gap:10,animation:"fadeUp 0.4s ease"}}><Check size={18}/><span style={{...F,fontSize:14,fontWeight:600}}>{transitionMsg}</span></div>}
 
-      {showSettings&&<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}><div style={{maxWidth:480,margin:"0 auto"}}>
+      {showSettings?<div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}><div style={{maxWidth:480,margin:"0 auto"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}><h2 style={{...H,fontSize:26,color:C.t1,margin:0}}>Settings</h2><button onClick={()=>setShowSettings(false)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center",color:C.t3}}><X size={16}/></button></div>
 
         <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow,marginBottom:20,display:"flex",alignItems:"center",gap:16}}>
@@ -774,9 +774,7 @@ export default function App(){
           </div>
         </div>}
 
-      </div>
-      </div>
-      }
+      </div></div>:null}
       <LegalModal legalModal={legalModal} setLegalModal={setLegalModal} />
     </div>
   );
