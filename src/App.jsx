@@ -1,4 +1,43 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { initializeApp } from "firebase/app";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "firebase/firestore";
+
+// ─── FIREBASE INIT ───
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBzV5b0K5bGjZZEXfC8Jqxus_PvH4oeXBc",
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "my-next-step-492323.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "my-next-step-492323",
+  storageBucket: "my-next-step-492323.firebasestorage.app",
+  messagingSenderId: "468026107222",
+  appId: "1:468026107222:web:5544bb25aadc07c234e2f7",
+};
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
+// ─── FIRESTORE HELPERS ───
+function getUserId(profile) {
+  if (!profile?.email) return null;
+  return profile.email.replace(/[^a-zA-Z0-9]/g, "_");
+}
+
+async function saveToFirestore(userId, key, data) {
+  if (!userId) return;
+  try { await setDoc(doc(db, "users", userId, "data", key), { value: JSON.stringify(data), updatedAt: new Date().toISOString() }); }
+  catch (e) { console.error("Firestore save error:", e); }
+}
+
+async function loadFromFirestore(userId, key) {
+  if (!userId) return null;
+  try { const snap = await getDoc(doc(db, "users", userId, "data", key)); if (snap.exists()) return JSON.parse(snap.data().value); }
+  catch (e) { console.error("Firestore load error:", e); }
+  return null;
+}
+
+async function deleteFromFirestore(userId, key) {
+  if (!userId) return;
+  try { await deleteDoc(doc(db, "users", userId, "data", key)); }
+  catch (e) { console.error("Firestore delete error:", e); }
+}
 
 const font = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 const H = { fontFamily: "'Fraunces', serif" };
@@ -501,12 +540,35 @@ export default function App(){
   const dismissMissed=id=>{const u=steps.filter(s=>s.id!==id);setSteps(u);persist(profile,u,plans,messages,preferences);};
 
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[messages,loading]);
-  useEffect(()=>{const p=new URLSearchParams(window.location.search);const code=p.get("code");if(code&&p.get("scope")?.includes("read")){window.history.replaceState({},"",window.location.pathname);exchangeStravaCode(code).then(async d=>{if(d?.access_token){const pr=await fetchStravaProfile(d.access_token);const full={...d,profile:pr};setStravaData(full);window.storage.set("mns-strava",JSON.stringify(full)).catch(()=>{});}});}},[]);
-  useEffect(()=>{(async()=>{try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setSteps(d.steps||[]);setPlans(d.plans||[]);setMessages(d.messages||[]);setPreferences(d.preferences||[]);setScreen("main");}}}catch{}try{const sv=await window.storage.get("mns-strava");if(sv)setStravaData(JSON.parse(sv.value));}catch{}try{const cv=await window.storage.get("mns-calendar");if(cv){const cd=JSON.parse(cv.value);setCalendarToken(cd.token);setCalendarData(cd.events);}}catch{}})();},[]);
+  useEffect(()=>{const p=new URLSearchParams(window.location.search);const code=p.get("code");if(code&&p.get("scope")?.includes("read")){window.history.replaceState({},"",window.location.pathname);exchangeStravaCode(code).then(async d=>{if(d?.access_token){const pr=await fetchStravaProfile(d.access_token);const full={...d,profile:pr};setStravaData(full);const uid=getUserId(profile);if(uid)saveToFirestore(uid,"strava",full);}});}},[]);
+  useEffect(()=>{(async()=>{
+    // Try Firestore first, fall back to window.storage for migration
+    let loaded = false;
+    try {
+      // Check window.storage for existing data (migration path)
+      const s = await window.storage.get("mns-v11");
+      if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setSteps(d.steps||[]);setPlans(d.plans||[]);setMessages(d.messages||[]);setPreferences(d.preferences||[]);setScreen("main");loaded=true;
+        // Migrate to Firestore
+        const uid=getUserId(d.profile);if(uid){saveToFirestore(uid,"appdata",d);window.storage.delete("mns-v11").catch(()=>{});}
+      }}
+    } catch{}
+    if(!loaded){
+      // Try loading from Firestore - check all possible user IDs from localStorage hint
+      try{const hint=localStorage.getItem("mns_last_user");if(hint){const data=await loadFromFirestore(hint,"appdata");if(data?.profile?.setup){setProfile(data.profile);setSteps(data.steps||[]);setPlans(data.plans||[]);setMessages(data.messages||[]);setPreferences(data.preferences||[]);setScreen("main");loaded=true;
+        const strava=await loadFromFirestore(hint,"strava");if(strava)setStravaData(strava);
+        const cal=await loadFromFirestore(hint,"calendar");if(cal){setCalendarToken(cal.token);setCalendarData(cal.events);}
+      }}}catch{}
+    }
+    if(!loaded){
+      // Legacy: try window.storage for strava/calendar
+      try{const sv=await window.storage.get("mns-strava");if(sv)setStravaData(JSON.parse(sv.value));}catch{}
+      try{const cv=await window.storage.get("mns-calendar");if(cv){const cd=JSON.parse(cv.value);setCalendarToken(cd.token);setCalendarData(cd.events);}}catch{}
+    }
+  })();},[]);
 
-  const persist=(p,s,pl,m,pr)=>{window.storage.set("mns-v11",JSON.stringify({profile:p||profile,steps:s||steps,plans:pl||plans,messages:m||messages,preferences:pr||preferences})).catch(()=>{});};
+  const persist=(p,s,pl,m,pr)=>{const data={profile:p||profile,steps:s||steps,plans:pl||plans,messages:m||messages,preferences:pr||preferences};const uid=getUserId(p||profile);if(uid){saveToFirestore(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
-  const handleAuth=auth=>{setProfile({name:auth.name,email:auth.email,method:auth.method});setScreen("socials");};
+  const handleAuth=auth=>{const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("socials");};
   const handleSocials=socials=>{setProfile(p=>({...p,socials}));setScreen("setup");};
   const handleSetup=setup=>{setProfile(p=>({...p,setup}));setScreen("deepprofile");};
   const handleDeepProfileFinish=insights=>{
@@ -660,11 +722,11 @@ export default function App(){
   const deletePlan=idx=>{const u=plans.filter((_,i)=>i!==idx);setPlans(u);setExpandedPlan(null);persist(profile,steps,u,messages,preferences);};
   const togglePlanTask=(pi,ti)=>{const u=plans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setPlans(u);persist(profile,steps,u,messages,preferences);};
   const updateProfile=p=>{setProfile(p);persist(p,steps,plans,messages,preferences);};
-  const disconnectStrava=async()=>{try{await window.storage.delete("mns-strava");}catch{}setStravaData(null);};
-  const handleConnectCalendar=()=>{connectGoogleCalendar(async(tokenResponse)=>{const token=tokenResponse.access_token;setCalendarToken(token);const events=await fetchCalendarEvents(token);setCalendarData(events);window.storage.set("mns-calendar",JSON.stringify({token,events})).catch(()=>{});});};
-  const disconnectCalendar=async()=>{try{await window.storage.delete("mns-calendar");}catch{}setCalendarData(null);setCalendarToken(null);};
+  const disconnectStrava=async()=>{const uid=getUserId(profile);if(uid)deleteFromFirestore(uid,"strava");setStravaData(null);};
+  const handleConnectCalendar=()=>{connectGoogleCalendar(async(tokenResponse)=>{const token=tokenResponse.access_token;setCalendarToken(token);const events=await fetchCalendarEvents(token);setCalendarData(events);const uid=getUserId(profile);if(uid)saveToFirestore(uid,"calendar",{token,events});});};
+  const disconnectCalendar=async()=>{const uid=getUserId(profile);if(uid)deleteFromFirestore(uid,"calendar");setCalendarData(null);setCalendarToken(null);};
   const handleAddToCalendar=async(title,why,time)=>{if(!calendarToken){handleConnectCalendar();return;}const ok=await addToGoogleCalendar(calendarToken,title,why,time);if(ok)alert("Added to your Google Calendar!");else alert("Couldn't add to calendar. Try reconnecting in Settings.");};
-  const resetAll=async()=>{try{await window.storage.delete("mns-v11");await window.storage.delete("mns-strava");await window.storage.delete("mns-calendar");}catch{}setProfile(null);setMessages([]);setSteps([]);setPlans([]);setPreferences([]);setStravaData(null);setCalendarData(null);setCalendarToken(null);setScreen("auth");setShowSettings(false);};
+  const resetAll=async()=>{const uid=getUserId(profile);if(uid){deleteFromFirestore(uid,"appdata");deleteFromFirestore(uid,"strava");deleteFromFirestore(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setMessages([]);setSteps([]);setPlans([]);setPreferences([]);setStravaData(null);setCalendarData(null);setCalendarToken(null);setScreen("auth");setShowSettings(false);};
 
   const activeSteps=steps.filter(s=>s.status==="active");
   const doneSteps=steps.filter(s=>s.status==="done");
