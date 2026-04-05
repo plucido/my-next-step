@@ -114,24 +114,42 @@ WHEN TO CREATE STEPS/PLANS:
 - If they explicitly ask for a plan or step, ALWAYS create one. Never just talk about it.
 - When in doubt, CREATE something. A step they can dismiss is better than a conversation that goes nowhere.
 
+MANAGING EXISTING STEPS/PLANS:
+- If the user says "actually forget that", "never mind", "cancel", or the conversation clearly moves on, DELETE the old steps/plans that are no longer relevant.
+- If the user wants to change a plan (different dates, add tasks, remove tasks), output the full updated plan with the SAME title. It will replace the old one.
+- If the user says "I don't want to do X anymore", delete it.
+- If they say "change my trip to next month", output the updated plan with new dates.
+- Be proactive: if you suggest something new that replaces an old step, delete the old one.
+
 RULES:
-1. When conversation shifts, output DELETE actions to remove irrelevant steps/plans.
-2. EVERY recommendation must have PRE-FILLED links with real search parameters baked in. Never link to just a homepage.
-3. PREFER these platforms when relevant: ClassPass, Eventbrite, Udemy, Skillshare, Mindbody, Meetup, Amazon, LinkedIn Learning, Airbnb, Kayak, Booking.com, VRBO.
-4. Tag every step with a category: fitness, wellness, career, learning, social, events, travel, products.
-5. After feedback, ADAPT. Store preferences.
+1. EVERY recommendation must have PRE-FILLED links with real search parameters. Never link to just a homepage.
+2. PREFER these platforms when relevant: ClassPass, Eventbrite, Udemy, Skillshare, Mindbody, Meetup, Amazon, LinkedIn Learning, Airbnb, Kayak, Booking.com, VRBO.
+3. Tag every step with a category: fitness, wellness, career, learning, social, events, travel, products.
+4. After feedback, ADAPT. Store preferences.
 
 TONE & FORMATTING:
 - Write like a real person texting a friend. Casual, warm, no fluff.
-- NEVER use markdown: no asterisks, no bold, no bullet points, no numbered lists, no headers. Just plain conversational text.
+- NEVER use markdown: no asterisks, no bold, no bullet points, no numbered lists, no headers. Just plain text.
 - Keep chat responses to 1-2 sentences. The cards do the heavy lifting.
 - Sound like a supportive friend with great local knowledge.
 
 OUTPUT FORMAT (after "---DATA---"):
-[{"type":"step","title":"...","why":"...","link":"https://...","linkText":"...","category":"fitness","time":"..."}]
-[{"type":"plan","title":"...","date":"...","tasks":[{"title":"...","links":[{"label":"...","url":"https://..."}]}]}]
-[{"type":"preference","key":"...","value":"..."}]
-[{"type":"delete_step","title":"..."},{"type":"delete_plan","title":"..."}]
+You can include multiple items in one array. Examples:
+
+New step:
+{"type":"step","title":"Try CorePower Yoga","why":"10 min from you, beginner-friendly","link":"https://www.google.com/maps/search/CorePower+Yoga+Houston","linkText":"Find studio","category":"fitness","time":"This week"}
+
+New plan (or update existing by using same title):
+{"type":"plan","title":"Austin Weekend Trip","date":"May 15-18, 2026","tasks":[{"title":"Book flights","links":[{"label":"Kayak","url":"https://www.kayak.com/flights/HOU-AUS/2026-05-15/2026-05-18"}]},{"title":"Find hotel","links":[{"label":"Airbnb","url":"https://www.airbnb.com/s/Austin--TX/homes?checkin=2026-05-15&checkout=2026-05-18"}]}]}
+
+Delete step or plan:
+{"type":"delete_step","title":"yoga"}
+{"type":"delete_plan","title":"Austin"}
+
+Save a preference:
+{"type":"preference","key":"prefers_mornings","value":"User prefers morning activities"}
+
+Wrap all items in a JSON array after ---DATA---
 ALWAYS output ---DATA--- when you can. The whole point of this app is creating steps and plans, not just chatting.`;
 
 // ─── AUTH HELPERS ───
@@ -409,25 +427,59 @@ export default function App(){
     if(inputRef.current)inputRef.current.style.height="auto";
     const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs (${sp.allTimeRunDistance}), ${sp.allTimeRides} rides (${sp.allTimeRideDistance})`:"";
-    const stepsCtx=steps.filter(s=>s.status==="active").length>0?"\n\nACTIVE STEPS: "+steps.filter(s=>s.status==="active").map(s=>`"${s.title}"`).join(", "):"";
-    const plansCtx=plans.length>0?"\n\nPLANS: "+plans.map(p=>`"${p.title}"`).join(", "):"";
+    const stepsCtx=steps.filter(s=>s.status==="active").length>0?"\n\nACTIVE STEPS:\n"+steps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category||"general"}, ${s.time||"anytime"})`).join("\n"):"";
+    const plansCtx=plans.length>0?"\n\nCURRENT PLANS:\n"+plans.map(p=>{const done=p.tasks?.filter(t=>t.done).length||0;const total=p.tasks?.length||0;return`- "${p.title}" (${p.date||"no date"}, ${done}/${total} tasks done, tasks: ${p.tasks?.map(t=>`${t.done?"[done]":"[todo]"} ${t.title}`).join(", ")||"none"})`;}).join("\n"):"";
     const profileCtx=profile?.setup?`\nAge: ${profile.setup.age||"?"} | Gender: ${profile.setup.gender||"?"}`:"";
     try{
-      const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,tools:[{type:"web_search_20250305",name:"web_search"}],
-          system:SYSTEM_PROMPT+`\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${plansCtx}`,
-          messages:updated.slice(-20).map(m=>({role:m.role,content:m.content})),
-        }),
-      });
-      const data=await res.json();
-      // Extract all text from response, handling web search tool_use blocks
-      let allText = "";
-      if (data.content) {
+      // Build messages for API
+      const apiMessages = updated.slice(-20).map(m=>({role:m.role,content:m.content}));
+      const sysPrompt = SYSTEM_PROMPT+`\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${plansCtx}`;
+
+      // Handle web search tool use loop
+      let finalText = "";
+      let currentMessages = [...apiMessages];
+      let attempts = 0;
+
+      while (attempts < 3) {
+        attempts++;
+        const res = await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+          body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,tools:[{type:"web_search_20250305",name:"web_search"}],system:sysPrompt,messages:currentMessages}),
+        });
+        const data = await res.json();
+        console.log("API response attempt", attempts, "stop_reason:", data.stop_reason, "content blocks:", data.content?.length);
+
+        if (!data.content) { finalText = "Hmm, let me try that again."; break; }
+
+        // Collect text from this response
         for (const block of data.content) {
-          if (block.type === "text" && block.text) allText += block.text + "\n";
+          if (block.type === "text" && block.text) finalText += block.text + "\n";
         }
+
+        // If stop_reason is "end_turn", we're done
+        if (data.stop_reason === "end_turn" || data.stop_reason === "stop") break;
+
+        // If stop_reason is "tool_use", we need to feed results back
+        if (data.stop_reason === "tool_use") {
+          // Add assistant's response (with tool_use blocks) to messages
+          currentMessages.push({role: "assistant", content: data.content});
+          // Add tool results
+          const toolResults = [];
+          for (const block of data.content) {
+            if (block.type === "tool_use") {
+              toolResults.push({type: "tool_result", tool_use_id: block.id, content: "Search completed. Use the results to create specific steps/plans with pre-filled links."});
+            }
+          }
+          if (toolResults.length > 0) {
+            currentMessages.push({role: "user", content: toolResults});
+          }
+          finalText = ""; // Reset — we want the final response text, not intermediate
+          continue;
+        }
+
+        break; // Any other stop reason, we're done
       }
-      const raw = allText.trim() || "Tell me more?";
+
+      const raw = finalText.trim() || "Let me think about that...";
       let displayText=raw,newSteps=[...steps],newPlans=[...plans],newPrefs=[...preferences];
 
       // Try multiple ways to find the structured data
@@ -447,8 +499,8 @@ export default function App(){
 
       if (jsonStr) {
         try{
-          // Clean up common issues
           jsonStr = jsonStr.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+          console.log("Parsing JSON:", jsonStr.slice(0, 300));
           const items = JSON.parse(jsonStr);
           for(const item of (Array.isArray(items) ? items : [items])){
             if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
@@ -457,8 +509,11 @@ export default function App(){
             else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
             else if(item.type==="delete_plan")newPlans=newPlans.filter(p=>!p.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
           }
+          console.log("Parsed successfully. Steps:", newSteps.length, "Plans:", newPlans.length);
           setSteps(newSteps);setPlans(newPlans);setPreferences(newPrefs);
-        }catch(e){console.error("Parse error:",e,"JSON was:",jsonStr?.slice(0,200));}
+        }catch(e){console.error("Parse error:",e,"JSON was:",jsonStr?.slice(0,300));}
+      } else {
+        console.log("No JSON found in response. Raw:", raw.slice(0, 200));
       }
       // Clean displayText of any leftover JSON fragments
       displayText = displayText.replace(/\[[\s\S]*?"type"\s*:[\s\S]*?\]/g, "").trim();
