@@ -187,9 +187,10 @@ export default function App(){
         console.log("Parsing JSON:", jsonStr.slice(0, 200));
         const items=JSON.parse(jsonStr);let newRoutines=[...allRoutines];
         for(const item of(Array.isArray(items)?items:[items])){
-          if(item.type==="step")newSteps=[{...item,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
-          else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false}))},...newPlans.filter(p=>p.title!==item.title)];
-          else if(item.type==="routine")newRoutines=[{...item,id:Date.now()+Math.random(),createdAt:new Date().toISOString(),paused:false},...newRoutines.filter(r=>r.title!==item.title)];
+          const defaultCat=segment==="career"?"career":segment==="wellness"?"fitness":segment==="fun"?"social":"travel";
+          if(item.type==="step")newSteps=[{...item,category:item.category||defaultCat,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
+          else if(item.type==="plan")newPlans=[{...item,tasks:(item.tasks||[]).map(t=>({...t,done:false,category:t.category||item.category||defaultCat}))},...newPlans.filter(p=>p.title!==item.title)];
+          else if(item.type==="routine")newRoutines=[{...item,category:item.category||defaultCat,id:Date.now()+Math.random(),createdAt:new Date().toISOString(),paused:false},...newRoutines.filter(r=>r.title!==item.title)];
           else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
           else if(item.type==="delete_step")newSteps=newSteps.filter(s=>!s.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
           else if(item.type==="delete_plan")newPlans=newPlans.filter(p=>!p.title.toLowerCase().includes(item.title.toLowerCase().slice(0,20)));
