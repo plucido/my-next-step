@@ -1,6 +1,6 @@
 import { X, ChevronDown, MessageCircle, Plus, Heart, Dumbbell, UtensilsCrossed, Building2, TrendingUp, Calendar, Briefcase, Sparkles, Star, Shield } from "lucide-react";
 import { H, F, C } from "./constants.js";
-import { catIcon, Logo } from "./utils.js";
+import { catIcon, Logo } from "./utils.jsx";
 import { getUserId, saveFB, deleteFB } from "./firebase.js";
 import { connectStrava, connectGCal, fetchGCal } from "./auth.js";
 import LegalModal from "./LegalModal.jsx";

@@ -1,6 +1,6 @@
 import { X, Check, Sparkles, Share2, Calendar, AlertTriangle, ExternalLink } from "lucide-react";
 import { C, F } from "./constants.js";
-import { FadeIn, TLink } from "./utils.js";
+import { FadeIn, TLink } from "./utils.jsx";
 
 export default function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,onShare,delay=0}){
   const done=plan.tasks?.filter(t=>t.done).length||0,total=plan.tasks?.length||0,allDone=total>0&&done===total;

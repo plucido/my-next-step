@@ -1,6 +1,6 @@
 import { X, Sparkles, RotateCcw } from "lucide-react";
 import { C, F, SEGMENTS } from "./constants.js";
-import { FadeIn, catToSeg } from "./utils.js";
+import { FadeIn, catToSeg } from "./utils.jsx";
 
 export default function RoutineCard({routine,onPause,onDelete,onTalk,delay=0}){
   const seg=SEGMENTS[catToSeg(routine.category)];

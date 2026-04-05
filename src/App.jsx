@@ -3,7 +3,7 @@ import { Footprints, Briefcase, Heart, Sparkles, Globe, Calendar, Settings, Arro
 
 import { font, H, F, C, SEGMENTS, SEG_KEYS, SYSTEM_PROMPT, PROFILE_SECTIONS, AFF } from "./constants.js";
 import { getUserId, saveFB, loadFB, deleteFB } from "./firebase.js";
-import { getGreeting, FadeIn, ProgressRing, clean, wrapLink, trackClick, TLink, catToSeg, segIcon, catIcon, catIconMap, Logo } from "./utils.js";
+import { getGreeting, FadeIn, ProgressRing, clean, wrapLink, trackClick, TLink, catToSeg, segIcon, catIcon, catIconMap, Logo } from "./utils.jsx";
 import { loadGSI, decJwt, connectStrava, exchStrava, fetchStrava, connectGCal, fetchGCal, addGCalEvent } from "./auth.js";
 import StepCard from "./StepCard.jsx";
 import JourneyCard from "./JourneyCard.jsx";

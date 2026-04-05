@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { C, F, H } from "./constants.js";
-import { FadeIn, Logo } from "./utils.js";
+import { FadeIn, Logo } from "./utils.jsx";
 import { loadGSI, decJwt } from "./auth.js";
 
 export default function AuthScreen({onAuth}){

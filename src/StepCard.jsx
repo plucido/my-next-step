@@ -1,6 +1,6 @@
 import { X, Check, Heart, Sparkles, Share2, Calendar, ExternalLink } from "lucide-react";
 import { C, F, SEGMENTS } from "./constants.js";
-import { FadeIn, catToSeg, catIcon, TLink } from "./utils.js";
+import { FadeIn, catToSeg, catIcon, TLink } from "./utils.jsx";
 
 export default function StepCard({step,onDone,onDelete,onLove,onTalk,onAddCal,onShare,delay=0}){
   const seg=SEGMENTS[catToSeg(step.category)];
