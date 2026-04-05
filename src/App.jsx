@@ -102,7 +102,7 @@ function EarningsDashboard({onClose}){
   </div></div>);
 }
 
-const SOCIALS=[{id:"linkedin",label:"LinkedIn",icon:"in",color:"#0A66C2",real:false},{id:"instagram",label:"Instagram",icon:"\u{1F4F7}",color:"#E4405F",real:false},{id:"spotify",label:"Spotify",icon:"\u{1F3B5}",color:"#1DB954",real:false},{id:"strava",label:"Strava",icon:"\u{1F3C3}",color:"#FC4C02",real:true},{id:"calendar",label:"Google Calendar",icon:"\u{1F4C5}",color:"#4285F4",real:false}];
+const SOCIALS=[{id:"linkedin",label:"LinkedIn",icon:"in",color:"#0A66C2",real:false},{id:"instagram",label:"Instagram",icon:"\u{1F4F7}",color:"#E4405F",real:false},{id:"spotify",label:"Spotify",icon:"\u{1F3B5}",color:"#1DB954",real:false},{id:"strava",label:"Strava",icon:"\u{1F3C3}",color:"#FC4C02",real:true},{id:"calendar",label:"Google Calendar",icon:"\u{1F4C5}",color:"#4285F4",real:true}];
 const PROFILE_SECTIONS=[{id:"basics",label:"The basics",icon:"\u{1F464}",questions:["What's your current job or role?","What does your typical day look like?","What's your living situation?"]},{id:"personality",label:"Your personality",icon:"\u{1F31F}",questions:["Are you more introverted or extroverted?","What motivates you most?","How do you handle stress?"]},{id:"lifestyle",label:"Lifestyle & habits",icon:"\u{1F3E0}",questions:["What does a typical weekend look like?","Do you exercise regularly?","Do you cook or eat out?"]},{id:"dreams",label:"Dreams & goals",icon:"\u2728",questions:["Where do you see yourself in 5 years?","What have you always wanted to try?","What's holding you back?"]},{id:"challenges",label:"Current challenges",icon:"\u{1F525}",questions:["What's your biggest challenge right now?","What area of life feels most stuck?"]}];
 
 const SYSTEM_PROMPT=`You are the AI engine behind "My Next Step" \u2014 a warm, personal AI life coach that creates actionable steps and plans.
@@ -145,6 +145,7 @@ RULES:
 3. Tag every step with a category: fitness, wellness, career, learning, social, events, travel, products.
 4. After feedback, ADAPT. Store preferences.
 5. If the user has LOVED steps, those are strong signals. Recommend more things in the same style, category, price range, and vibe as loved steps. Loved steps are the most important signal of what the user actually wants.
+6. If the user has Google Calendar connected, check their upcoming events and AVOID scheduling conflicts. Suggest times that work around their existing schedule.
 
 TONE & FORMATTING:
 - Write like a real person texting a friend. Casual, warm, no fluff.
@@ -173,6 +174,84 @@ function decodeJwt(t){try{return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+
 function connectStrava(){const c=import.meta.env.VITE_STRAVA_CLIENT_ID;if(!c)return;window.location.href=`https://www.strava.com/oauth/authorize?client_id=${c}&response_type=code&redirect_uri=${window.location.origin}&scope=read,activity:read&approval_prompt=auto`;}
 async function exchangeStravaCode(code){try{return await(await fetch("https://www.strava.com/oauth/token",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({client_id:import.meta.env.VITE_STRAVA_CLIENT_ID,client_secret:import.meta.env.VITE_STRAVA_CLIENT_SECRET,code,grant_type:"authorization_code"})})).json();}catch{return null;}}
 async function fetchStravaProfile(token){try{const[a,b]=await Promise.all([fetch("https://www.strava.com/api/v3/athlete",{headers:{Authorization:`Bearer ${token}`}}),fetch("https://www.strava.com/api/v3/athlete/activities?per_page=10",{headers:{Authorization:`Bearer ${token}`}})]);const at=await a.json();const ac=await b.json();let st=null;if(at.id){try{st=await(await fetch(`https://www.strava.com/api/v3/athletes/${at.id}/stats`,{headers:{Authorization:`Bearer ${token}`}})).json();}catch{}}const rc=Array.isArray(ac)?ac.slice(0,10).map(a=>({type:a.type,name:a.name,distance:(a.distance/1000).toFixed(1)+" km",duration:Math.round(a.moving_time/60)+" min",date:new Date(a.start_date_local).toLocaleDateString(),pace:a.type==="Run"?(a.moving_time/60/(a.distance/1000)).toFixed(1)+" min/km":null})):[];return{name:`${at.firstname||""} ${at.lastname||""}`.trim(),city:at.city||"",recentActivities:rc,allTimeRuns:st?.all_run_totals?.count||0,allTimeRunDistance:st?.all_run_totals?.distance?(st.all_run_totals.distance/1000).toFixed(0)+" km":"0 km",allTimeRides:st?.all_ride_totals?.count||0,allTimeRideDistance:st?.all_ride_totals?.distance?(st.all_ride_totals.distance/1000).toFixed(0)+" km":"0 km",recentRunCount:st?.recent_run_totals?.count||0,recentRideCount:st?.recent_ride_totals?.count||0};}catch{return null;}}
+
+// ─── GOOGLE CALENDAR ───
+function connectGoogleCalendar(callback) {
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  if (!clientId) return;
+  loadGoogleScript().then(() => {
+    if (!window.google?.accounts?.oauth2) return;
+    const client = window.google.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: "https://www.googleapis.com/auth/calendar.events",
+      callback: (tokenResponse) => {
+        if (tokenResponse.access_token) callback(tokenResponse);
+      },
+    });
+    client.requestAccessToken();
+  });
+}
+
+async function fetchCalendarEvents(accessToken) {
+  try {
+    const now = new Date().toISOString();
+    const twoWeeks = new Date(Date.now() + 14 * 86400000).toISOString();
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(now)}&timeMax=${encodeURIComponent(twoWeeks)}&maxResults=30&singleEvents=true&orderBy=startTime`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) throw new Error("Calendar API error");
+    const data = await res.json();
+    return (data.items || []).map(e => ({
+      title: e.summary || "Untitled",
+      start: e.start?.dateTime || e.start?.date || "",
+      end: e.end?.dateTime || e.end?.date || "",
+      location: e.location || "",
+      allDay: !!e.start?.date && !e.start?.dateTime,
+    }));
+  } catch (e) { console.error("Calendar fetch error:", e); return null; }
+}
+
+async function addToGoogleCalendar(accessToken, title, description, startTime) {
+  try {
+    // Parse the time string into a date
+    const now = new Date();
+    let startDate = new Date();
+    const timeLower = (startTime || "").toLowerCase();
+
+    if (timeLower.includes("tomorrow")) { startDate.setDate(startDate.getDate() + 1); }
+    if (timeLower.includes("tonight") || timeLower.includes("pm")) {
+      const pmMatch = timeLower.match(/(\d{1,2})\s*pm/);
+      if (pmMatch) startDate.setHours(parseInt(pmMatch[1]) + 12, 0, 0);
+      else startDate.setHours(19, 0, 0);
+    }
+    if (timeLower.includes("am")) {
+      const amMatch = timeLower.match(/(\d{1,2})\s*am/);
+      if (amMatch) startDate.setHours(parseInt(amMatch[1]), 0, 0);
+    }
+    if (timeLower.includes("this week") || timeLower.includes("this weekend")) {
+      const dayOfWeek = startDate.getDay();
+      const daysUntilSat = (6 - dayOfWeek + 7) % 7 || 7;
+      startDate.setDate(startDate.getDate() + (timeLower.includes("weekend") ? daysUntilSat : Math.min(daysUntilSat, 3)));
+      startDate.setHours(10, 0, 0);
+    }
+
+    const endDate = new Date(startDate.getTime() + 3600000); // 1 hour later
+
+    const event = {
+      summary: title,
+      description: description || "Added from My Next Step",
+      start: { dateTime: startDate.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+      end: { dateTime: endDate.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+    };
+
+    const res = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+    });
+    return res.ok;
+  } catch (e) { console.error("Calendar add error:", e); return false; }
+}
 
 // ─── CLEAN MARKDOWN FROM RESPONSES ───
 function cleanMarkdown(text) {
@@ -227,15 +306,15 @@ function AuthScreen({onAuth}){
 }
 
 // ─── SOCIAL LINK ───
-function SocialLinkScreen({onContinue,stravaConnected,stravaProfile}){
-  const[linked,setLinked]=useState(stravaConnected?["strava"]:[]);
+function SocialLinkScreen({onContinue,stravaConnected,stravaProfile,calendarConnected,onConnectCalendar}){
+  const[linked,setLinked]=useState(()=>{const l=[];if(stravaConnected)l.push("strava");if(calendarConnected)l.push("calendar");return l;});
   return(
     <div style={{...F,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,background:C.bg}}>
       <FadeIn><div style={{width:"100%",maxWidth:420}}>
         <div style={{textAlign:"center",marginBottom:36}}><h2 style={{...H,fontSize:30,color:C.t1,marginBottom:10}}>Connect your world</h2><p style={{color:C.t2,fontSize:15,lineHeight:1.6}}>We read your data to personalize. Never post on your behalf.</p></div>
         {stravaConnected&&stravaProfile&&<div style={{padding:18,borderRadius:18,background:C.card,boxShadow:C.shadow,marginBottom:18,borderLeft:`4px solid #FC4C02`}}><div style={{...F,fontSize:12,fontWeight:600,color:"#FC4C02",marginBottom:4}}>Strava connected</div><div style={{fontSize:14,color:C.t1}}>{stravaProfile.name} {"\u00B7"} {stravaProfile.allTimeRuns} runs, {stravaProfile.allTimeRides} rides</div></div>}
         <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:32}}>
-          {SOCIALS.map((s,i)=>{const on=linked.includes(s.id);return(<FadeIn key={s.id} delay={i*60}><button onClick={()=>{if(s.id==="strava"&&!on){connectStrava();return;}if(s.real||on)setLinked(p=>on?p.filter(x=>x!==s.id):[...p,s.id]);}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,cursor:s.real?"pointer":"default",display:"flex",alignItems:"center",gap:14,background:C.card,border:`1.5px solid ${on?s.color:C.b1}`,boxShadow:on?C.shadowLg:C.shadow,opacity:s.real?1:.45,textAlign:"left",transition:"all 0.2s"}}><span style={{fontSize:24,width:32,textAlign:"center"}}>{s.icon}</span><span style={{flex:1,color:C.t1,fontSize:15,fontWeight:500}}>{s.label}{s.real&&!on&&<span style={{fontSize:10,color:C.acc,marginLeft:8,fontWeight:700}}>LIVE</span>}{!s.real&&<span style={{fontSize:10,color:C.t3,marginLeft:8}}>Soon</span>}</span>{on&&<span style={{color:s.color,fontWeight:700,fontSize:18}}>{"\u2713"}</span>}</button></FadeIn>);})}
+          {SOCIALS.map((s,i)=>{const on=linked.includes(s.id);return(<FadeIn key={s.id} delay={i*60}><button onClick={()=>{if(s.id==="strava"&&!on){connectStrava();return;}if(s.id==="calendar"&&!on){onConnectCalendar();setLinked(p=>[...p,"calendar"]);return;}if(s.real||on)setLinked(p=>on?p.filter(x=>x!==s.id):[...p,s.id]);}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,cursor:s.real?"pointer":"default",display:"flex",alignItems:"center",gap:14,background:C.card,border:`1.5px solid ${on?s.color:C.b1}`,boxShadow:on?C.shadowLg:C.shadow,opacity:s.real?1:.45,textAlign:"left",transition:"all 0.2s"}}><span style={{fontSize:24,width:32,textAlign:"center"}}>{s.icon}</span><span style={{flex:1,color:C.t1,fontSize:15,fontWeight:500}}>{s.label}{s.real&&!on&&<span style={{fontSize:10,color:C.acc,marginLeft:8,fontWeight:700}}>LIVE</span>}{!s.real&&<span style={{fontSize:10,color:C.t3,marginLeft:8}}>Soon</span>}</span>{on&&<span style={{color:s.color,fontWeight:700,fontSize:18}}>{"\u2713"}</span>}</button></FadeIn>);})}
         </div>
         <button onClick={()=>onContinue(linked)} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 20px rgba(212,82,42,0.25)"}}>Continue {"\u2192"}</button>
         {linked.length===0&&<button onClick={()=>onContinue([])} style={{...F,display:"block",margin:"14px auto 0",background:"none",border:"none",color:C.t3,fontSize:14,cursor:"pointer"}}>Skip for now</button>}
@@ -322,7 +401,7 @@ function DeepProfileChat({profile,onFinish,existingInsights}){
 }
 
 // ─── SETTINGS ───
-function SettingsPanel({profile,stravaData,preferences,onUpdateProfile,onConnectStrava,onDisconnectStrava,onDeepProfile,onSignOut,onClose}){
+function SettingsPanel({profile,stravaData,calendarData,preferences,onUpdateProfile,onConnectStrava,onDisconnectStrava,onConnectCalendar,onDisconnectCalendar,onDeepProfile,onSignOut,onClose}){
   const[editMode,setEditMode]=useState(null);const[editValue,setEditValue]=useState("");const[section,setSection]=useState("account");const[genderEdit,setGenderEdit]=useState(profile.setup?.gender||"");const[genderOther,setGenderOther]=useState("");
   const save=()=>{const p={...profile};if(editMode==="name")p.name=editValue.trim();else if(editMode==="age")p.setup={...p.setup,age:editValue.trim()};else if(editMode==="gender")p.setup={...p.setup,gender:genderEdit==="Other"?genderOther:genderEdit};else if(editMode==="location")p.setup={...p.setup,location:editValue.trim()};else if(editMode==="goals")p.setup={...p.setup,goals:editValue.trim()};onUpdateProfile(p);setEditMode(null);};
   const field=(key,label,icon,value)=>(<div style={{padding:"18px 20px",borderRadius:18,background:C.card,boxShadow:C.shadow,marginBottom:10}}>
@@ -354,7 +433,10 @@ function SettingsPanel({profile,stravaData,preferences,onUpdateProfile,onConnect
         <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}><div style={{display:"flex",alignItems:"center",gap:14}}><span style={{fontSize:24}}>{"\u{1F3C3}"}</span><div style={{flex:1}}><div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>Strava</div><div style={{...F,fontSize:13,color:stravaData?"#FC4C02":C.t3}}>{stravaData?"Connected":"Not connected"}</div></div>{stravaData?<button onClick={onDisconnectStrava} style={{...F,fontSize:12,padding:"8px 16px",borderRadius:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",cursor:"pointer"}}>Disconnect</button>:<button onClick={onConnectStrava} style={{...F,fontSize:12,fontWeight:600,padding:"8px 16px",borderRadius:12,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer"}}>Connect</button>}</div>
           {stravaData?.profile&&<div style={{padding:"12px 16px",borderRadius:14,background:C.bg,fontSize:13,color:C.t2,marginTop:12,lineHeight:1.5}}>{stravaData.profile.name} {"\u00B7"} {stravaData.profile.allTimeRuns} runs {"\u00B7"} {stravaData.profile.allTimeRides} rides</div>}
         </div>
-        {SOCIALS.filter(s=>!s.real).map(s=>(<div key={s.id} style={{padding:"18px 20px",borderRadius:18,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:14,opacity:.45}}><span style={{fontSize:24,width:32,textAlign:"center"}}>{s.icon}</span><div><div style={{...F,fontSize:15,fontWeight:500,color:C.t1}}>{s.label}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>))}
+        <div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}><div style={{display:"flex",alignItems:"center",gap:14}}><span style={{fontSize:24}}>{"\u{1F4C5}"}</span><div style={{flex:1}}><div style={{...F,fontSize:15,fontWeight:600,color:C.t1}}>Google Calendar</div><div style={{...F,fontSize:13,color:calendarData?"#4285F4":C.t3}}>{calendarData?`Connected \u00B7 ${calendarData.length} upcoming events`:"Not connected"}</div></div>{calendarData?<button onClick={onDisconnectCalendar} style={{...F,fontSize:12,padding:"8px 16px",borderRadius:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",cursor:"pointer"}}>Disconnect</button>:<button onClick={onConnectCalendar} style={{...F,fontSize:12,fontWeight:600,padding:"8px 16px",borderRadius:12,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.12)",color:"#4285F4",cursor:"pointer"}}>Connect</button>}</div>
+          {calendarData?.length>0&&<div style={{marginTop:12}}>{calendarData.slice(0,5).map((e,i)=>{const d=new Date(e.start);return<div key={i} style={{padding:"8px 14px",borderRadius:12,background:C.bg,fontSize:13,color:C.t2,marginBottom:4,display:"flex",gap:8}}><span style={{color:"#4285F4",fontWeight:600,minWidth:70}}>{d.toLocaleDateString([],{month:"short",day:"numeric"})}</span><span>{e.title}</span></div>;})}{calendarData.length>5&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",marginTop:4}}>+{calendarData.length-5} more events</div>}</div>}
+        </div>
+        {SOCIALS.filter(s=>!s.real&&s.id!=="calendar").map(s=>(<div key={s.id} style={{padding:"18px 20px",borderRadius:18,background:C.card,boxShadow:C.shadow,display:"flex",alignItems:"center",gap:14,opacity:.45}}><span style={{fontSize:24,width:32,textAlign:"center"}}>{s.icon}</span><div><div style={{...F,fontSize:15,fontWeight:500,color:C.t1}}>{s.label}</div><div style={{...F,fontSize:12,color:C.t3}}>Coming soon</div></div></div>))}
       </div>}
       {section==="preferences"&&<div style={{display:"flex",flexDirection:"column",gap:12}}>
         {profile.insights?.length>0&&<div style={{padding:20,borderRadius:18,background:C.card,boxShadow:C.shadow}}><div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:12}}>Profile insights</div>{profile.insights.map((ins,i)=>(<div key={i} style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,padding:"8px 0",borderBottom:i<profile.insights.length-1?`1px solid ${C.b1}`:"none"}}>{"\u2022"} {ins.text}</div>))}</div>}
@@ -384,6 +466,8 @@ export default function App(){
   const[feedbackStep,setFeedbackStep]=useState(null);
   const[feedbackText,setFeedbackText]=useState("");
   const[stravaData,setStravaData]=useState(null);
+  const[calendarData,setCalendarData]=useState(null);
+  const[calendarToken,setCalendarToken]=useState(null);
   const[showEarnings,setShowEarnings]=useState(false);
   const[showSettings,setShowSettings]=useState(false);
   const[missedStep,setMissedStep]=useState(null);
@@ -418,7 +502,7 @@ export default function App(){
 
   useEffect(()=>{chatEnd.current?.scrollIntoView({behavior:"smooth"});},[messages,loading]);
   useEffect(()=>{const p=new URLSearchParams(window.location.search);const code=p.get("code");if(code&&p.get("scope")?.includes("read")){window.history.replaceState({},"",window.location.pathname);exchangeStravaCode(code).then(async d=>{if(d?.access_token){const pr=await fetchStravaProfile(d.access_token);const full={...d,profile:pr};setStravaData(full);window.storage.set("mns-strava",JSON.stringify(full)).catch(()=>{});}});}},[]);
-  useEffect(()=>{(async()=>{try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setSteps(d.steps||[]);setPlans(d.plans||[]);setMessages(d.messages||[]);setPreferences(d.preferences||[]);setScreen("main");}}}catch{}try{const sv=await window.storage.get("mns-strava");if(sv)setStravaData(JSON.parse(sv.value));}catch{}})();},[]);
+  useEffect(()=>{(async()=>{try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setSteps(d.steps||[]);setPlans(d.plans||[]);setMessages(d.messages||[]);setPreferences(d.preferences||[]);setScreen("main");}}}catch{}try{const sv=await window.storage.get("mns-strava");if(sv)setStravaData(JSON.parse(sv.value));}catch{}try{const cv=await window.storage.get("mns-calendar");if(cv){const cd=JSON.parse(cv.value);setCalendarToken(cd.token);setCalendarData(cd.events);}}catch{}})();},[]);
 
   const persist=(p,s,pl,m,pr)=>{window.storage.set("mns-v11",JSON.stringify({profile:p||profile,steps:s||steps,plans:pl||plans,messages:m||messages,preferences:pr||preferences})).catch(()=>{});};
 
@@ -447,11 +531,12 @@ export default function App(){
     const stepsCtx=steps.filter(s=>s.status==="active").length>0?"\n\nACTIVE STEPS:\n"+steps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category||"general"}, ${s.time||"anytime"})${s.loved?" [LOVED]":""}`).join("\n"):"";
     const lovedCtx=steps.filter(s=>s.loved).length>0?"\n\nSTEPS THE USER LOVED (recommend more like these):\n"+steps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
     const plansCtx=plans.length>0?"\n\nCURRENT PLANS:\n"+plans.map(p=>{const done=p.tasks?.filter(t=>t.done).length||0;const total=p.tasks?.length||0;return`- "${p.title}" (${p.date||"no date"}, ${done}/${total} tasks done, tasks: ${p.tasks?.map(t=>`${t.done?"[done]":"[todo]"} ${t.title}`).join(", ")||"none"})`;}).join("\n"):"";
+    const calCtx=calendarData?.length>0?"\n\nUPCOMING CALENDAR EVENTS (avoid scheduling conflicts):\n"+calendarData.slice(0,15).map(e=>{const d=new Date(e.start);return`- ${d.toLocaleDateString()} ${e.allDay?"(all day)":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}: ${e.title}${e.location?" @ "+e.location:""}`;}).join("\n"):"";
     const profileCtx=profile?.setup?`\nAge: ${profile.setup.age||"?"} | Gender: ${profile.setup.gender||"?"}`:"";
     try{
       // Build messages for API
       const apiMessages = updated.slice(-20).map(m=>({role:m.role,content:m.content}));
-      const sysPrompt = SYSTEM_PROMPT+`\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}`;
+      const sysPrompt = SYSTEM_PROMPT+`\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}${calCtx}`;
 
       // Handle web search tool use loop
       let finalText = "";
@@ -576,7 +661,10 @@ export default function App(){
   const togglePlanTask=(pi,ti)=>{const u=plans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setPlans(u);persist(profile,steps,u,messages,preferences);};
   const updateProfile=p=>{setProfile(p);persist(p,steps,plans,messages,preferences);};
   const disconnectStrava=async()=>{try{await window.storage.delete("mns-strava");}catch{}setStravaData(null);};
-  const resetAll=async()=>{try{await window.storage.delete("mns-v11");await window.storage.delete("mns-strava");}catch{}setProfile(null);setMessages([]);setSteps([]);setPlans([]);setPreferences([]);setStravaData(null);setScreen("auth");setShowSettings(false);};
+  const handleConnectCalendar=()=>{connectGoogleCalendar(async(tokenResponse)=>{const token=tokenResponse.access_token;setCalendarToken(token);const events=await fetchCalendarEvents(token);setCalendarData(events);window.storage.set("mns-calendar",JSON.stringify({token,events})).catch(()=>{});});};
+  const disconnectCalendar=async()=>{try{await window.storage.delete("mns-calendar");}catch{}setCalendarData(null);setCalendarToken(null);};
+  const handleAddToCalendar=async(title,why,time)=>{if(!calendarToken){handleConnectCalendar();return;}const ok=await addToGoogleCalendar(calendarToken,title,why,time);if(ok)alert("Added to your Google Calendar!");else alert("Couldn't add to calendar. Try reconnecting in Settings.");};
+  const resetAll=async()=>{try{await window.storage.delete("mns-v11");await window.storage.delete("mns-strava");await window.storage.delete("mns-calendar");}catch{}setProfile(null);setMessages([]);setSteps([]);setPlans([]);setPreferences([]);setStravaData(null);setCalendarData(null);setCalendarToken(null);setScreen("auth");setShowSettings(false);};
 
   const activeSteps=steps.filter(s=>s.status==="active");
   const doneSteps=steps.filter(s=>s.status==="done");
@@ -584,11 +672,11 @@ export default function App(){
   const streak=getStreak(steps);
 
   if(screen==="auth")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><AuthScreen onAuth={handleAuth}/></div>);
-  if(screen==="socials")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SocialLinkScreen onContinue={handleSocials} stravaConnected={!!stravaData} stravaProfile={stravaData?.profile}/></div>);
+  if(screen==="socials")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SocialLinkScreen onContinue={handleSocials} stravaConnected={!!stravaData} stravaProfile={stravaData?.profile} calendarConnected={!!calendarData} onConnectCalendar={handleConnectCalendar}/></div>);
   if(screen==="setup")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SetupScreen profile={profile} onComplete={handleSetup}/></div>);
   if(screen==="deepprofile")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepProfileFinish} existingInsights={profile?.insights||[]}/></div>);
   if(showEarnings)return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><EarningsDashboard onClose={()=>setShowEarnings(false)}/></div>);
-  if(showSettings)return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SettingsPanel profile={profile} stravaData={stravaData} preferences={preferences} onUpdateProfile={updateProfile} onConnectStrava={connectStrava} onDisconnectStrava={disconnectStrava} onDeepProfile={()=>{setShowSettings(false);setScreen("deepprofile");}} onSignOut={resetAll} onClose={()=>setShowSettings(false)}/></div>);
+  if(showSettings)return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SettingsPanel profile={profile} stravaData={stravaData} calendarData={calendarData} preferences={preferences} onUpdateProfile={updateProfile} onConnectStrava={connectStrava} onDisconnectStrava={disconnectStrava} onConnectCalendar={handleConnectCalendar} onDisconnectCalendar={disconnectCalendar} onDeepProfile={()=>{setShowSettings(false);setScreen("deepprofile");}} onSignOut={resetAll} onClose={()=>setShowSettings(false)}/></div>);
 
   const bubble=u=>({...F,maxWidth:"82%",padding:"13px 18px",borderRadius:20,fontSize:15,lineHeight:1.65,whiteSpace:"pre-wrap",...(u?{background:C.accGrad,color:"#fff",borderBottomRightRadius:6}:{background:C.card,color:C.t1,borderBottomLeftRadius:6,boxShadow:C.shadow})});
 
@@ -694,6 +782,7 @@ export default function App(){
                       <button onClick={()=>talkAbout(`I want to work on this step: "${step.title}". Research it for me \u2014 find specific options with prices, availability, and links so I can actually book or do it right now.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer",fontWeight:500}}>Let's work on this</button>
                       <button onClick={()=>talkAbout(`Find me something similar to "${step.title}" but a different specific place or option. Search for alternatives with prices and details.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Find alternative</button>
                       <button onClick={()=>talkAbout(`Delete "${step.title}" and give me a specific thing I can do right now instead, near me, with a booking link.`)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Swap for something now</button>
+                      {step.time&&<button onClick={()=>handleAddToCalendar(step.title,step.why,step.time)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:12,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.12)",color:"#4285F4",cursor:"pointer",fontWeight:500}}>{"\u{1F4C5}"} Add to Calendar</button>}
                     </div>
                   </div></FadeIn>
                 ))}</div>}
