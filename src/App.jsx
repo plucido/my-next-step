@@ -476,7 +476,7 @@ export default function App(){
 
     try{
       // Strip ts field and ensure valid alternating roles for API
-      const cleanMsgs=segChat.slice(-20).map(m=>({role:m.role,content:m.content}));
+      const cleanMsgs=segChat.slice(-20).map(m=>({role:m.role,content:typeof m.content==="string"?m.content:JSON.stringify(m.content)})).filter(m=>m.content&&m.content.trim());
       // Ensure messages alternate user/assistant (API requirement)
       const apiMsgs=[];
       for(const m of cleanMsgs){
@@ -490,10 +490,12 @@ export default function App(){
       while(apiMsgs.length>0&&apiMsgs[0].role!=="user")apiMsgs.shift();
       // If no messages left, add the current one
       if(apiMsgs.length===0)apiMsgs.push({role:"user",content:msg});
+      // Safety: ensure no empty content
+      const safeApiMsgs=apiMsgs.filter(m=>m.content&&m.content.trim()).map(m=>({role:m.role,content:m.content.trim()}));
       
       const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nFocus on ${SEGMENTS[segment].label.toLowerCase()} topics, but use knowledge from all segments.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${healthCtx}${prefText}${stravaText}${stepsCtx}${lovedCtx}${plansCtx}${routineCtx}${calCtx}${crossCtx}`;
 
-      let finalText="",currentMsgs=[...apiMsgs],attempts=0;
+      let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
         const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":import.meta.env.VITE_ANTHROPIC_API_KEY,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,tools:[{type:"web_search_20250305",name:"web_search"}],system:sysPrompt,messages:currentMsgs})});
         if(res.status===429){
@@ -503,7 +505,10 @@ export default function App(){
           await new Promise(r=>setTimeout(r,wait));
           continue;
         }
-        if(!res.ok){const errText=await res.text();console.error("API error:",res.status,errText);finalText=`Something went wrong (${res.status}). Try again in a moment.`;break;}
+        if(!res.ok){const errText=await res.text();console.error("API error:",res.status,errText);
+          let errMsg=`Something went wrong (${res.status}).`;
+          try{const errJson=JSON.parse(errText);if(errJson.error?.message)errMsg+=` ${errJson.error.message.slice(0,100)}`;}catch{}
+          finalText=errMsg;break;}
         const data=await res.json();
         console.log("API attempt",attempts,"stop:",data.stop_reason,"blocks:",data.content?.length);
         if(!data.content||data.content.length===0){console.error("Empty content from API:",JSON.stringify(data));finalText="Hmm, I didn't get a response. Try again?";break;}
