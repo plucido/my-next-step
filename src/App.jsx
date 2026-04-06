@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Footprints, Briefcase, Heart, Sparkles, Globe, Calendar, Settings, ArrowUp, MessageCircle, ChevronDown, ChevronRight, X, Check, Share2, Star, Clock, Trash2, Pause, Play, RefreshCw, Plus, MapPin, Search, Dumbbell, UtensilsCrossed, Building2, Flame, TrendingUp, Zap, Send, RotateCcw, ExternalLink, AlertTriangle, Shield } from "lucide-react";
+import { Footprints, Briefcase, Heart, Sparkles, Globe, Calendar, Settings, ArrowUp, MessageCircle, ChevronDown, ChevronRight, X, Check, Share2, Star, Clock, Trash2, Pause, Play, RefreshCw, Plus, MapPin, Search, Dumbbell, UtensilsCrossed, Building2, Flame, TrendingUp, Zap, Send, RotateCcw, ExternalLink, AlertTriangle, Shield, HelpCircle } from "lucide-react";
 
 import { font, H, F, C, SEGMENTS, SEG_KEYS, SYSTEM_PROMPT, PROFILE_SECTIONS, AFF } from "./constants.js";
 import { getUserId, saveFB, loadFB, deleteFB } from "./firebase.js";
@@ -15,6 +15,7 @@ import DeepProfileChat from "./DeepProfileChat.jsx";
 import LegalModal from "./LegalModal.jsx";
 import ShareModal from "./ShareModal.jsx";
 import SettingsPanel from "./Settings.jsx";
+import HelpModal from "./HelpModal.jsx";
 import QuickProfile from "./QuickProfile.jsx";
 
 // ─── MAIN APP ───
@@ -40,6 +41,7 @@ export default function App(){
   const[calData,setCalData]=useState(null);
   const[calToken,setCalToken]=useState(null);
   const[showSettings,setShowSettings]=useState(false);
+  const[showHelp,setShowHelp]=useState(false);
   const[settingsTab,setSettingsTab]=useState("profile");
   const[showLanding,setShowLanding]=useState(false);
   const[editField,setEditField]=useState(null);
@@ -376,6 +378,7 @@ export default function App(){
               {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} steps taken this week</span>}
             </div>);
           })()}
+          <button onClick={()=>setShowHelp(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><HelpCircle size={16} color={C.t3}/></button>
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
           </div>
         </div>
@@ -559,6 +562,7 @@ export default function App(){
       />}
       <LegalModal legalModal={legalModal} setLegalModal={setLegalModal} profile={profile} setProfile={setProfile} persist={persist} allSteps={allSteps} allPlans={allPlans} chats={chats} preferences={preferences} />
       <ShareModal item={shareModalItem} onClose={()=>setShareModalItem(null)} />
+      {showHelp?<HelpModal onClose={()=>setShowHelp(false)}/>:null}
     </div>
   );
 }
