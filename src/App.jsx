@@ -19,6 +19,9 @@ import HelpModal from "./HelpModal.jsx";
 import ToastContainer, { showToast, showConfirm } from "./Toast.jsx";
 import SearchModal from "./SearchModal.jsx";
 import QuickProfile from "./QuickProfile.jsx";
+import WeeklySummary from "./WeeklySummary.jsx";
+import Walkthrough from "./Walkthrough.jsx";
+import BadgesModal, { getBadges } from "./Badges.jsx";
 
 // ─── MAIN APP ───
 export default function App(){
@@ -46,6 +49,9 @@ export default function App(){
   const[showHelp,setShowHelp]=useState(false);
   const[showSearch,setShowSearch]=useState(false);
   const[darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("mns_dark")==="true";}catch{return false;}});
+  const[showWeekly,setShowWeekly]=useState(false);
+  const[showBadges,setShowBadges]=useState(false);
+  const[showWalkthrough,setShowWalkthrough]=useState(()=>{try{return !localStorage.getItem("mns_walkthrough_done");}catch{return true;}});
   const[settingsTab,setSettingsTab]=useState("profile");
   const[showLanding,setShowLanding]=useState(false);
   const[editField,setEditField]=useState(null);
@@ -379,11 +385,12 @@ export default function App(){
             let streak=0;const d=new Date(now);d.setHours(0,0,0,0);
             while(true){const ds=d.toDateString();if(allSteps.some(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===ds)){streak++;d.setDate(d.getDate()-1);}else break;}
             if(thisWeek===0&&streak===0)return null;
-            return(<div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:12,background:streak>=3?C.goldSoft:C.cream}}>
+            return(<div onClick={()=>setShowWeekly(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:12,background:streak>=3?C.goldSoft:C.cream,cursor:"pointer"}}>
               {streak>0&&<><span style={{fontSize:14}}><Flame size={14} color={streak>=7?"#EF4444":C.gold}/></span><span style={{...F,fontSize:12,fontWeight:700,color:streak>=3?C.gold:C.t2}}>{streak}d</span></>}
-              {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} steps taken this week</span>}
+              {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} this week</span>}
             </div>);
           })()}
+          <button onClick={()=>setShowBadges(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🏅</button>
           <button onClick={()=>setShowSearch(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Search size={16} color={C.t3}/></button>
           <button onClick={()=>setShowHelp(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><HelpCircle size={16} color={C.t3}/></button>
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
@@ -571,6 +578,9 @@ export default function App(){
       <ShareModal item={shareModalItem} onClose={()=>setShareModalItem(null)} />
       <ToastContainer/>
       {showHelp?<HelpModal onClose={()=>setShowHelp(false)}/>:null}
+      {showWeekly?<WeeklySummary onClose={()=>setShowWeekly(false)} allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} profile={profile}/>:null}
+      {showBadges?<BadgesModal onClose={()=>setShowBadges(false)} allSteps={allSteps} allRoutines={allRoutines} allPlans={allPlans} profile={profile}/>:null}
+      {showWalkthrough&&screen==="main"?<Walkthrough onComplete={()=>{setShowWalkthrough(false);try{localStorage.setItem("mns_walkthrough_done","1");}catch{}}}/>:null}
       {showSearch?<SearchModal allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} onClose={()=>setShowSearch(false)} onNavigate={function(r){if(r.seg)setSegment(r.seg);setView("steps");}}/>:null}
     </div>
   );
