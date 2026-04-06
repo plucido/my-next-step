@@ -409,7 +409,7 @@ export default function App(){
         </button>
       </div>}
       <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
-        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&segment!=="everything";const count=allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;
+        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&segment!=="everything";const stepCount=allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;const planCount=allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);return cats.length?cats.some(c=>catToSeg(c)===s):false;}).length;const routineCount=allRoutines.filter(r=>catToSeg(r.category)===s&&!r.paused).length;const count=stepCount+planCount+routineCount;
           return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:13,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
             {info.label}{count>0?<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>:null}
           </button>);

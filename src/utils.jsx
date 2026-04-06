@@ -44,8 +44,13 @@ export function clean(text){if(!text)return text;let t=text;
   t=t.replace(/<[^>]+>/g,"");
   // Strip orphaned special chars left by citation removal
   t=t.replace(/[†‡§]+/g,"");
+  // Fix punctuation artifacts: leading comma/period after newline, double spaces before punctuation
+  t=t.replace(/\n\s*,\s*/g," ");
+  t=t.replace(/\n\s*\.\s*/g,". ");
+  t=t.replace(/\s+([,.])/g,"$1");
+  t=t.replace(/([.!?])\s*\n\s*([a-z])/g,"$1 $2");
   // Collapse excessive whitespace
-  t=t.replace(/\n{3,}/g,"\n\n");t=t.replace(/^\s+$/gm,"");
+  t=t.replace(/\n{3,}/g,"\n\n");t=t.replace(/^\s+$/gm,"");t=t.replace(/ {2,}/g," ");
   return t.trim();}
 
 export function wrapLink(url,id){if(!url)return url;try{const u=new URL(url);u.searchParams.set("utm_source","mynextstep");u.searchParams.set("utm_medium","app");u.searchParams.set("utm_campaign",`a_${id||"u"}`);const h=u.hostname.replace("www.","");for(const[d,p]of Object.entries(AFF))if(h.includes(d.split("/")[0])){u.searchParams.set("ref",p.tag);break;}return u.toString();}catch{return url;}}
