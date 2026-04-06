@@ -16,6 +16,7 @@ import LegalModal from "./LegalModal.jsx";
 import ShareModal from "./ShareModal.jsx";
 import SettingsPanel from "./Settings.jsx";
 import HelpModal from "./HelpModal.jsx";
+import ToastContainer, { showToast, showConfirm } from "./Toast.jsx";
 import QuickProfile from "./QuickProfile.jsx";
 
 // ─── MAIN APP ───
@@ -247,7 +248,7 @@ export default function App(){
   const deletePlan=idx=>{const u=allPlans.filter((_,i)=>i!==idx);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const toggleTask=(pi,ti)=>{const u=allPlans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const pauseRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,paused:!r.paused}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
-  const deleteRoutine=id=>{if(!confirm("Delete this routine permanently?"))return;const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
+  const deleteRoutine=id=>{showConfirm("Delete this routine permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
   const completeRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,completions:(r.completions||0)+1,lastCompleted:new Date().toISOString()}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const talkAbout=text=>{if(segment==="everything")setSegment("wellness");setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
   const[shareModalItem,setShareModalItem]=useState(null);
@@ -257,7 +258,7 @@ export default function App(){
   const completedByCategory={};doneSteps.forEach(s=>{const c=s.category||"other";completedByCategory[c]=(completedByCategory[c]||0)+1;});
   const totalCompleted=doneSteps.length;
   const thisWeekDone=doneSteps.filter(s=>{const d=new Date(s.completedAt||s.createdAt);return(Date.now()-d.getTime())<7*864e5;}).length;
-  const handleAddCal=async(title,why,time)=>{const addWithToken=async(token)=>{const ok=await addGCalEvent(token,title,why,time);if(ok){alert("Added to Calendar!");return true;}return false;};if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});return;}const ok=await addWithToken(calToken);if(!ok){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});}};
+  const handleAddCal=async(title,why,time)=>{const addWithToken=async(token)=>{const ok=await addGCalEvent(token,title,why,time);if(ok){showToast("Added to Calendar!");return true;}return false;};if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});return;}const ok=await addWithToken(calToken);if(!ok){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});}};
   const resetAll=async()=>{const uid=getUserId(profile);if(uid){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({career:[],wellness:[],adventure:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
 
   // Expiration check
@@ -305,6 +306,7 @@ export default function App(){
         @keyframes landIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         @keyframes landFade{from{opacity:0}to{opacity:1}}
         @keyframes shimmer{0%{background-position:-200px 0}100%{background-position:200px 0}}
+        @keyframes fadeDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
         button{transition:transform 0.1s ease,opacity 0.15s ease;}
         button:active{transform:scale(0.97);opacity:0.9;}
         input:focus,textarea:focus{border-color:${C.acc} !important;box-shadow:0 0 0 3px rgba(212,82,42,0.08);}
@@ -526,7 +528,7 @@ export default function App(){
             </div>
           </div>}
           {(chats[segment]||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
-            <button onClick={()=>{if(confirm("Clear this conversation? Steps and journeys will be kept.")){const nc={...chats,[segment]:[]};setChats(nc);persist(profile,allSteps,allPlans,nc,preferences);}}} style={{...F,fontSize:11,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"4px 8px"}}>Clear conversation</button>
+            <button onClick={()=>{showConfirm("Clear this conversation?",function(){const nc={...chats,[segment]:[]};setChats(nc);persist(profile,allSteps,allPlans,nc,preferences);});}} style={{...F,fontSize:11,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"4px 8px"}}>Clear conversation</button>
           </div>}
           <div style={{padding:"6px 20px 16px",flexShrink:0}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
@@ -562,6 +564,7 @@ export default function App(){
       />}
       <LegalModal legalModal={legalModal} setLegalModal={setLegalModal} profile={profile} setProfile={setProfile} persist={persist} allSteps={allSteps} allPlans={allPlans} chats={chats} preferences={preferences} />
       <ShareModal item={shareModalItem} onClose={()=>setShareModalItem(null)} />
+      <ToastContainer/>
       {showHelp?<HelpModal onClose={()=>setShowHelp(false)}/>:null}
     </div>
   );
