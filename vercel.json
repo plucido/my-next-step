@@ -1,0 +1,31 @@
+{
+  "crons": [
+    {
+      "path": "/api/sync/run",
+      "schedule": "0 */6 * * *"
+    }
+  ],
+  "functions": {
+    "api/sync/run.js": {
+      "maxDuration": 30
+    },
+    "api/sync/google.js": {
+      "maxDuration": 30
+    },
+    "api/sync/spotify.js": {
+      "maxDuration": 30
+    },
+    "api/sync/facebook.js": {
+      "maxDuration": 30
+    },
+    "api/sync/instagram.js": {
+      "maxDuration": 30
+    },
+    "api/sync/strava.js": {
+      "maxDuration": 30
+    },
+    "api/profile/build.js": {
+      "maxDuration": 60
+    }
+  }
+}
