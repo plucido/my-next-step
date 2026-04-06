@@ -22,6 +22,7 @@ import QuickProfile from "./QuickProfile.jsx";
 import WeeklySummary from "./WeeklySummary.jsx";
 import Walkthrough from "./Walkthrough.jsx";
 import BadgesModal, { getBadges } from "./Badges.jsx";
+import { requestNotificationPermission, startReminderChecks } from "./notifications.js";
 
 // ─── MAIN APP ───
 export default function App(){
@@ -101,6 +102,8 @@ export default function App(){
     // Migration from old format
     try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setChats({career:[],wellness:d.messages||[],fun:[],adventure:[]});setPreferences(d.preferences||[]);setScreen("main");const uid=getUserId(d.profile);if(uid){saveFB(uid,"appdata",{...d,chats:{career:[],wellness:d.messages||[],fun:[],adventure:[]}});window.storage.delete("mns-v11").catch(()=>{});}}}}catch{}
   })();},[]);
+
+  useEffect(()=>{if(screen==="main"){requestNotificationPermission();startReminderChecks(()=>({allSteps,allRoutines,calData}));}},[screen]);
 
   const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
