@@ -11,7 +11,7 @@ export default function TimelineView({
   expandedPlan, setExpandedPlan,
   markStep, deleteStep, loveStep, dislikeStep, handleBooked,
   deletePlan, toggleTask, pauseRoutine, deleteRoutine, completeRoutine,
-  talkAbout, shareItem, handleAddCal
+  talkAbout, shareItem, handleAddCal, snoozeStep
 }) {
   const [calMonth, setCalMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -147,7 +147,7 @@ export default function TimelineView({
           {todayCal.map(function(e, i) { return renderCalEvent(e, i); })}
           {todaySteps.map(function(s, i) {
             return (
-              <StepCard key={s.id} step={s} onDone={function(id) { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i * 30} />
+              <StepCard key={s.id} step={s} onDone={function(id) { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
             );
           })}
           {!hasContent ? <div style={{ ...F, fontSize: 13, color: C.t3, padding: "12px 0", fontStyle: "italic" }}>Nothing on today's agenda</div> : null}
@@ -179,7 +179,7 @@ export default function TimelineView({
                 {dayCal.map(function(e, i) { return renderCalEvent(e, i); })}
                 {daySteps.map(function(s, i) {
                   return (
-                    <StepCard key={s.id} step={s} onDone={function(id) { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i * 30} />
+                    <StepCard key={s.id} step={s} onDone={function(id) { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
                   );
                 })}
               </div>
@@ -410,7 +410,7 @@ export default function TimelineView({
         <div style={{ marginBottom: 24 }}>
           <div style={{ ...sectionHeader, marginBottom: 12 }}>Journeys ({allPlans.length})</div>
           {allPlans.map(function(plan, pi) {
-            return <JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan === pi} onToggle={function(i) { setExpandedPlan(expandedPlan === i ? null : i); }} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi * 30} />;
+            return <JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan === pi} onToggle={function(i) { setExpandedPlan(expandedPlan === i ? null : i); }} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onSnooze={snoozeStep} onShare={shareItem} delay={pi * 30} />;
           })}
         </div>
       </FadeIn>

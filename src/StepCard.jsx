@@ -1,9 +1,23 @@
-import { X, Check, Heart, Sparkles, Share2, Calendar, ExternalLink, ThumbsDown } from "lucide-react";
+import { useState } from "react";
+import { X, Check, Heart, Sparkles, Share2, Calendar, ExternalLink, ThumbsDown, Clock } from "lucide-react";
 import { C, F, SEGMENTS } from "./constants.js";
 import { FadeIn, catToSeg, catIcon, TLink } from "./utils.jsx";
 
-export default function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove,onTalk,onAddCal,onShare,delay=0}){
+function getSnoozeDate(option){
+  const now=new Date();
+  if(option==="1h") return new Date(now.getTime()+60*60*1000).toISOString();
+  if(option==="Tonight"){const d=new Date(now);d.setHours(20,0,0,0);if(d<=now) d.setDate(d.getDate()+1);return d.toISOString();}
+  if(option==="Tomorrow"){const d=new Date(now);d.setDate(d.getDate()+1);d.setHours(9,0,0,0);return d.toISOString();}
+  if(option==="This weekend"){const d=new Date(now);const day=d.getDay();const diff=day===0?7:6-day;d.setDate(d.getDate()+diff);d.setHours(10,0,0,0);return d.toISOString();}
+  if(option==="Next week"){const d=new Date(now);const day=d.getDay();const diff=day===0?1:8-day;d.setDate(d.getDate()+diff);d.setHours(9,0,0,0);return d.toISOString();}
+  return now.toISOString();
+}
+
+const SNOOZE_OPTIONS=["1h","Tonight","Tomorrow","This weekend","Next week"];
+
+export default function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove,onTalk,onAddCal,onShare,onSnooze,delay=0}){
   const seg=SEGMENTS[catToSeg(step.category)];
+  const [showSnooze,setShowSnooze]=useState(false);
   return(<FadeIn delay={delay}><div style={{padding:"18px 20px",borderRadius:18,marginBottom:10,background:step.booked?C.tealSoft:C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${step.booked?C.teal:seg?.color||C.acc}`}}>
     <button onClick={()=>onDelete(step.id)} style={{position:"absolute",top:14,right:14,background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:16}}><X size={16}/></button>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
@@ -28,6 +42,8 @@ export default function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove
       <button onClick={()=>onTalk(`Work on step: "${step.title}". Find specific options with prices, booking links, and details. Make it actionable.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.accSoft,border:`1px solid ${C.accBorder}`,color:C.acc,cursor:"pointer",fontWeight:600}}>Work on this</button>
       <button onClick={()=>onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Alternative</button>
       <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Share2 size={12}/> Share</button>
+      <button onClick={()=>setShowSnooze(!showSnooze)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:showSnooze?C.goldSoft:C.cream,border:"none",color:showSnooze?C.gold:C.t2,cursor:"pointer"}}><Clock size={12}/> Snooze</button>
     </div>
+    {showSnooze&&<div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap"}}>{SNOOZE_OPTIONS.map(opt=>(<button key={opt} onClick={()=>{onSnooze(step.id,getSnoozeDate(opt));setShowSnooze(false);}} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.goldSoft,border:"none",color:C.gold,cursor:"pointer",fontWeight:600}}>{opt}</button>))}</div>}
   </div></FadeIn>);
 }

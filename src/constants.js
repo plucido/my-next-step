@@ -2,7 +2,7 @@
 export const font = `@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 export const H = { fontFamily: "'Fraunces', serif" };
 export const F = { fontFamily: "'DM Sans', sans-serif" };
-export const C = {
+export const lightC = {
   bg: "#FAF6F1", card: "#FFFFFF", warm: "#FFF5EE", cream: "#F5EDE4",
   b1: "rgba(28,25,23,0.06)", b2: "rgba(28,25,23,0.1)",
   t1: "#1C1917", t2: "#6B6560", t3: "#A39E99",
@@ -14,6 +14,20 @@ export const C = {
   shadowLg: "0 4px 12px rgba(0,0,0,0.05), 0 16px 40px rgba(0,0,0,0.06)",
   shadowHover: "0 2px 8px rgba(0,0,0,0.06), 0 8px 28px rgba(0,0,0,0.05)",
 };
+export const darkC = {
+  bg: "#1A1714", card: "#262220", warm: "#2A2420", cream: "#332D28",
+  b1: "rgba(255,245,238,0.06)", b2: "rgba(255,245,238,0.1)",
+  t1: "#FAF6F1", t2: "#B8B0A8", t3: "#7A736C",
+  acc: "#D4522A", acc2: "#E8764E", accSoft: "rgba(212,82,42,0.15)", accBorder: "rgba(212,82,42,0.2)",
+  accGrad: "linear-gradient(135deg, #D4522A 0%, #E8764E 100%)",
+  teal: "#0F766E", tealSoft: "rgba(15,118,110,0.15)", tealBorder: "rgba(15,118,110,0.2)",
+  gold: "#B45309", goldSoft: "rgba(180,83,9,0.15)",
+  shadow: "0 1px 3px rgba(0,0,0,0.2), 0 4px 20px rgba(0,0,0,0.15)",
+  shadowLg: "0 4px 12px rgba(0,0,0,0.2), 0 16px 40px rgba(0,0,0,0.2)",
+  shadowHover: "0 2px 8px rgba(0,0,0,0.25), 0 8px 28px rgba(0,0,0,0.2)",
+};
+export const getColors = (dark) => dark ? darkC : lightC;
+export const C = lightC;
 
 // ─── SEGMENTS ───
 export const SEGMENTS = {

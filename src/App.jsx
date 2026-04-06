@@ -17,6 +17,7 @@ import ShareModal from "./ShareModal.jsx";
 import SettingsPanel from "./Settings.jsx";
 import HelpModal from "./HelpModal.jsx";
 import ToastContainer, { showToast, showConfirm } from "./Toast.jsx";
+import SearchModal from "./SearchModal.jsx";
 import QuickProfile from "./QuickProfile.jsx";
 
 // ─── MAIN APP ───
@@ -43,6 +44,8 @@ export default function App(){
   const[calToken,setCalToken]=useState(null);
   const[showSettings,setShowSettings]=useState(false);
   const[showHelp,setShowHelp]=useState(false);
+  const[showSearch,setShowSearch]=useState(false);
+  const[darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("mns_dark")==="true";}catch{return false;}});
   const[settingsTab,setSettingsTab]=useState("profile");
   const[showLanding,setShowLanding]=useState(false);
   const[editField,setEditField]=useState(null);
@@ -250,6 +253,7 @@ export default function App(){
   const pauseRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,paused:!r.paused}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const deleteRoutine=id=>{showConfirm("Delete this routine permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
   const completeRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,completions:(r.completions||0)+1,lastCompleted:new Date().toISOString()}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
+  const snoozeStep=(id,until)=>{const u=allSteps.map(s=>s.id===id?{...s,snoozedUntil:until,status:"active"}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);showToast("Snoozed until "+new Date(until).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));};
   const talkAbout=text=>{if(segment==="everything")setSegment("wellness");setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
   const[shareModalItem,setShareModalItem]=useState(null);
   const shareItem=(item)=>{setShareModalItem(item);};
@@ -380,6 +384,7 @@ export default function App(){
               {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} steps taken this week</span>}
             </div>);
           })()}
+          <button onClick={()=>setShowSearch(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Search size={16} color={C.t3}/></button>
           <button onClick={()=>setShowHelp(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><HelpCircle size={16} color={C.t3}/></button>
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
           </div>
@@ -432,7 +437,7 @@ export default function App(){
             expandedPlan={expandedPlan} setExpandedPlan={setExpandedPlan}
             markStep={markStep} deleteStep={deleteStep} loveStep={loveStep} dislikeStep={dislikeStep} handleBooked={handleBooked}
             deletePlan={deletePlan} toggleTask={toggleTask} pauseRoutine={pauseRoutine} deleteRoutine={deleteRoutine} completeRoutine={completeRoutine}
-            talkAbout={talkAbout} shareItem={shareItem} handleAddCal={handleAddCal}
+            talkAbout={talkAbout} shareItem={shareItem} handleAddCal={handleAddCal} snoozeStep={snoozeStep}
           />
         )}
         {view==="steps"&&segment!=="everything"&&(<>
@@ -450,12 +455,12 @@ export default function App(){
             ):(<>
               {segSteps.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
-                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onShare={shareItem} delay={i*50}/>)}
+                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i*50}/>)}
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Journeys ({segPlans.length})</div>
-                {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onShare={shareItem} delay={pi*50}/>)}
+                {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onSnooze={snoozeStep} onShare={shareItem} delay={pi*50}/>)}
                 {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all journeys</button>}
               </div>}
               {segRoutines.length>0&&<div style={{marginBottom:20}}>
@@ -566,6 +571,7 @@ export default function App(){
       <ShareModal item={shareModalItem} onClose={()=>setShareModalItem(null)} />
       <ToastContainer/>
       {showHelp?<HelpModal onClose={()=>setShowHelp(false)}/>:null}
+      {showSearch?<SearchModal allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} onClose={()=>setShowSearch(false)} onNavigate={function(r){if(r.seg)setSegment(r.seg);setView("steps");}}/>:null}
     </div>
   );
 }
