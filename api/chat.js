@@ -132,13 +132,20 @@ export default async function handler(req, res) {
           ? TIER_MODELS.free // Free users cannot override to a better model
           : model;
 
+    // Cap max_tokens based on model to control output costs
+    // Haiku output: $1.25/M tokens. Sonnet output: $15/M tokens (12x more!)
+    const maxTokensCap = selectedModel.includes("haiku") ? Math.min(max_tokens || 1200, 1500) : Math.min(max_tokens || 2000, 2500);
+
     const anthropicBody = {
       model: selectedModel,
-      max_tokens: Math.min(max_tokens || 2000, 4000),
+      max_tokens: maxTokensCap,
       messages: messages,
     };
 
-    if (system) anthropicBody.system = system;
+    // Use prompt caching — system prompt is mostly static, cache it to save 90% on repeated calls
+    if (system) {
+      anthropicBody.system = [{type:"text",text:system,cache_control:{type:"ephemeral"}}];
+    }
     if (tools) anthropicBody.tools = tools;
     if (stream) anthropicBody.stream = true;
 
@@ -146,10 +153,11 @@ export default async function handler(req, res) {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
+      "anthropic-beta": "prompt-caching-2024-07-31",
     };
 
     if (tools && tools.some((t) => t.type === "web_search_20250305")) {
-      headers["anthropic-beta"] = "web-search-2025-03-05";
+      headers["anthropic-beta"] = "prompt-caching-2024-07-31,web-search-2025-03-05";
     }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {

@@ -207,7 +207,7 @@ export default function App(){
 
     try{
       // Strip ts field and ensure valid alternating roles for API
-      const cleanMsgs=segChat.slice(-20).filter(m=>!m.isError).map(m=>({role:m.role,content:typeof m.content==="string"?m.content:JSON.stringify(m.content)})).filter(m=>m.content&&m.content.trim()&&!m.content.startsWith("Something went wrong")&&!m.content.startsWith("Quick hiccup"));
+      const cleanMsgs=segChat.slice(-10).filter(m=>!m.isError).map(m=>({role:m.role,content:typeof m.content==="string"?m.content:JSON.stringify(m.content)})).filter(m=>m.content&&m.content.trim()&&!m.content.startsWith("Something went wrong")&&!m.content.startsWith("Quick hiccup"));
       // Ensure messages alternate user/assistant (API requirement)
       const apiMsgs=[];
       for(const m of cleanMsgs){
@@ -228,7 +228,11 @@ export default function App(){
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
-        const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json","x-user-id":getUserId(profile)},body:JSON.stringify({model:"auto",max_tokens:2000,tools:[{type:"web_search_20250305",name:"web_search"}],system:sysPrompt,messages:currentMsgs})});
+        const needsSearch=/find|search|near|book|reserve|restaurant|flight|hotel|class|doctor|event|show|concert|where|price|cost|\$/i.test(msg);
+        const isSimple=msg.length<50&&/^(yes|no|ok|sure|sounds good|thanks|love it|more|got it|cool|nice|perfect|great|do it|go ahead)/i.test(msg);
+        const maxTok=isSimple?500:needsSearch?2000:1200;
+        const tools=needsSearch?[{type:"web_search_20250305",name:"web_search"}]:undefined;
+        const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json","x-user-id":getUserId(profile)},body:JSON.stringify({model:"auto",max_tokens:maxTok,tools:tools,system:sysPrompt,messages:currentMsgs})});
         if(res.status===429||res.status>=500){
           const wait=attempts*3000;
           console.log(`API ${res.status}, retrying in ${wait}ms (attempt ${attempts}/3)...`);
