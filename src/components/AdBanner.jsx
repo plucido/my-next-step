@@ -52,22 +52,25 @@ function pickSponsor(segment) {
 }
 
 // Sponsor card — clearly marked as ad with support message
+// Shows real sponsor if available, otherwise demo placeholder
 export const SponsorCard = memo(function SponsorCard({segment, onUpgrade}) {
   const sponsor = pickSponsor(segment);
+  const isDemo = !import.meta.env.VITE_ADS_LIVE;
   return (
     <div style={{marginBottom:10}}>
       <div style={{...F,fontSize:10,color:C.t3,marginBottom:4,display:"flex",alignItems:"center",gap:6}}>
         <Heart size={10} color={C.acc}/>
-        <span>Clicking supports My Next Step — thank you!</span>
+        <span>{isDemo ? "Ad space — partner ads will appear here" : "Clicking supports My Next Step — thank you!"}</span>
         {onUpgrade ? <span onClick={onUpgrade} style={{marginLeft:"auto",color:C.acc,cursor:"pointer",fontWeight:600}}>Go ad-free</span> : null}
       </div>
-      <a href={sponsor.link} target="_blank" rel="noopener noreferrer" style={{textDecoration:"none",display:"block",padding:"14px 18px",borderRadius:16,background:C.cream,border:"1px dashed "+C.b2}}>
+      <a href={isDemo ? "#" : sponsor.link} target={isDemo ? "_self" : "_blank"} rel="noopener noreferrer" onClick={isDemo ? (e) => e.preventDefault() : undefined} style={{textDecoration:"none",display:"block",padding:"14px 18px",borderRadius:16,background:C.cream,border:"1.5px dashed "+C.b2,opacity:isDemo?0.7:1}}>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
           <span style={{...F,fontSize:9,fontWeight:700,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,background:C.card,padding:"2px 8px",borderRadius:4}}>AD</span>
-          <span style={{...F,fontSize:11,fontWeight:600,color:sponsor.color}}>{sponsor.brand}</span>
+          <span style={{...F,fontSize:11,fontWeight:600,color:isDemo?C.t3:sponsor.color}}>{isDemo?"Partner Ad":sponsor.brand}</span>
         </div>
         <div style={{...F,fontSize:14,fontWeight:600,color:C.t1,lineHeight:1.4}}>{sponsor.title}</div>
         <div style={{...F,fontSize:12,color:C.t2,marginTop:2}}>{sponsor.desc}</div>
+        {isDemo ? <div style={{...F,fontSize:10,color:C.t3,marginTop:6,fontStyle:"italic"}}>Demo — set VITE_ADS_LIVE=true when sponsors are confirmed</div> : null}
       </a>
     </div>
   );
