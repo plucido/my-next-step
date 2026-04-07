@@ -12,6 +12,8 @@ import TimelineView from "./components/TimelineView.jsx";
 import ToastContainer, { showToast, showConfirm } from "./components/Toast.jsx";
 import { getBadges } from "./modals/Badges.jsx";
 import { requestNotificationPermission, startReminderChecks, stopReminderChecks } from "./lib/notifications.js";
+import { SponsorCard, AdBanner } from "./components/AdBanner.jsx";
+const UpgradeModal = lazy(() => import("./modals/UpgradeModal.jsx"));
 
 // Lazy-loaded screens and modals
 const AuthScreen = lazy(() => import("./screens/AuthScreen.jsx"));
@@ -55,6 +57,8 @@ export default function App(){
   const[darkMode,setDarkMode]=useState(()=>{try{return localStorage.getItem("mns_dark")==="true";}catch{return false;}});
   const[showWeekly,setShowWeekly]=useState(false);
   const[showBadges,setShowBadges]=useState(false);
+  const[showUpgrade,setShowUpgrade]=useState(false);
+  const userTier=profile?.tier||"free";
   const[showWalkthrough,setShowWalkthrough]=useState(()=>{try{return !localStorage.getItem("mns_walkthrough_done");}catch{return true;}});
   const[settingsTab,setSettingsTab]=useState("profile");
   const[editField,setEditField]=useState(null);
@@ -410,6 +414,7 @@ export default function App(){
               {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} this week</span>}
             </div>);
           })()}
+          {userTier==="free"?<button onClick={()=>setShowUpgrade(true)} style={{...F,height:36,padding:"0 14px",borderRadius:12,background:C.accGrad,border:"none",boxShadow:"0 2px 8px rgba(212,82,42,0.2)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontSize:12,fontWeight:700,color:"#fff"}}><Sparkles size={12}/> Pro</button>:null}
           <button onClick={()=>setShowBadges(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🏅</button>
           <button onClick={()=>setShowSearch(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Search size={16} color={C.t3}/></button>
           <button onClick={()=>setShowHelp(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><HelpCircle size={16} color={C.t3}/></button>
@@ -486,7 +491,7 @@ export default function App(){
             ):(<>
               {segSteps.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
-                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i*50}/>)}
+                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><>{i===3&&userTier==="free"?<SponsorCard segment={segment}/>:null}<StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i*50}/></>)}
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>
@@ -604,6 +609,7 @@ export default function App(){
       {showHelp?<HelpModal onClose={()=>setShowHelp(false)}/>:null}
       {showWeekly?<WeeklySummary onClose={()=>setShowWeekly(false)} allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} profile={profile}/>:null}
       {showBadges?<BadgesModal onClose={()=>setShowBadges(false)} allSteps={allSteps} allRoutines={allRoutines} allPlans={allPlans} profile={profile}/>:null}
+      {showUpgrade?<Suspense fallback={null}><UpgradeModal onClose={()=>setShowUpgrade(false)} onUpgrade={()=>{window.open("/api/billing/checkout","_blank");setShowUpgrade(false);}}/></Suspense>:null}
       {showWalkthrough&&screen==="main"?<Walkthrough onComplete={()=>{setShowWalkthrough(false);try{localStorage.setItem("mns_walkthrough_done","1");}catch{}}}/>:null}
       {showSearch?<SearchModal allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} onClose={()=>setShowSearch(false)} onNavigate={function(r){if(r.seg)setSegment(r.seg);setView("steps");}}/>:null}
     </div>

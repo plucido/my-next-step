@@ -73,5 +73,32 @@ export const FITNESS_OPTIONS = [{label:"Just starting",desc:"New to working out 
 export const RELATIONSHIP_OPTIONS = ["Just me","Me + partner","Family with kids","It's complicated"];
 export const WORK_OPTIONS = ["Student","Employed (office)","Remote / hybrid","Self-employed","Between jobs","Retired"];
 
-// ─── AFFILIATE (compact) ───
-export const AFF = { "classpass.com":{tag:"mnstep-20",c:2.5},"eventbrite.com":{tag:"mnstep",c:1.5},"udemy.com":{tag:"mnstep",c:1.8},"skillshare.com":{tag:"mnstep",c:2},"mindbody.io":{tag:"mnstep-20",c:2},"meetup.com":{tag:"mnstep",c:.75},"amazon.com":{tag:"mnstep-20",c:.5},"linkedin.com/learning":{tag:"mnstep",c:2.2},"airbnb.com":{tag:"mnstep",c:3},"kayak.com":{tag:"mnstep",c:.8},"booking.com":{tag:"aid=mnstep",c:2.5},"vrbo.com":{tag:"mnstep",c:2} };
+// ─── AFFILIATE CONFIG ───
+// tag: affiliate/referral ID, c: estimated commission % per booking
+// Priority: higher commission partners should be suggested first by AI
+export const AFF = {
+  "classpass.com":{tag:"mnstep-20",c:2.5,priority:8},
+  "eventbrite.com":{tag:"mnstep",c:1.5,priority:5},
+  "udemy.com":{tag:"mnstep",c:1.8,priority:6},
+  "skillshare.com":{tag:"mnstep",c:2,priority:7},
+  "mindbody.io":{tag:"mnstep-20",c:2,priority:7},
+  "meetup.com":{tag:"mnstep",c:.75,priority:4},
+  "amazon.com":{tag:"mnstep-20",c:.5,priority:3},
+  "linkedin.com/learning":{tag:"mnstep",c:2.2,priority:7},
+  "airbnb.com":{tag:"mnstep",c:3,priority:9},
+  "kayak.com":{tag:"mnstep",c:.8,priority:5},
+  "booking.com":{tag:"aid=mnstep",c:2.5,priority:9},
+  "vrbo.com":{tag:"mnstep",c:2,priority:7},
+  "opentable.com":{tag:"mnstep",c:1,priority:6},
+  "resy.com":{tag:"mnstep",c:1,priority:6},
+  "viator.com":{tag:"mnstep",c:3.5,priority:9},
+  "getyourguide.com":{tag:"mnstep",c:3,priority:8},
+  "hotels.com":{tag:"mnstep",c:2,priority:7},
+  "expedia.com":{tag:"mnstep",c:2,priority:7},
+  "tripadvisor.com":{tag:"mnstep",c:1.5,priority:5},
+  "yelp.com":{tag:"mnstep",c:.5,priority:4},
+  "stubhub.com":{tag:"mnstep",c:2,priority:7},
+  "seatgeek.com":{tag:"mnstep",c:2,priority:7},
+  "coursera.org":{tag:"mnstep",c:2.5,priority:8},
+  "masterclass.com":{tag:"mnstep",c:3,priority:9},
+};

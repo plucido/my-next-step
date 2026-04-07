@@ -2,10 +2,12 @@
 // Supports streaming and non-streaming, with tier-based model routing and usage metering
 import { authenticate, db, rateLimit, handleCors, cors } from "./middleware.js";
 
-// Monthly quota limits per tier
-const TIER_QUOTAS = {
-  free: 50,   // 50 messages per month
-  pro: 1000,  // 1000 messages per month
+// Free tier: unlimited messages (ad-supported), Haiku model
+// Pro tier: unlimited messages (ad-free), Sonnet for complex queries
+// Rate limit still applies to prevent abuse (30/min free, 60/min pro)
+const TIER_RATE_LIMITS = {
+  free: 30,
+  pro: 60,
 };
 
 // Model access per tier
@@ -105,19 +107,8 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: "Too many requests. Please wait a moment." });
   }
 
-  // Check monthly quota before making API call
+  // Track usage for analytics (no quota blocking — free tier is unlimited with ads)
   const { count: usageCount, monthKey } = await getUsage(user.uid);
-  const quota = TIER_QUOTAS[user.tier] || TIER_QUOTAS.free;
-  const remaining = Math.max(0, quota - usageCount);
-
-  if (remaining <= 0) {
-    return res.status(429).json({
-      error: "Monthly quota exceeded. Upgrade to Pro for more messages.",
-      quota,
-      used: usageCount,
-      tier: user.tier,
-    });
-  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -173,7 +164,7 @@ export default async function handler(req, res) {
 
     // Increment usage after successful API call
     await incrementUsage(user.uid, monthKey);
-    const newRemaining = remaining - 1;
+    // Usage tracked for analytics
 
     // Streaming mode: pipe SSE events directly to client
     if (stream && response.body) {
@@ -181,7 +172,7 @@ export default async function handler(req, res) {
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
       res.setHeader("X-Model-Used", selectedModel);
-      res.setHeader("X-Remaining-Quota", String(newRemaining));
+      res.setHeader("X-Remaining-Quota", String(user.tier === "pro" ? "unlimited" : usageCount));
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -202,7 +193,7 @@ export default async function handler(req, res) {
     // Non-streaming mode
     const data = await response.json();
     data._model = selectedModel;
-    res.setHeader("X-Remaining-Quota", String(newRemaining));
+    res.setHeader("X-Remaining-Quota", String(user.tier === "pro" ? "unlimited" : usageCount));
     return res.status(200).json(data);
   } catch (err) {
     console.error("Chat proxy error:", err);
