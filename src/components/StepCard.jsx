@@ -1,7 +1,7 @@
 import { useState, memo } from "react";
 import { X, Check, Heart, Sparkles, Share2, Calendar, ExternalLink, ThumbsDown, Clock } from "lucide-react";
-import { C, F, SEGMENTS } from "./constants.js";
-import { FadeIn, catToSeg, catIcon, TLink } from "./utils.jsx";
+import { C, F, SEGMENTS } from "../lib/constants.js";
+import { FadeIn, catToSeg, catIcon, TLink } from "../lib/utils.jsx";
 
 function getSnoozeDate(option){
   const now=new Date();

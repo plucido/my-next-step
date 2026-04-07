@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { C, F, H } from "./constants.js";
-import { FadeIn, Logo } from "./utils.jsx";
-import { loadGSI, decJwt } from "./auth.js";
+import { C, F, H } from "../lib/constants.js";
+import { FadeIn, Logo } from "../lib/utils.jsx";
+import { loadGSI, decJwt } from "../lib/auth.js";
 import { Footprints, Sparkles, Calendar, Heart } from "lucide-react";
 
 export default function AuthScreen({onAuth}){

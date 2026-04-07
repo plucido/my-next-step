@@ -1,6 +1,6 @@
 import { X, Award } from "lucide-react";
-import { H, F, C, SEG_KEYS } from "./constants.js";
-import { FadeIn } from "./utils.jsx";
+import { H, F, C, SEG_KEYS } from "../lib/constants.js";
+import { FadeIn } from "../lib/utils.jsx";
 
 var BADGE_DEFS = [
   { id: "first_step", emoji: "👣", name: "First Step", desc: "Completed your first step" },

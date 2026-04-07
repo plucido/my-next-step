@@ -1,9 +1,9 @@
 import { X, ChevronDown, MessageCircle, Plus, Heart, Dumbbell, UtensilsCrossed, Building2, TrendingUp, Calendar, Briefcase, Sparkles, Star, Shield, Globe } from "lucide-react";
-import { H, F, C, INTEREST_OPTIONS, BUDGET_OPTIONS, RELATIONSHIP_OPTIONS, WORK_OPTIONS } from "./constants.js";
-import { catIcon, Logo } from "./utils.jsx";
-import { getUserId, saveFB, deleteFB } from "./firebase.js";
-import { connectStrava, connectGCal, fetchGCal } from "./auth.js";
-import LegalModal from "./LegalModal.jsx";
+import { H, F, C, INTEREST_OPTIONS, BUDGET_OPTIONS, RELATIONSHIP_OPTIONS, WORK_OPTIONS } from "../lib/constants.js";
+import { catIcon, Logo } from "../lib/utils.jsx";
+import { getUserId, saveFB, deleteFB } from "../lib/firebase.js";
+import { connectStrava, connectGCal, fetchGCal } from "../lib/auth.js";
+import LegalModal from "../modals/LegalModal.jsx";
 
 export default function Settings({
   setShowSettings,
@@ -19,7 +19,6 @@ export default function Settings({
   allSteps, allPlans, chats, preferences, allRoutines,
   persist, resetAll, setScreen,
   doneSteps, totalCompleted, thisWeekDone, completedByCategory,
-  showSettings
 }) {
 
   const saveTravel=(key,val)=>{const t={...(profile?.travel||{}),[key]:val};const p={...profile,travel:t};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);};
@@ -332,7 +331,6 @@ export default function Settings({
     </div>);
   }
 
-  // showSettings guard removed - parent controls visibility with && in JSX
 
   return (
     <div style={{position:"fixed",inset:0,zIndex:200,background:C.bg,overflowY:"auto",padding:20}}>

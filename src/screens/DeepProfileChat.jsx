@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowUp, MessageCircle, ChevronRight } from "lucide-react";
-import { C, F, H, PROFILE_SECTIONS } from "./constants.js";
-import { FadeIn, Logo, clean } from "./utils.jsx";
+import { C, F, H, PROFILE_SECTIONS } from "../lib/constants.js";
+import { FadeIn, Logo, clean } from "../lib/utils.jsx";
 
 export default function DeepProfileChat({profile,onFinish,existingInsights}){
   const[msgs,setMsgs]=useState([]);const[inp,setInp]=useState("");const[busy,setBusy]=useState(false);

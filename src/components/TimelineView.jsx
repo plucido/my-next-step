@@ -1,10 +1,10 @@
 import { useState, useMemo } from "react";
 import { Calendar, Check, Heart, ChevronLeft, ChevronRight } from "lucide-react";
-import { H, F, C, SEGMENTS } from "./constants.js";
-import { FadeIn, catToSeg, catIcon } from "./utils.jsx";
-import StepCard from "./StepCard.jsx";
-import JourneyCard from "./JourneyCard.jsx";
-import RoutineCard from "./RoutineCard.jsx";
+import { H, F, C, SEGMENTS } from "../lib/constants.js";
+import { FadeIn, catToSeg, catIcon } from "../lib/utils.jsx";
+import StepCard from "../components/StepCard.jsx";
+import JourneyCard from "../components/JourneyCard.jsx";
+import RoutineCard from "../components/RoutineCard.jsx";
 
 const CARD_STYLE = { padding: "10px 14px", borderRadius: 12, marginBottom: 6, background: C.card, boxShadow: C.shadow, display: "flex", alignItems: "center", gap: 10 };
 

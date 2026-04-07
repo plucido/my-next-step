@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Search, X, Footprints, Map, RotateCcw, Check, Heart } from "lucide-react";
-import { H, F, C, SEGMENTS } from "./constants.js";
-import { catToSeg, catIcon } from "./utils.jsx";
+import { H, F, C, SEGMENTS } from "../lib/constants.js";
+import { catToSeg, catIcon } from "../lib/utils.jsx";
 
 export default function SearchModal({allSteps, allPlans, allRoutines, onClose, onNavigate}) {
   var [query, setQuery] = useState("");

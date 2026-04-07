@@ -1,5 +1,6 @@
-import { X, Copy, Check, Mail, Send, Link2 } from "lucide-react";
-import { C, F, H } from "./constants.js";
+import React, { useState } from "react";
+import { X, Check, Send, Link2 } from "lucide-react";
+import { C, F, H } from "../lib/constants.js";
 
 function ShareJourney(props) {
   var journey = props.journey;

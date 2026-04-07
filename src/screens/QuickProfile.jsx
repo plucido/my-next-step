@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronRight, ChevronLeft, Check } from "lucide-react";
-import { H, F, C, INTEREST_OPTIONS, BUDGET_OPTIONS, DIET_OPTIONS, ALLERGY_OPTIONS, FITNESS_OPTIONS, RELATIONSHIP_OPTIONS, WORK_OPTIONS } from "./constants.js";
-import { FadeIn } from "./utils.jsx";
+import { H, F, C, INTEREST_OPTIONS, BUDGET_OPTIONS, DIET_OPTIONS, ALLERGY_OPTIONS, FITNESS_OPTIONS, RELATIONSHIP_OPTIONS, WORK_OPTIONS } from "../lib/constants.js";
+import { FadeIn } from "../lib/utils.jsx";
 
 export default function QuickProfile({ profile, onComplete }) {
   const [step, setStep] = useState(0);

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { Briefcase, Heart, Sparkles, Globe, Calendar, Star, Dumbbell, TrendingUp, Zap } from "lucide-react";
-import { C, F, SEGMENTS, AFF } from "./constants.js";
+import { C, F, SEGMENTS, AFF } from "../lib/constants.js";
 
 // ─── BRAND LOGO ───
 export function Logo({size=32,color}){return<svg width={size} height={size} viewBox="0 0 40 40" fill="none"><path d="M20 4C14.5 4 10 7.5 10 12c0 3 1.5 5.5 4 7.5L20 36l6-16.5c2.5-2 4-4.5 4-7.5C30 7.5 25.5 4 20 4z" fill={color||C.acc} opacity="0.9"/><path d="M20 8c-2.8 0-5 1.8-5 4.5 0 1.8 1 3.3 2.5 4.5L20 26l2.5-9c1.5-1.2 2.5-2.7 2.5-4.5C25 9.8 22.8 8 20 8z" fill="#fff" opacity="0.3"/><circle cx="20" cy="13" r="2.5" fill="#fff"/></svg>}
 
 // ─── SEGMENT ICONS ───
-export const segIcon=(key,size=18,color)=>{const props={size,strokeWidth:2,color:color||SEGMENTS[key]?.color||C.acc};switch(key){case"career":return<Briefcase {...props}/>;case"wellness":return<Heart {...props}/>;case"fun":return<Sparkles {...props}/>;case"adventure":return<Globe {...props}/>;default:return<Calendar {...props}/>;}};
+export const segIcon=(key,size=18,color)=>{const props={size,strokeWidth:2,color:color||SEGMENTS[key]?.color||C.acc};switch(key){case"career":return<Briefcase {...props}/>;case"wellness":return<Heart {...props}/>;case"adventure":return<Globe {...props}/>;default:return<Calendar {...props}/>;}};
 export const catIconMap={fitness:<Dumbbell size={14}/>,wellness:<Heart size={14}/>,career:<Briefcase size={14}/>,learning:<TrendingUp size={14}/>,social:<Sparkles size={14}/>,events:<Calendar size={14}/>,travel:<Globe size={14}/>,products:<Star size={14}/>};
 export function catIcon(cat){return catIconMap[cat]||<Zap size={14}/>;}
 

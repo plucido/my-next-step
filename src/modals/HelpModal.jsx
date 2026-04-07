@@ -1,5 +1,5 @@
 import { X, Footprints, Map, RotateCcw, MessageCircle, Calendar, Heart, ThumbsDown, Share2 } from "lucide-react";
-import { H, F, C } from "./constants.js";
+import { H, F, C } from "../lib/constants.js";
 
 export default function HelpModal({onClose}) {
 

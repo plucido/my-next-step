@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { C, F, H } from "./constants.js";
+import { C, F, H } from "../lib/constants.js";
 
 export default function LegalModal({legalModal,setLegalModal,profile,setProfile,persist,allSteps,allPlans,chats,preferences}){
   if(!legalModal)return null;

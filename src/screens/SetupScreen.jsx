@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { C, F, H } from "./constants.js";
-import { FadeIn } from "./utils.jsx";
+import { C, F, H } from "../lib/constants.js";
+import { FadeIn } from "../lib/utils.jsx";
 
 export default function SetupScreen({profile,onComplete}){
   const[location,setLocation]=useState("");const[age,setAge]=useState("");const[gender,setGender]=useState("");const[genderOther,setGenderOther]=useState("");

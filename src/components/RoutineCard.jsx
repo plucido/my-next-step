@@ -1,7 +1,7 @@
 import { useState, memo } from "react";
 import { X, Check, Sparkles, RotateCcw } from "lucide-react";
-import { C, F, SEGMENTS } from "./constants.js";
-import { FadeIn, catToSeg } from "./utils.jsx";
+import { C, F, SEGMENTS } from "../lib/constants.js";
+import { FadeIn, catToSeg } from "../lib/utils.jsx";
 
 export default memo(function RoutineCard({routine,onPause,onDelete,onComplete,onTalk,delay=0}){
   const [justCompleted, setJustCompleted] = useState(false);

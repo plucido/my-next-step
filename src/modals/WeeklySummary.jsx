@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X, TrendingUp, Flame, Heart, Calendar, Copy, Check } from "lucide-react";
-import { H, F, C, SEGMENTS, SEG_KEYS } from "./constants.js";
-import { FadeIn, Logo } from "./utils.jsx";
+import { H, F, C, SEGMENTS, SEG_KEYS } from "../lib/constants.js";
+import { FadeIn, Logo } from "../lib/utils.jsx";
 
 function getWeekData(allSteps, allPlans, allRoutines) {
   var now = Date.now();

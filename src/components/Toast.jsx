@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Check, X, AlertTriangle, Info } from "lucide-react";
-import { F, C } from "./constants.js";
+import { F, C } from "../lib/constants.js";
 
 var toastListeners = [];
 var toastId = 0;

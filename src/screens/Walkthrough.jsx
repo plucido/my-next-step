@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChevronRight, ChevronLeft, MessageCircle, Footprints, Calendar, Sparkles } from "lucide-react";
-import { H, F, C, SEGMENTS } from "./constants.js";
-import { FadeIn, Logo } from "./utils.jsx";
+import { H, F, C, SEGMENTS } from "../lib/constants.js";
+import { FadeIn, Logo } from "../lib/utils.jsx";
 
 var slides = [
   {

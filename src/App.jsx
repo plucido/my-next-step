@@ -1,28 +1,28 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Heart, Sparkles, Calendar, Settings, ArrowUp, MessageCircle, ChevronRight, X, Check, Search, Flame, HelpCircle } from "lucide-react";
 
-import { font, H, F, C, SEGMENTS, SEG_KEYS, SYSTEM_PROMPT, PROFILE_SECTIONS, AFF } from "./constants.js";
-import { getUserId, saveFB, loadFB, deleteFB } from "./firebase.js";
-import { getGreeting, FadeIn, ProgressRing, clean, wrapLink, trackClick, TLink, catToSeg, segIcon, catIcon, catIconMap, Logo } from "./utils.jsx";
-import { loadGSI, decJwt, connectStrava, exchStrava, fetchStrava, connectGCal, fetchGCal, addGCalEvent, addGCalRecurring } from "./auth.js";
-import StepCard from "./StepCard.jsx";
-import JourneyCard from "./JourneyCard.jsx";
-import RoutineCard from "./RoutineCard.jsx";
-import TimelineView from "./TimelineView.jsx";
-import AuthScreen from "./AuthScreen.jsx";
-import SetupScreen from "./SetupScreen.jsx";
-import DeepProfileChat from "./DeepProfileChat.jsx";
-import LegalModal from "./LegalModal.jsx";
-import ShareModal from "./ShareModal.jsx";
-import SettingsPanel from "./Settings.jsx";
-import HelpModal from "./HelpModal.jsx";
-import ToastContainer, { showToast, showConfirm } from "./Toast.jsx";
-import SearchModal from "./SearchModal.jsx";
-import QuickProfile from "./QuickProfile.jsx";
-import WeeklySummary from "./WeeklySummary.jsx";
-import Walkthrough from "./Walkthrough.jsx";
-import BadgesModal, { getBadges } from "./Badges.jsx";
-import { requestNotificationPermission, startReminderChecks, stopReminderChecks } from "./notifications.js";
+import { font, H, F, C, SEGMENTS, SEG_KEYS, SYSTEM_PROMPT, PROFILE_SECTIONS, AFF } from "./lib/constants.js";
+import { getUserId, saveFB, loadFB, deleteFB } from "./lib/firebase.js";
+import { getGreeting, FadeIn, ProgressRing, clean, wrapLink, trackClick, TLink, catToSeg, segIcon, catIcon, catIconMap, Logo } from "./lib/utils.jsx";
+import { loadGSI, decJwt, connectStrava, exchStrava, fetchStrava, connectGCal, fetchGCal, addGCalEvent, addGCalRecurring } from "./lib/auth.js";
+import StepCard from "./components/StepCard.jsx";
+import JourneyCard from "./components/JourneyCard.jsx";
+import RoutineCard from "./components/RoutineCard.jsx";
+import TimelineView from "./components/TimelineView.jsx";
+import AuthScreen from "./screens/AuthScreen.jsx";
+import SetupScreen from "./screens/SetupScreen.jsx";
+import DeepProfileChat from "./screens/DeepProfileChat.jsx";
+import LegalModal from "./modals/LegalModal.jsx";
+import ShareModal from "./modals/ShareModal.jsx";
+import SettingsPanel from "./screens/Settings.jsx";
+import HelpModal from "./modals/HelpModal.jsx";
+import ToastContainer, { showToast, showConfirm } from "./components/Toast.jsx";
+import SearchModal from "./modals/SearchModal.jsx";
+import QuickProfile from "./screens/QuickProfile.jsx";
+import WeeklySummary from "./modals/WeeklySummary.jsx";
+import Walkthrough from "./screens/Walkthrough.jsx";
+import BadgesModal, { getBadges } from "./modals/Badges.jsx";
+import { requestNotificationPermission, startReminderChecks, stopReminderChecks } from "./lib/notifications.js";
 
 // ─── MAIN APP ───
 export default function App(){
@@ -119,7 +119,7 @@ export default function App(){
       if(cv){setCalToken(cv.token);setCalData(cv.events);}
     }}catch{}
     // Migration from old format
-    try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setChats({career:[],wellness:d.messages||[],fun:[],adventure:[]});setPreferences(d.preferences||[]);setScreen("main");const uid=getUserId(d.profile);if(uid){saveFB(uid,"appdata",{...d,chats:{career:[],wellness:d.messages||[],fun:[],adventure:[]}});window.storage.delete("mns-v11").catch(()=>{});}}}}catch{}
+    try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setChats({career:[],wellness:d.messages||[],adventure:[]});setPreferences(d.preferences||[]);setScreen("main");const uid=getUserId(d.profile);if(uid){saveFB(uid,"appdata",{...d,chats:{career:[],wellness:d.messages||[],adventure:[]}});window.storage.delete("mns-v11").catch(()=>{});}}}}catch{}
   })();},[]);
 
   useEffect(()=>{
@@ -164,7 +164,7 @@ export default function App(){
     if(inputRef.current)inputRef.current.style.height="auto";
 
     // Build full profile context from ALL segments
-    const allMsgs=[...(chats.career||[]),...(chats.wellness||[]),...(chats.fun||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const allMsgs=[...(chats.career||[]),...(chats.wellness||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0));
     const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.slice(-15).map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
     const stepsCtx=activeSteps.length>0?"\n\nALL ACTIVE STEPS:\n"+activeSteps.slice(0,15).map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";

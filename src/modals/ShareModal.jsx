@@ -1,5 +1,5 @@
 import { X, Copy, Check, MessageCircle } from "lucide-react";
-import { C, F, H } from "./constants.js";
+import { C, F, H } from "../lib/constants.js";
 import { useState } from "react";
 
 export default function ShareModal({item, onClose}) {
