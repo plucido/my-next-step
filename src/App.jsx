@@ -427,17 +427,15 @@ export default function App(){
           </div>
         </div>
       </div>
-      <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
-        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&segment!=="everything";const stepCount=activeSteps.filter(x=>catToSeg(x.category)===s).length;const planCount=allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);return cats.length?cats.some(c=>catToSeg(c)===s):false;}).length;const routineCount=allRoutines.filter(r=>catToSeg(r.category)===s&&!r.paused).length;const count=stepCount+planCount+routineCount;
-          return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:13,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
+      <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
+        <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:"0 0 auto",padding:"10px 16px",background:view==="chat"?C.accGrad:"transparent",border:view==="chat"?"none":`1.5px solid ${C.b2}`,borderRadius:14,cursor:"pointer",fontSize:13,fontWeight:600,color:view==="chat"?"#fff":C.t2,boxShadow:view==="chat"?"0 2px 8px rgba(212,82,42,0.2)":"none",display:"flex",alignItems:"center",gap:5,transition:"all 0.2s"}}><MessageCircle size={14}/> Guide</button>
+        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&view==="steps";const count=activeSteps.filter(x=>catToSeg(x.category)===s).length;
+          return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:3,transition:"all 0.2s"}}>
             {info.label}{count>0?<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>:null}
           </button>);
         })}
-        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,width:40,padding:"10px 0",background:segment==="everything"?C.card:"transparent",border:segment==="everything"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",boxShadow:segment==="everything"?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}><Calendar size={16} color={segment==="everything"?C.acc:C.t3}/></button>
+        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,width:36,padding:"10px 0",background:segment==="everything"&&view==="steps"?C.card:"transparent",border:segment==="everything"&&view==="steps"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",boxShadow:segment==="everything"&&view==="steps"?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}><Calendar size={14} color={segment==="everything"&&view==="steps"?C.acc:C.t3}/></button>
       </div>
-      {segment!=="everything"&&<div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
-        {[{id:"steps",label:"Steps"},{id:"chat",label:"Guide"}].map(t=>(<button key={t.id} onClick={()=>{setView(t.id);if(t.id==="chat")setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:1,padding:"10px 0",background:view===t.id?C.card:"transparent",border:view===t.id?`1.5px solid ${C.b2}`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:view===t.id?600:400,color:view===t.id?C.t1:C.t3,boxShadow:view===t.id?C.shadow:"none",transition:"all 0.15s"}}>{t.label}</button>))}
-      </div>}
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         {segment==="everything"&&(
@@ -450,7 +448,7 @@ export default function App(){
             userTier={userTier}
           />
         )}
-        {view==="steps"&&segment!=="everything"&&(<>
+        {view==="steps"&&segment!=="everything"&&segment!=="chat"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
             {segSteps.length===0&&segPlans.length===0&&segRoutines.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
               <FadeIn><div style={{textAlign:"center",padding:"36px 20px"}}>
@@ -516,14 +514,14 @@ export default function App(){
         </>)}
         {view==="chat"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"10px 20px"}}>
-            {(chats[segment]||[]).length===0&&!loading&&(
+            {(chats.all||[]).length===0&&!loading&&(
               <div style={{textAlign:"center",padding:"40px 20px"}}>
-                <div style={{width:56,height:56,borderRadius:18,margin:"0 auto 14px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>{segIcon(segment)}</div>
-                <div style={{...H,fontSize:20,color:C.t1,marginBottom:6}}>Ask me anything about {segInfo.label.toLowerCase()}</div>
-                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto"}}>{segInfo.desc}. I'll turn ideas into steps and journeys you can act on.</div>
+                <div style={{width:56,height:56,borderRadius:18,margin:"0 auto 14px",background:C.accSoft,display:"flex",alignItems:"center",justifyContent:"center"}}><Logo size={28} color={C.acc}/></div>
+                <div style={{...H,fontSize:20,color:C.t1,marginBottom:6}}>What can I help you with?</div>
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Plan a trip, find a restaurant, start a workout routine, grow your career — I'll create actionable steps you can book right away.</div>
               </div>
             )}
-            {(chats[segment]||[]).map((msg,i)=>(
+            {(chats.all||[]).map((msg,i)=>(
               <div key={i} style={{display:"flex",justifyContent:msg.role==="user"?"flex-end":"flex-start",marginBottom:10}}>
                 {msg.role!=="user"&&<div style={{width:28,height:28,borderRadius:10,background:C.accGrad,flexShrink:0,marginRight:10,marginTop:3,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff"}}><Logo size={18} color="#fff"/></div>}
                 <div style={bubble(msg.role==="user")}>{msg.content}</div>
@@ -541,18 +539,18 @@ export default function App(){
             </div>}
             <div ref={chatEnd}/>
           </div>
-          {(chats[segment]||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
+          {(chats.all||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
             <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
               {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="adventure"?["Plan a trip","Find events this weekend","Plan something with friends"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
             </div>
           </div>}
-          {(chats[segment]||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
+          {(chats.all||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
             <button onClick={()=>{showConfirm("Clear this conversation?",function(){const nc={all:[]};setChats(nc);persist(profile,allSteps,allPlans,nc,preferences);});}} style={{...F,fontSize:11,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"4px 8px"}}>Clear conversation</button>
           </div>}
           <BottomBanner tier={userTier} onUpgrade={()=>setShowUpgrade(true)}/>
           <div style={{padding:"6px 20px 16px",flexShrink:0}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
-              <textarea ref={inputRef} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder={`Ask about ${segInfo.label.toLowerCase()}...`} rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:18,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow,resize:"none",maxHeight:150,lineHeight:1.5}} onFocus={e=>{e.target.style.borderColor=segInfo.color;e.target.style.boxShadow=`0 0 0 3px ${segInfo.color}15`;}} onBlur={e=>{e.target.style.borderColor=C.b2;e.target.style.boxShadow=C.shadow;}}/>
+              <textarea ref={inputRef} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder="What can I help you with?" rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:18,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow,resize:"none",maxHeight:150,lineHeight:1.5}} onFocus={e=>{e.target.style.borderColor=segInfo.color;e.target.style.boxShadow=`0 0 0 3px ${segInfo.color}15`;}} onBlur={e=>{e.target.style.borderColor=C.b2;e.target.style.boxShadow=C.shadow;}}/>
               <button onClick={()=>sendMessage()} disabled={!input.trim()||loading} style={{width:46,height:46,borderRadius:16,border:"none",flexShrink:0,cursor:input.trim()&&!loading?"pointer":"default",background:input.trim()&&!loading?C.accGrad:"rgba(0,0,0,0.04)",color:input.trim()&&!loading?"#fff":C.t3,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:1}}><ArrowUp size={18}/></button>
             </div>
             {input.length>50&&<div style={{...F,fontSize:11,color:C.t3,marginTop:6,textAlign:"right"}}>Shift+Enter for new line</div>}
