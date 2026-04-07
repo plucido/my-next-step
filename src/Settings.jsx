@@ -25,36 +25,35 @@ export default function Settings({
   const saveTravel=(key,val)=>{const t={...(profile?.travel||{}),[key]:val};const p={...profile,travel:t};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);};
   const saveQP=(key,val)=>{const p={...profile,quickProfile:{...(profile?.quickProfile||{}),[key]:val}};setProfile(p);persist(p,allSteps,allPlans,chats,preferences);};
 
-  function renderProfileChips(label, key, options, multi) {
-    var current = profile?.quickProfile?.[key];
-    var isArr = multi && Array.isArray(current);
-    var otherKey = "other_"+key;
-    return (
-      <div style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>
-        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>{label}</div>
+  function renderOptionRow(label, key, options, current, multi, saveKey) {
+    const isTravel = saveKey === "travel";
+    const isArr = multi && Array.isArray(current);
+    const otherKey = "other_"+key;
+    const saveFn = isTravel ? (k,v) => saveTravel(k,v) : (k,v) => saveQP(k,v);
+    const toggle = (o) => {
+      const on = multi ? (isArr && current.includes(o)) : current===o;
+      if(multi){const arr=isArr?[...current]:[];saveFn(key,on?arr.filter((x) => x!==o):[...arr,o]);}
+      else if(isTravel){saveFn(key,o);}
+      else{saveFn(key,on?null:o);}
+    };
+    const chipRow = (
+      <div>
+        <div style={{...F,fontSize:isTravel?12:11,color:C.t3,marginBottom:isTravel?6:10,...(isTravel?{}:{textTransform:"uppercase",letterSpacing:1.5})}}>{label}</div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {options.map(function(o){
-            var on = multi ? (isArr && current.includes(o)) : current===o;
-            return <button key={o} onClick={function(){
-              if(multi){var arr=isArr?[...current]:[];saveQP(key,on?arr.filter(function(x){return x!==o;}):[...arr,o]);}
-              else{saveQP(key,on?null:o);}
-            }} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.accSoft:C.cream,border:"1.5px solid "+(on?C.acc:C.b2),color:on?C.acc:C.t2,fontWeight:on?600:400}}>{o}</button>;
+          {options.map((o) => {
+            const on = multi ? (isArr && current.includes(o)) : current===o;
+            return <button key={o} onClick={() => toggle(o)} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:on?C.accSoft:C.cream,border:"1.5px solid "+(on?C.acc:C.b2),color:on?C.acc:C.t2,fontWeight:on?600:400}}>{o}</button>;
           })}
         </div>
-        {editField===otherKey?<div style={{display:"flex",gap:8,marginTop:8}}>
-          <input value={editVal} onChange={function(e){setEditVal(e.target.value);}} placeholder="Type your own..." style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:"1.5px solid "+C.acc,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/>
-          <button onClick={function(){if(editVal.trim()){if(multi){var arr=isArr?[...current]:[];saveQP(key,[...arr,editVal.trim()]);}else{saveQP(key,editVal.trim());}setEditField(null);setEditVal("");}}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add</button>
-          <button onClick={function(){setEditField(null);setEditVal("");}} style={{...F,padding:"10px 14px",borderRadius:12,border:"1px solid "+C.b1,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
-        </div>:<button onClick={function(){setEditField(otherKey);setEditVal("");}} style={{...F,marginTop:8,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:"transparent",border:"1.5px dashed "+C.b2,color:C.t3}}>+ Other</button>}{null}
+        {!isTravel?(editField===otherKey?<div style={{display:"flex",gap:8,marginTop:8}}>
+          <input value={editVal} onChange={(e) => {setEditVal(e.target.value);}} placeholder="Type your own..." style={{...F,flex:1,padding:"10px 14px",fontSize:14,borderRadius:12,border:"1.5px solid "+C.acc,background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box"}}/>
+          <button onClick={() => {if(editVal.trim()){if(multi){const arr=isArr?[...current]:[];saveFn(key,[...arr,editVal.trim()]);}else{saveFn(key,editVal.trim());}setEditField(null);setEditVal("");}}} style={{...F,padding:"10px 14px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",fontSize:12,fontWeight:600,cursor:"pointer"}}>Add</button>
+          <button onClick={() => {setEditField(null);setEditVal("");}} style={{...F,padding:"10px 14px",borderRadius:12,border:"1px solid "+C.b1,background:C.card,color:C.t2,fontSize:12,cursor:"pointer"}}>Cancel</button>
+        </div>:<button onClick={() => {setEditField(otherKey);setEditVal("");}} style={{...F,marginTop:8,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:"transparent",border:"1.5px dashed "+C.b2,color:C.t3}}>+ Other</button>):null}{null}
       </div>
     );
-  }
-
-  function renderTravelPrefRow(label,key,options,current) {
-    return (<div style={{marginBottom:14}}>
-      <div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>{label}</div>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>{options.map(o=>(<button key={o} onClick={()=>saveTravel(key,o)} style={{...F,padding:"7px 12px",borderRadius:10,fontSize:12,cursor:"pointer",background:current===o?C.accSoft:C.cream,border:`1.5px solid ${current===o?C.acc:C.b2}`,color:current===o?C.acc:C.t2,fontWeight:current===o?600:400}}>{o}</button>))}</div>
-    </div>);
+    if(isTravel) return <div style={{marginBottom:14}}>{chipRow}</div>;
+    return <div style={{padding:"16px 18px",borderRadius:16,background:C.card,boxShadow:C.shadow,marginBottom:8}}>{chipRow}</div>;
   }
 
   function renderProfileTab() {
@@ -76,10 +75,10 @@ export default function Settings({
           </div>)}
         </div>
       ))}
-      {renderProfileChips("Interests","interests",INTEREST_OPTIONS,true)}
-      {renderProfileChips("Monthly fun budget","budget",BUDGET_OPTIONS,false)}
-      {renderProfileChips("Relationship","relationship",RELATIONSHIP_OPTIONS,false)}
-      {renderProfileChips("Work situation","work",WORK_OPTIONS,false)}
+      {renderOptionRow("Interests","interests",INTEREST_OPTIONS,profile?.quickProfile?.interests,true,"quickProfile")}
+      {renderOptionRow("Monthly fun budget","budget",BUDGET_OPTIONS,profile?.quickProfile?.budget,false,"quickProfile")}
+      {renderOptionRow("Relationship","relationship",RELATIONSHIP_OPTIONS,profile?.quickProfile?.relationship,false,"quickProfile")}
+      {renderOptionRow("Work situation","work",WORK_OPTIONS,profile?.quickProfile?.work,false,"quickProfile")}
       <button onClick={()=>{setShowSettings(false);setScreen("deepprofile");}} style={{...F,width:"100%",padding:"16px 18px",borderRadius:16,background:C.accSoft,border:`1px solid ${C.accBorder}`,cursor:"pointer",display:"flex",alignItems:"center",gap:12,textAlign:"left",marginTop:8}}><span style={{fontSize:18}}><MessageCircle size={18}/></span><div style={{flex:1}}><div style={{fontSize:14,fontWeight:600,color:C.acc}}>Go deeper with guide</div><div style={{fontSize:12,color:C.t3}}>{profile?.insights?.length||0} insights</div></div></button>
       <div style={{padding:18,borderRadius:16,background:C.card,boxShadow:C.shadow,marginTop:12}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
@@ -133,12 +132,12 @@ export default function Settings({
         <button onClick={()=>setHealthSection(p=>({...p,travel:!p.travel}))} style={{...F,width:"100%",padding:"16px 20px",display:"flex",alignItems:"center",gap:12,background:"none",border:"none",cursor:"pointer",textAlign:"left"}}><span style={{fontSize:20}}><Globe size={20}/></span><div style={{flex:1}}><div style={{fontSize:15,fontWeight:600,color:C.t1}}>Travel Preferences</div><div style={{fontSize:12,color:C.t3,marginTop:2}}>Flights, hotels, style</div></div><span style={{color:C.t3,transition:"transform 0.2s",transform:healthSection.travel?"rotate(180deg)":"rotate(0)"}}><ChevronDown size={16}/></span></button>
         {healthSection.travel?<div style={{padding:"0 20px 20px"}}>
           <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.5,marginBottom:14}}>Your guide uses these to find flights and hotels that match your style.</div>
-          {renderTravelPrefRow("Cabin class","flightClass",["Economy","Premium Economy","Business","First"],profile?.travel?.flightClass)}
-          {renderTravelPrefRow("Stops","flightStops",["Nonstop only","1 stop max","Any"],profile?.travel?.flightStops)}
-          {renderTravelPrefRow("Seat preference","flightSeat",["Window","Aisle","No preference"],profile?.travel?.flightSeat)}
-          {renderTravelPrefRow("Room type","hotelRoom",["Standard","Suite","Studio / Apartment"],profile?.travel?.hotelRoom)}
-          {renderTravelPrefRow("Hotel budget","hotelBudget",["Budget ($)","Mid-range ($$)","Upscale ($$$)","Luxury ($$$$)"],profile?.travel?.hotelBudget)}
-          {renderTravelPrefRow("Hotel style","hotelStyle",["Chain / Brand","Boutique","Resort","Hostel / Airbnb","No preference"],profile?.travel?.hotelStyle)}
+          {renderOptionRow("Cabin class","flightClass",["Economy","Premium Economy","Business","First"],profile?.travel?.flightClass,false,"travel")}
+          {renderOptionRow("Stops","flightStops",["Nonstop only","1 stop max","Any"],profile?.travel?.flightStops,false,"travel")}
+          {renderOptionRow("Seat preference","flightSeat",["Window","Aisle","No preference"],profile?.travel?.flightSeat,false,"travel")}
+          {renderOptionRow("Room type","hotelRoom",["Standard","Suite","Studio / Apartment"],profile?.travel?.hotelRoom,false,"travel")}
+          {renderOptionRow("Hotel budget","hotelBudget",["Budget ($)","Mid-range ($$)","Upscale ($$$)","Luxury ($$$$)"],profile?.travel?.hotelBudget,false,"travel")}
+          {renderOptionRow("Hotel style","hotelStyle",["Chain / Brand","Boutique","Resort","Hostel / Airbnb","No preference"],profile?.travel?.hotelStyle,false,"travel")}
           <div style={{marginTop:4}}>
             <div style={{...F,fontSize:12,color:C.t3,marginBottom:8}}>Preferred brands</div>
             {(profile?.travel?.brands||[]).map(function(b,i){return <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<(profile.travel.brands.length-1)?"1px solid "+C.b1:"none"}}>

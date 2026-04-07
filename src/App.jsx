@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Footprints, Briefcase, Heart, Sparkles, Globe, Calendar, Settings, ArrowUp, MessageCircle, ChevronDown, ChevronRight, X, Check, Share2, Star, Clock, Trash2, Pause, Play, RefreshCw, Plus, MapPin, Search, Dumbbell, UtensilsCrossed, Building2, Flame, TrendingUp, Zap, Send, RotateCcw, ExternalLink, AlertTriangle, Shield, HelpCircle } from "lucide-react";
+import { Heart, Sparkles, Calendar, Settings, ArrowUp, MessageCircle, ChevronRight, X, Check, Search, Flame, HelpCircle } from "lucide-react";
 
 import { font, H, F, C, SEGMENTS, SEG_KEYS, SYSTEM_PROMPT, PROFILE_SECTIONS, AFF } from "./constants.js";
 import { getUserId, saveFB, loadFB, deleteFB } from "./firebase.js";
@@ -54,7 +54,6 @@ export default function App(){
   const[showBadges,setShowBadges]=useState(false);
   const[showWalkthrough,setShowWalkthrough]=useState(()=>{try{return !localStorage.getItem("mns_walkthrough_done");}catch{return true;}});
   const[settingsTab,setSettingsTab]=useState("profile");
-  const[showLanding,setShowLanding]=useState(false);
   const[editField,setEditField]=useState(null);
   const[editVal,setEditVal]=useState("");
   const[genderEdit,setGenderEdit]=useState("");
@@ -79,9 +78,12 @@ export default function App(){
   };
 
   // Current segment's data
-  const segSteps=segment==="everything"?allSteps.filter(s=>s.status==="active"):allSteps.filter(s=>s.status==="active"&&catToSeg(s.category)===segment);
-  const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(["career","work","job","interview","resume","linkedin"].some(w=>title.includes(w)))return segment==="career";if(["gym","yoga","run","health","diet","meditation"].some(w=>title.includes(w)))return segment==="wellness";if(["friend","party","dinner","concert","group","date","trip","travel","flight","hotel","vacation","hike","explore","fun","event"].some(w=>title.includes(w)))return segment==="adventure";return segment==="wellness";});
-  const segRoutines=segment==="everything"?allRoutines:allRoutines.filter(r=>catToSeg(r.category)===segment);
+  const activeSteps=allSteps.filter(s=>s.status==="active");
+  const filterBySeg=(items,seg,catFn)=>seg==="everything"?items:items.filter(i=>catFn(i)===seg);
+  const segSteps=filterBySeg(activeSteps,segment,s=>catToSeg(s.category));
+  const matchPlanKeywords=(title,seg)=>{const t=title.toLowerCase();const kw={career:["career","work","job","interview","resume","linkedin"],wellness:["gym","yoga","run","health","diet","meditation"],adventure:["friend","party","dinner","concert","group","date","trip","travel","flight","hotel","vacation","hike","explore","fun","event"]};if((kw[seg]||[]).some(w=>t.includes(w)))return true;return false;};
+  const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(matchPlanKeywords(title,segment))return true;if(SEG_KEYS.some(s=>s!==segment&&matchPlanKeywords(title,s)))return false;return segment==="wellness";});
+  const segRoutines=filterBySeg(allRoutines,segment,r=>catToSeg(r.category));
   const segMessages=segment==="everything"?[...(chats.career||[]),...(chats.wellness||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
   const doneSteps=allSteps.filter(s=>s.status==="done");
   const expiredSteps=allSteps.filter(s=>s.status==="expired");
@@ -95,7 +97,7 @@ export default function App(){
   useEffect(()=>{(async()=>{
     try{const hint=localStorage.getItem("mns_last_user");if(hint){
       const data=await loadFB(hint,"appdata");
-      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);setScreen("main");setShowLanding(true);}
+      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);setScreen("main");}
       const sv=await loadFB(hint,"strava");if(sv)setStravaData(sv);
       const cv=await loadFB(hint,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}
     }}catch{}
@@ -107,7 +109,7 @@ export default function App(){
 
   const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
-  const handleAuth=async(auth)=>{const uid=auth.email?auth.email.replace(/[^a-zA-Z0-9]/g,"_"):null;if(uid){const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);const sv=await loadFB(uid,"strava");if(sv)setStravaData(sv);const cv=await loadFB(uid,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}setScreen("main");setShowLanding(true);return;}}const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
+  const handleAuth=async(auth)=>{const uid=auth.email?auth.email.replace(/[^a-zA-Z0-9]/g,"_"):null;if(uid){const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);const sv=await loadFB(uid,"strava");if(sv)setStravaData(sv);const cv=await loadFB(uid,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}setScreen("main");return;}}const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
   const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); setScreen("welcome");};
   const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
@@ -130,7 +132,7 @@ export default function App(){
     const allMsgs=[...(chats.career||[]),...(chats.wellness||[]),...(chats.fun||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0));
     const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
-    const stepsCtx=allSteps.filter(s=>s.status==="active").length>0?"\n\nALL ACTIVE STEPS:\n"+allSteps.filter(s=>s.status==="active").map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
+    const stepsCtx=activeSteps.length>0?"\n\nALL ACTIVE STEPS:\n"+activeSteps.map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
     const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\n\nLOVED STEPS:\n"+allSteps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
     const favsCtx=(profile?.favorites||[]).length>0?"\n\nFAVORITES (places/things user loves):\n"+(profile.favorites).map(f=>`- "${f.title}" (${f.category})`).join("\n"):"";
     const petsCtx=(profile?.pets||[]).length>0?"\n\nPETS:\n"+(profile.pets).map(p=>`- ${p.name} (${p.type}${p.breed?" / "+p.breed:""}${p.age?", "+p.age:""})`).join("\n"):"";
@@ -327,39 +329,6 @@ export default function App(){
         input:focus,textarea:focus{border-color:${C.acc} !important;box-shadow:0 0 0 3px rgba(212,82,42,0.08);}
         ::-webkit-scrollbar{width:0;height:0;}
       `}</style>
-      {showLanding&&<div style={{position:"fixed",inset:0,zIndex:250,background:C.bg,display:"flex",flexDirection:"column",overflow:"auto"}}>
-        <div style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"40px 24px",maxWidth:440,margin:"0 auto",width:"100%"}}>
-          <div style={{animation:"landIn 0.6s ease",textAlign:"center",marginBottom:32}}>
-            <div style={{width:72,height:72,borderRadius:22,margin:"0 auto 20px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 12px 36px rgba(212,82,42,0.25)"}}><Logo size={38} color="#fff"/></div>
-            <div style={{...H,fontSize:28,color:C.t1,marginBottom:6}}>
-              {getGreeting()}{profile?.name?`, ${profile.name}`:""}</div>
-            <div style={{...F,fontSize:15,color:C.t2,lineHeight:1.6}}>What's your next step?</div>
-          </div>
-
-          <div style={{width:"100%",display:"flex",flexDirection:"column",gap:10,marginBottom:24}}>
-            {SEG_KEYS.map((s,i)=>{const info=SEGMENTS[s];const count=allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;return(
-              <button key={s} onClick={()=>{setSegment(s);setView("steps");setShowLanding(false);}} style={{...F,width:"100%",padding:"18px 20px",borderRadius:20,background:C.card,boxShadow:C.shadow,border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:16,textAlign:"left",animation:`landIn 0.5s ease ${0.15+i*0.08}s both`}}>
-                <div style={{width:48,height:48,borderRadius:16,background:info.soft,display:"flex",alignItems:"center",justifyContent:"center"}}>{segIcon(s,22,info.color)}</div>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:16,fontWeight:600,color:C.t1}}>{info.label}</div>
-                  <div style={{fontSize:13,color:C.t3,marginTop:2}}>{count>0?`${count} active step${count>1?"s":""}`:info.desc}</div>
-                </div>
-                <ChevronRight size={18} color={C.t3}/>
-              </button>
-            );})}
-            <button onClick={()=>{setSegment("everything");setView("steps");setShowLanding(false);}} style={{...F,width:"100%",padding:"14px 20px",borderRadius:16,background:"transparent",border:`1.5px solid ${C.b2}`,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left",animation:`landIn 0.5s ease ${0.15+4*0.08}s both`}}>
-              <div style={{width:40,height:40,borderRadius:14,background:C.cream,display:"flex",alignItems:"center",justifyContent:"center"}}><Calendar size={18} color={C.t3}/></div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:15,fontWeight:500,color:C.t2}}>Timeline</div>
-                <div style={{fontSize:12,color:C.t3}}>See everything on your calendar</div>
-              </div>
-              <ChevronRight size={16} color={C.t3}/>
-            </button>
-          </div>
-
-          <button onClick={()=>setShowLanding(false)} style={{...F,fontSize:13,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"10px 20px",animation:`landFade 0.4s ease 0.8s both`}}>Dismiss</button>
-        </div>
-      </div>}
       {feedbackStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
         <div style={{...F,fontSize:12,color:C.acc,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>How did it go?</div>
         <div style={{...H,fontSize:20,color:C.t1,marginBottom:16}}>{feedbackStep.title}</div>
@@ -385,7 +354,7 @@ export default function App(){
             const now=new Date();const weekAgo=new Date(now-7*864e5);
             const thisWeek=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;
             const today=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===now.toDateString()).length;
-            const activeCount=allSteps.filter(s=>s.status==="active").length;
+            const activeCount=activeSteps.length;
             // Calculate streak days
             let streak=0;const d=new Date(now);d.setHours(0,0,0,0);
             while(true){const ds=d.toDateString();if(allSteps.some(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===ds)){streak++;d.setDate(d.getDate()-1);}else break;}
@@ -405,7 +374,7 @@ export default function App(){
       {(()=>{
         var upNext=null;var items=[];
         (calData||[]).forEach(e=>{var d=new Date(e.start);if(d>new Date())items.push({title:e.title,time:d,type:"cal"});});
-        allSteps.filter(s=>s.status==="active").forEach(s=>{var t=(s.time||"").toLowerCase();var d=new Date();if(t.includes("tonight")||t.includes("pm")){var m=t.match(/(\d{1,2})\s*pm/);d.setHours(m?parseInt(m[1])+12:19,0,0);}else if(t.includes("am")){var m2=t.match(/(\d{1,2})\s*am/);if(m2)d.setHours(parseInt(m2[1]),0,0);}else if(t.includes("tomorrow")){d.setDate(d.getDate()+1);d.setHours(9,0,0);}else{d=null;}if(d&&d>new Date())items.push({title:s.title,time:d,type:"step",cat:s.category,seg:catToSeg(s.category)});});
+        activeSteps.forEach(s=>{var t=(s.time||"").toLowerCase();var d=new Date();if(t.includes("tonight")||t.includes("pm")){var m=t.match(/(\d{1,2})\s*pm/);d.setHours(m?parseInt(m[1])+12:19,0,0);}else if(t.includes("am")){var m2=t.match(/(\d{1,2})\s*am/);if(m2)d.setHours(parseInt(m2[1]),0,0);}else if(t.includes("tomorrow")){d.setDate(d.getDate()+1);d.setHours(9,0,0);}else{d=null;}if(d&&d>new Date())items.push({title:s.title,time:d,type:"step",cat:s.category,seg:catToSeg(s.category)});});
         allRoutines.filter(r=>!r.paused&&r.days?.length>0).forEach(r=>{for(var i=0;i<7;i++){var d=new Date();d.setDate(d.getDate()+i);var dn=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][d.getDay()];if(r.days.map(x=>x.toLowerCase()).includes(dn)){var rt=new Date(d);var tp=(r.time||"").toLowerCase();var pm=tp.match(/(\d{1,2})\s*pm/);var am=tp.match(/(\d{1,2})\s*am/);if(pm)rt.setHours(parseInt(pm[1])+(parseInt(pm[1])===12?0:12),0,0);else if(am)rt.setHours(parseInt(am[1])===12?0:parseInt(am[1]),0,0);else rt.setHours(9,0,0);if(rt>new Date()){items.push({title:r.title,time:rt,type:"routine",cat:r.category,seg:catToSeg(r.category)});break;}}}});
         items.sort((a,b)=>a.time-b.time);
         upNext=items[0]||null;
@@ -431,7 +400,7 @@ export default function App(){
         </button>
       </div>}
       <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
-        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&segment!=="everything";const stepCount=allSteps.filter(x=>x.status==="active"&&catToSeg(x.category)===s).length;const planCount=allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);return cats.length?cats.some(c=>catToSeg(c)===s):false;}).length;const routineCount=allRoutines.filter(r=>catToSeg(r.category)===s&&!r.paused).length;const count=stepCount+planCount+routineCount;
+        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&segment!=="everything";const stepCount=activeSteps.filter(x=>catToSeg(x.category)===s).length;const planCount=allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);return cats.length?cats.some(c=>catToSeg(c)===s):false;}).length;const routineCount=allRoutines.filter(r=>catToSeg(r.category)===s&&!r.paused).length;const count=stepCount+planCount+routineCount;
           return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:13,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
             {info.label}{count>0?<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>:null}
           </button>);

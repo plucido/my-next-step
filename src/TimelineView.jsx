@@ -6,6 +6,8 @@ import StepCard from "./StepCard.jsx";
 import JourneyCard from "./JourneyCard.jsx";
 import RoutineCard from "./RoutineCard.jsx";
 
+const CARD_STYLE = { padding: "10px 14px", borderRadius: 12, marginBottom: 6, background: C.card, boxShadow: C.shadow, display: "flex", alignItems: "center", gap: 10 };
+
 export default function TimelineView({
   allSteps, allPlans, allRoutines, doneSteps, calData,
   expandedPlan, setExpandedPlan,
@@ -18,43 +20,43 @@ export default function TimelineView({
   const now = new Date();
   const todayStr = now.toDateString();
 
-  var dayNameMap = {sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
-  var routinesByDate = {};
-  allRoutines.filter(function(r){return !r.paused;}).forEach(function(r){
-    var days = r.days || [];
+  const dayNameMap = {sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
+  const routinesByDate = {};
+  allRoutines.filter((r) => !r.paused).forEach((r) => {
+    let days = r.days || [];
     if(days.length===0 && r.schedule==="daily") days=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
-    days.forEach(function(dayName){
-      var dayNum = dayNameMap[dayName.toLowerCase()];
+    days.forEach((dayName) => {
+      const dayNum = dayNameMap[dayName.toLowerCase()];
       if(dayNum===undefined) return;
-      for(var i=0;i<60;i++){
-        var d=new Date(now);d.setDate(d.getDate()+i);
+      for(let i=0;i<60;i++){
+        const d=new Date(now);d.setDate(d.getDate()+i);
         if(d.getDay()===dayNum){
-          var key=d.toDateString();
+          const key=d.toDateString();
           if(!routinesByDate[key])routinesByDate[key]=[];
-          if(!routinesByDate[key].find(function(x){return x.id===r.id;}))routinesByDate[key].push(r);
+          if(!routinesByDate[key].find((x) => x.id===r.id))routinesByDate[key].push(r);
         }
       }
     });
   });
 
-  var calByDate = {};
-  (calData || []).forEach(function(e) {
-    var d = new Date(e.start);
-    var key = d.toDateString();
+  const calByDate = {};
+  (calData || []).forEach((e) => {
+    const d = new Date(e.start);
+    const key = d.toDateString();
     if (!calByDate[key]) calByDate[key] = [];
     calByDate[key].push(e);
   });
 
-  var stepsByDate = {};
-  allSteps.filter(function(s) { return s.status === "active"; }).forEach(function(s) {
-    var t = (s.time || "").toLowerCase();
-    var key = now.toDateString();
+  const stepsByDate = {};
+  allSteps.filter((s) => s.status === "active").forEach((s) => {
+    const t = (s.time || "").toLowerCase();
+    let key = now.toDateString();
     if (t.includes("tomorrow")) {
-      var d = new Date(now);
+      const d = new Date(now);
       d.setDate(d.getDate() + 1);
       key = d.toDateString();
     } else if (t.includes("this week") || t.includes("this weekend")) {
-      var d2 = new Date(now);
+      const d2 = new Date(now);
       d2.setDate(d2.getDate() + ((6 - d2.getDay() + 7) % 7 || 7));
       key = d2.toDateString();
     }
@@ -62,62 +64,60 @@ export default function TimelineView({
     stepsByDate[key].push(s);
   });
 
-  var scheduledIds = new Set();
-  Object.values(stepsByDate).forEach(function(arr) {
-    arr.forEach(function(s) { scheduledIds.add(s.id); });
+  const scheduledIds = new Set();
+  Object.values(stepsByDate).forEach((arr) => {
+    arr.forEach((s) => { scheduledIds.add(s.id); });
   });
-  var unscheduledSteps = allSteps.filter(function(s) {
-    return s.status === "active" && !scheduledIds.has(s.id);
-  });
-  unscheduledSteps.forEach(function(s) {
-    var key = now.toDateString();
+  const unscheduledSteps = allSteps.filter((s) => s.status === "active" && !scheduledIds.has(s.id));
+  unscheduledSteps.forEach((s) => {
+    const key = now.toDateString();
     if (!stepsByDate[key]) stepsByDate[key] = [];
     stepsByDate[key].push(s);
   });
 
-  var dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  var monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-  function getDayLabel(date) {
+  const getDayLabel = (date) => {
     if (date.toDateString() === now.toDateString()) return "Today";
-    var tom = new Date(now);
+    const tom = new Date(now);
     tom.setDate(tom.getDate() + 1);
     if (date.toDateString() === tom.toDateString()) return "Tomorrow";
     return dayNames[date.getDay()];
-  }
+  };
 
-  function getWeekDays() {
-    var days = [];
-    var tom = new Date(now);
+  const getWeekDays = () => {
+    const days = [];
+    const tom = new Date(now);
     tom.setDate(tom.getDate() + 1);
-    var endOfWeek = new Date(now);
+    const endOfWeek = new Date(now);
     endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()));
-    var d = new Date(tom);
+    const d = new Date(tom);
     while (d <= endOfWeek) {
       days.push(new Date(d));
       d.setDate(d.getDate() + 1);
     }
     return days;
-  }
+  };
 
-  function getUpcomingDays() {
-    var days = [];
-    var endOfWeek = new Date(now);
+  const getUpcomingDays = () => {
+    const days = [];
+    const endOfWeek = new Date(now);
     endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()));
-    var start = new Date(endOfWeek);
+    const start = new Date(endOfWeek);
     start.setDate(start.getDate() + 1);
-    for (var i = 0; i < 14; i++) {
-      var d = new Date(start);
+    for (let i = 0; i < 14; i++) {
+      const d = new Date(start);
       d.setDate(d.getDate() + i);
       days.push(d);
     }
     return days;
-  }
+  };
 
-  var sectionHeader = { ...F, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: C.t3 };
+  const sectionHeader = { ...F, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: C.t3 };
 
   function renderCalEvent(e, i) {
-    var d = new Date(e.start);
+    const d = new Date(e.start);
     return (
       <div key={"cal-" + i} style={{ padding: "10px 14px", borderRadius: 12, marginBottom: 6, background: "rgba(66,133,244,0.04)", borderLeft: "4px solid #4285F4", display: "flex", alignItems: "center", gap: 10 }}>
         <span style={{ ...F, fontSize: 11, color: "#4285F4", minWidth: 50, fontWeight: 600 }}>{e.allDay ? "All day" : d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
@@ -131,10 +131,10 @@ export default function TimelineView({
   }
 
   function renderToday() {
-    var todayCal = calByDate[todayStr] || [];
-    var todaySteps = stepsByDate[todayStr] || [];
-    var hasContent = todayCal.length > 0 || todaySteps.length > 0;
-    var fullDate = dayNames[now.getDay()] + ", " + monthNames[now.getMonth()] + " " + now.getDate();
+    const todayCal = calByDate[todayStr] || [];
+    const todaySteps = stepsByDate[todayStr] || [];
+    const hasContent = todayCal.length > 0 || todaySteps.length > 0;
+    const fullDate = dayNames[now.getDay()] + ", " + monthNames[now.getMonth()] + " " + now.getDate();
 
     return (
       <FadeIn>
@@ -144,12 +144,10 @@ export default function TimelineView({
             <span style={{ ...H, fontSize: 20, fontWeight: 600, color: C.t1 }}>Today</span>
             <span style={{ ...F, fontSize: 13, color: C.t3 }}>{fullDate}</span>
           </div>
-          {todayCal.map(function(e, i) { return renderCalEvent(e, i); })}
-          {todaySteps.map(function(s, i) {
-            return (
-              <StepCard key={s.id} step={s} onDone={function(id) { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
-            );
-          })}
+          {todayCal.map((e, i) => renderCalEvent(e, i))}
+          {todaySteps.map((s, i) => (
+            <StepCard key={s.id} step={s} onDone={(id) => { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
+          ))}
           {!hasContent ? <div style={{ ...F, fontSize: 13, color: C.t3, padding: "12px 0", fontStyle: "italic" }}>Nothing on today's agenda</div> : null}
         </div>
       </FadeIn>
@@ -157,9 +155,9 @@ export default function TimelineView({
   }
 
   function renderThisWeek() {
-    var weekDays = getWeekDays();
-    var hasAnyContent = weekDays.some(function(d) {
-      var key = d.toDateString();
+    const weekDays = getWeekDays();
+    const hasAnyContent = weekDays.some((d) => {
+      const key = d.toDateString();
       return (calByDate[key] || []).length > 0 || (stepsByDate[key] || []).length > 0;
     });
     if (!hasAnyContent) return null;
@@ -168,20 +166,18 @@ export default function TimelineView({
       <FadeIn delay={60}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ ...sectionHeader, marginBottom: 12 }}>This Week</div>
-          {weekDays.map(function(day) {
-            var key = day.toDateString();
-            var dayCal = calByDate[key] || [];
-            var daySteps = stepsByDate[key] || [];
+          {weekDays.map((day) => {
+            const key = day.toDateString();
+            const dayCal = calByDate[key] || [];
+            const daySteps = stepsByDate[key] || [];
             if (dayCal.length === 0 && daySteps.length === 0) return null;
             return (
               <div key={key} style={{ marginBottom: 12 }}>
                 <div style={{ ...F, fontSize: 13, fontWeight: 600, color: C.t1, marginBottom: 8 }}>{getDayLabel(day)}</div>
-                {dayCal.map(function(e, i) { return renderCalEvent(e, i); })}
-                {daySteps.map(function(s, i) {
-                  return (
-                    <StepCard key={s.id} step={s} onDone={function(id) { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
-                  );
-                })}
+                {dayCal.map((e, i) => renderCalEvent(e, i))}
+                {daySteps.map((s, i) => (
+                  <StepCard key={s.id} step={s} onDone={(id) => { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
+                ))}
               </div>
             );
           })}
@@ -191,9 +187,9 @@ export default function TimelineView({
   }
 
   function renderCompactStep(s, i) {
-    var seg = SEGMENTS[catToSeg(s.category)];
+    const seg = SEGMENTS[catToSeg(s.category)];
     return (
-      <div key={s.id} style={{ padding: "10px 14px", borderRadius: 12, marginBottom: 6, background: C.card, boxShadow: C.shadow, display: "flex", alignItems: "center", gap: 10 }}>
+      <div key={s.id} style={{ ...CARD_STYLE }}>
         <div style={{ width: 8, height: 8, borderRadius: 4, background: seg ? seg.color : C.acc, flexShrink: 0 }}>{null}</div>
         <div style={{ flex: 1 }}>
           <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1 }}>{s.title}</div>
@@ -204,16 +200,16 @@ export default function TimelineView({
   }
 
   function renderUpcomingAndCalendar() {
-    var upcomingDays = getUpcomingDays();
-    var upcomingItems = [];
-    upcomingDays.forEach(function(day) {
-      var key = day.toDateString();
-      var dayCal = calByDate[key] || [];
-      var daySteps = stepsByDate[key] || [];
-      dayCal.forEach(function(e) {
+    const upcomingDays = getUpcomingDays();
+    const upcomingItems = [];
+    upcomingDays.forEach((day) => {
+      const key = day.toDateString();
+      const dayCal = calByDate[key] || [];
+      const daySteps = stepsByDate[key] || [];
+      dayCal.forEach((e) => {
         upcomingItems.push({ type: "cal", data: e, date: day });
       });
-      daySteps.forEach(function(s) {
+      daySteps.forEach((s) => {
         upcomingItems.push({ type: "step", data: s, date: day });
       });
     });
@@ -224,20 +220,20 @@ export default function TimelineView({
           <div style={{ flex: 1 }}>
             {upcomingItems.length > 0 ? <div>
               <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming Up</div>
-              {upcomingItems.slice(0,5).map(function(item, i) {
+              {upcomingItems.slice(0,5).map((item, i) => {
                 if (item.type === "cal") return renderCalEvent(item.data, "up-" + i);
                 return renderCompactStep(item.data, i);
               })}
             </div> : null}
             {unscheduledSteps.length > 0 ? <div style={{marginTop: upcomingItems.length>0 ? 16 : 0}}>
               <div style={{ ...sectionHeader, marginBottom: 10 }}>Anytime</div>
-              {unscheduledSteps.slice(0,5).map(function(s, i) { return renderCompactStep(s, i); })}
+              {unscheduledSteps.slice(0,5).map((s, i) => renderCompactStep(s, i))}
             </div> : null}
             {allPlans.length > 0 ? <div style={{marginTop:16}}>
               <div style={{ ...sectionHeader, marginBottom: 10 }}>Journeys ({allPlans.length})</div>
-              {allPlans.slice(0,3).map(function(p, i) {
-                var done = (p.tasks||[]).filter(function(t){return t.done;}).length;
-                var total = (p.tasks||[]).length;
+              {allPlans.slice(0,3).map((p, i) => {
+                const done = (p.tasks||[]).filter((t) => t.done).length;
+                const total = (p.tasks||[]).length;
                 return <div key={i} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:C.card,boxShadow:C.shadow}}>
                   <div style={{...F,fontSize:13,fontWeight:600,color:C.t1}}>{p.title}</div>
                   <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
@@ -259,49 +255,49 @@ export default function TimelineView({
   }
 
   function renderMiniCalendar() {
-    var year = calMonth.getFullYear();
-    var month = calMonth.getMonth();
-    var firstDay = new Date(year, month, 1).getDay();
-    var daysInMonth = new Date(year, month + 1, 0).getDate();
-    var dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
+    const year = calMonth.getFullYear();
+    const month = calMonth.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
 
-    var cells = [];
-    for (var i = 0; i < firstDay; i++) {
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) {
       cells.push({ num: null, key: "empty-" + i });
     }
-    for (var d = 1; d <= daysInMonth; d++) {
-      var cellDate = new Date(year, month, d);
-      var cellKey = cellDate.toDateString();
-      var daySteps = stepsByDate[cellKey] || [];
-      var dayRoutines = routinesByDate[cellKey] || [];
-      var hasCal = (calByDate[cellKey] || []).length > 0;
-      var isToday = cellKey === todayStr;
-      var isSelected = selectedDate && cellKey === selectedDate.toDateString();
-      var isPast = cellDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      var segColors = {};
-      daySteps.forEach(function(s){var seg=catToSeg(s.category);segColors[seg]=SEGMENTS[seg]?.color||C.acc;});
-      dayRoutines.forEach(function(r){var seg=catToSeg(r.category);segColors[seg]=SEGMENTS[seg]?.color||C.acc;});
-      var dots = Object.values(segColors);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const cellDate = new Date(year, month, d);
+      const cellKey = cellDate.toDateString();
+      const daySteps = stepsByDate[cellKey] || [];
+      const dayRoutines = routinesByDate[cellKey] || [];
+      const hasCal = (calByDate[cellKey] || []).length > 0;
+      const isToday = cellKey === todayStr;
+      const isSelected = selectedDate && cellKey === selectedDate.toDateString();
+      const isPast = cellDate < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const segColors = {};
+      daySteps.forEach((s) => {const seg=catToSeg(s.category);segColors[seg]=SEGMENTS[seg]?.color||C.acc;});
+      dayRoutines.forEach((r) => {const seg=catToSeg(r.category);segColors[seg]=SEGMENTS[seg]?.color||C.acc;});
+      const dots = Object.values(segColors);
       if(hasCal) dots.push("#4285F4");
       cells.push({ num: d, key: "d-" + d, date: cellDate, dateKey: cellKey, dots: dots, isToday: isToday, isSelected: isSelected, isPast: isPast });
     }
 
-    function prevMonth() {
-      var m = new Date(calMonth); m.setMonth(m.getMonth() - 1); setCalMonth(m); setSelectedDate(null);
-    }
-    function nextMonth() {
-      var m = new Date(calMonth); m.setMonth(m.getMonth() + 1); setCalMonth(m); setSelectedDate(null);
-    }
-    function selectDay(cell) {
+    const prevMonth = () => {
+      const m = new Date(calMonth); m.setMonth(m.getMonth() - 1); setCalMonth(m); setSelectedDate(null);
+    };
+    const nextMonth = () => {
+      const m = new Date(calMonth); m.setMonth(m.getMonth() + 1); setCalMonth(m); setSelectedDate(null);
+    };
+    const selectDay = (cell) => {
       if (cell.isSelected) { setSelectedDate(null); return; }
       setSelectedDate(cell.date);
-    }
+    };
 
-    var sel = selectedDate ? selectedDate.toDateString() : null;
-    var selSteps = sel ? (stepsByDate[sel] || []) : [];
-    var selCal = sel ? (calByDate[sel] || []) : [];
-    var selRoutines = sel ? (routinesByDate[sel] || []) : [];
-    var selUnscheduled = sel && sel === todayStr ? unscheduledSteps : [];
+    const sel = selectedDate ? selectedDate.toDateString() : null;
+    const selSteps = sel ? (stepsByDate[sel] || []) : [];
+    const selCal = sel ? (calByDate[sel] || []) : [];
+    const selRoutines = sel ? (routinesByDate[sel] || []) : [];
+    const selUnscheduled = sel && sel === todayStr ? unscheduledSteps : [];
 
     return (
       <div style={{ width: 280, flexShrink: 0 }}>
@@ -312,25 +308,25 @@ export default function TimelineView({
             <button onClick={nextMonth} style={{ background: "none", border: "none", cursor: "pointer", color: C.t3, padding: 4 }}><ChevronRight size={16} /></button>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
-            {dayLabels.map(function(label, i) {
-              return <div key={"lbl-" + i} style={{ ...F, fontSize: 10, fontWeight: 600, color: C.t3, padding: "4px 0" }}>{label}</div>;
-            })}
-            {cells.map(function(cell) {
+            {dayLabels.map((label, i) => (
+              <div key={"lbl-" + i} style={{ ...F, fontSize: 10, fontWeight: 600, color: C.t3, padding: "4px 0" }}>{label}</div>
+            ))}
+            {cells.map((cell) => {
               if (cell.num === null) return <div key={cell.key}>{null}</div>;
-              var bg = cell.isSelected ? C.acc : cell.isToday ? C.accSoft : "transparent";
-              var fg = cell.isSelected ? "#fff" : cell.isToday ? C.acc : C.t1;
+              const bg = cell.isSelected ? C.acc : cell.isToday ? C.accSoft : "transparent";
+              const fg = cell.isSelected ? "#fff" : cell.isToday ? C.acc : C.t1;
               return (
-                <div key={cell.key} onClick={function(){selectDay(cell);}} style={{ padding: "3px 0", display: "flex", flexDirection: "column", alignItems: "center", opacity: cell.isPast && !cell.isToday ? 0.35 : 1, cursor: "pointer" }}>
+                <div key={cell.key} onClick={() => {selectDay(cell);}} style={{ padding: "3px 0", display: "flex", flexDirection: "column", alignItems: "center", opacity: cell.isPast && !cell.isToday ? 0.35 : 1, cursor: "pointer" }}>
                   <div style={{ width: 28, height: 28, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: bg, color: fg, ...F, fontSize: 12, fontWeight: cell.isToday || cell.isSelected ? 700 : 400, transition: "all 0.15s" }}>{cell.num}</div>
                   <div style={{ display: "flex", gap: 2, marginTop: 2, height: 4 }}>
-                    {cell.dots.slice(0,4).map(function(clr,di){return <div key={di} style={{ width: 4, height: 4, borderRadius: 2, background: clr }}>{null}</div>;})}
+                    {cell.dots.slice(0,4).map((clr,di) => <div key={di} style={{ width: 4, height: 4, borderRadius: 2, background: clr }}>{null}</div>)}
                   </div>
                 </div>
               );
             })}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, padding: "8px 0 0", borderTop: "1px solid " + C.b1 }}>
-            {Object.keys(SEGMENTS).map(function(s){return <div key={s} style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: SEGMENTS[s].color }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>{SEGMENTS[s].label}</span></div>;})}
+            {Object.keys(SEGMENTS).map((s) => <div key={s} style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: SEGMENTS[s].color }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>{SEGMENTS[s].label}</span></div>)}
             <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: "#4285F4" }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>Synced</span></div>
           </div>
         </div>
@@ -340,25 +336,16 @@ export default function TimelineView({
   }
 
   function renderSelectedDay(date, steps, calEvents, routines, unsched) {
-    var label = date.toDateString() === todayStr ? "Today" : date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
-    var allItems = steps.length + calEvents.length + routines.length + unsched.length;
+    const label = date.toDateString() === todayStr ? "Today" : date.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
+    const allItems = steps.length + calEvents.length + routines.length + unsched.length;
     return (
       <div style={{ marginTop: 12, padding: 16, borderRadius: 16, background: C.card, boxShadow: C.shadow }}>
         <div style={{ ...F, fontSize: 14, fontWeight: 600, color: C.t1, marginBottom: 10 }}>{label}</div>
         {allItems === 0 ? <div style={{ ...F, fontSize: 13, color: C.t3, fontStyle: "italic" }}>Nothing scheduled</div> : null}
-        {calEvents.map(function(e, i) {
-          var d = new Date(e.start);
-          return <div key={"ce-" + i} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: "rgba(66,133,244,0.04)", borderLeft: "3px solid #4285F4", display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ ...F, fontSize: 11, color: "#4285F4", fontWeight: 600, minWidth: 50 }}>{e.allDay ? "All day" : d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ ...F, fontSize: 13, color: C.t1 }}>{e.title}</div>
-              {e.location ? <div style={{ ...F, fontSize: 11, color: C.t3, marginTop: 1 }}>{e.location}</div> : null}
-            </div>
-          </div>;
-        })}
-        {routines.map(function(r, i) {
-          var seg = SEGMENTS[catToSeg(r.category)];
-          var segColor = seg ? seg.color : C.acc;
+        {calEvents.map((e, i) => renderCalEvent(e, "ce-" + i))}
+        {routines.map((r, i) => {
+          const seg = SEGMENTS[catToSeg(r.category)];
+          const segColor = seg ? seg.color : C.acc;
           return <div key={"rt-" + i} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: (seg?.soft||C.accSoft), borderLeft: "3px solid " + segColor, display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ ...F, fontSize: 11, color: segColor, fontWeight: 600, minWidth: 50 }}>{r.time || r.schedule}</span>
             <div style={{ flex: 1 }}>
@@ -367,8 +354,8 @@ export default function TimelineView({
             </div>
           </div>;
         })}
-        {steps.map(function(s, i) {
-          var seg = SEGMENTS[catToSeg(s.category)];
+        {steps.map((s) => {
+          const seg = SEGMENTS[catToSeg(s.category)];
           return <div key={s.id} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: s.booked ? C.tealSoft : C.cream, borderLeft: "3px solid " + (s.booked ? C.teal : (seg ? seg.color : C.acc)), display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ ...F, fontSize: 11, color: seg ? seg.color : C.acc, fontWeight: 600, minWidth: 50 }}>{s.time || "Anytime"}</span>
             <div style={{ flex: 1 }}>
@@ -377,8 +364,8 @@ export default function TimelineView({
             </div>
           </div>;
         })}
-        {unsched.map(function(s, i) {
-          var seg = SEGMENTS[catToSeg(s.category)];
+        {unsched.map((s) => {
+          const seg = SEGMENTS[catToSeg(s.category)];
           return <div key={s.id} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: C.cream, borderLeft: "3px solid " + (seg ? seg.color : C.acc), display: "flex", alignItems: "center", gap: 8 }}>
             <span style={{ fontSize: 12 }}>{catIcon(s.category)}</span>
             <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1, flex: 1 }}>{s.title}</div>
@@ -389,15 +376,15 @@ export default function TimelineView({
   }
 
   function renderRoutines() {
-    var active = allRoutines.filter(function(r) { return !r.paused; });
+    const active = allRoutines.filter((r) => !r.paused);
     if (active.length === 0) return null;
     return (
       <FadeIn delay={180}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ ...sectionHeader, marginBottom: 12 }}>Routines ({active.length})</div>
-          {active.map(function(r, i) {
-            return <RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onComplete={completeRoutine} onTalk={talkAbout} delay={i * 30} />;
-          })}
+          {active.map((r, i) => (
+            <RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onComplete={completeRoutine} onTalk={talkAbout} delay={i * 30} />
+          ))}
         </div>
       </FadeIn>
     );
@@ -409,9 +396,9 @@ export default function TimelineView({
       <FadeIn delay={240}>
         <div style={{ marginBottom: 24 }}>
           <div style={{ ...sectionHeader, marginBottom: 12 }}>Journeys ({allPlans.length})</div>
-          {allPlans.map(function(plan, pi) {
-            return <JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan === pi} onToggle={function(i) { setExpandedPlan(expandedPlan === i ? null : i); }} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onSnooze={snoozeStep} onShare={shareItem} delay={pi * 30} />;
-          })}
+          {allPlans.map((plan, pi) => (
+            <JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan === pi} onToggle={(i) => { setExpandedPlan(expandedPlan === i ? null : i); }} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onSnooze={snoozeStep} onShare={shareItem} delay={pi * 30} />
+          ))}
         </div>
       </FadeIn>
     );
@@ -423,20 +410,18 @@ export default function TimelineView({
       <FadeIn delay={300}>
         <div style={{ marginTop: 12 }}>
           <div style={{ ...sectionHeader, marginBottom: 12 }}>Completed ({doneSteps.length})</div>
-          {doneSteps.slice(0, 5).map(function(s) {
-            return (
-              <div key={s.id} style={{ padding: "10px 14px", borderRadius: 12, marginBottom: 6, background: s.loved ? "rgba(220,38,38,0.04)" : C.tealSoft, border: "1px solid " + (s.loved ? "rgba(220,38,38,0.1)" : C.tealBorder), display: "flex", alignItems: "center", gap: 10, opacity: 0.5 }}>
-                <span style={{ color: s.loved ? "#DC2626" : C.teal }}>{s.loved ? <Heart size={14} fill="#DC2626" color="#DC2626" /> : <Check size={14} />}</span>
-                <span style={{ ...F, fontSize: 13, textDecoration: "line-through", color: C.t2, flex: 1 }}>{s.title}</span>
-              </div>
-            );
-          })}
+          {doneSteps.slice(0, 5).map((s) => (
+            <div key={s.id} style={{ ...CARD_STYLE, background: s.loved ? "rgba(220,38,38,0.04)" : C.tealSoft, border: "1px solid " + (s.loved ? "rgba(220,38,38,0.1)" : C.tealBorder), opacity: 0.5 }}>
+              <span style={{ color: s.loved ? "#DC2626" : C.teal }}>{s.loved ? <Heart size={14} fill="#DC2626" color="#DC2626" /> : <Check size={14} />}</span>
+              <span style={{ ...F, fontSize: 13, textDecoration: "line-through", color: C.t2, flex: 1 }}>{s.title}</span>
+            </div>
+          ))}
         </div>
       </FadeIn>
     );
   }
 
-  var hasContent = allSteps.filter(function(s) { return s.status === "active"; }).length > 0 || allPlans.length > 0 || allRoutines.length > 0 || (calData || []).length > 0 || doneSteps.length > 0;
+  const hasContent = allSteps.filter((s) => s.status === "active").length > 0 || allPlans.length > 0 || allRoutines.length > 0 || (calData || []).length > 0 || doneSteps.length > 0;
 
   if (!hasContent) {
     return (
@@ -451,30 +436,30 @@ export default function TimelineView({
   }
 
   function renderUpNext() {
-    var items = [];
-    (calData || []).forEach(function(e) {
-      var d = new Date(e.start);
+    const items = [];
+    (calData || []).forEach((e) => {
+      const d = new Date(e.start);
       if (d > now) items.push({title:e.title,time:d,type:"cal",location:e.location});
     });
-    allSteps.filter(function(s){return s.status==="active";}).forEach(function(s) {
-      var t = (s.time || "").toLowerCase();
-      var d = new Date();
-      if (t.includes("tonight") || t.includes("pm")) {var m=t.match(/(\d{1,2})\s*pm/);d.setHours(m?parseInt(m[1])+12:19,0,0);}
-      else if (t.includes("am")) {var m2=t.match(/(\d{1,2})\s*am/);if(m2)d.setHours(parseInt(m2[1]),0,0);}
+    allSteps.filter((s) => s.status==="active").forEach((s) => {
+      const t = (s.time || "").toLowerCase();
+      let d = new Date();
+      if (t.includes("tonight") || t.includes("pm")) {const m=t.match(/(\d{1,2})\s*pm/);d.setHours(m?parseInt(m[1])+12:19,0,0);}
+      else if (t.includes("am")) {const m2=t.match(/(\d{1,2})\s*am/);if(m2)d.setHours(parseInt(m2[1]),0,0);}
       else if (t.includes("tomorrow")) {d.setDate(d.getDate()+1);d.setHours(9,0,0);}
       else {d = null;}
       if (d && d > now) items.push({title:s.title,time:d,type:"step",cat:s.category});
     });
-    allRoutines.filter(function(r){return !r.paused;}).forEach(function(r) {
-      var rDays = r.days || [];
+    allRoutines.filter((r) => !r.paused).forEach((r) => {
+      const rDays = r.days || [];
       if (rDays.length === 0) return;
-      for (var i = 0; i < 7; i++) {
-        var d = new Date(now); d.setDate(d.getDate()+i);
-        var dayName = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][d.getDay()];
-        if (rDays.map(function(x){return x.toLowerCase();}).includes(dayName)) {
-          var rt = new Date(d);
-          var tp = (r.time||"").toLowerCase();
-          var pm=tp.match(/(\d{1,2})\s*pm/);var am=tp.match(/(\d{1,2})\s*am/);
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(now); d.setDate(d.getDate()+i);
+        const dayName = ["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][d.getDay()];
+        if (rDays.map((x) => x.toLowerCase()).includes(dayName)) {
+          const rt = new Date(d);
+          const tp = (r.time||"").toLowerCase();
+          const pm=tp.match(/(\d{1,2})\s*pm/);const am=tp.match(/(\d{1,2})\s*am/);
           if(pm)rt.setHours(parseInt(pm[1])+(parseInt(pm[1])===12?0:12),0,0);
           else if(am)rt.setHours(parseInt(am[1])===12?0:parseInt(am[1]),0,0);
           else rt.setHours(9,0,0);
@@ -482,20 +467,20 @@ export default function TimelineView({
         }
       }
     });
-    items.sort(function(a,b){return a.time-b.time;});
-    var next = items.slice(0,2);
+    items.sort((a,b) => a.time-b.time);
+    const next = items.slice(0,2);
     if (next.length === 0) return null;
 
-    function timeLabel(d) {
-      var diff = d - now;
-      var mins = Math.floor(diff/6e4);
+    const timeLabel = (d) => {
+      const diff = d - now;
+      const mins = Math.floor(diff/6e4);
       if (mins < 60) return "in " + mins + " min";
-      var hrs = Math.floor(mins/60);
+      const hrs = Math.floor(mins/60);
       if (hrs < 24) return "in " + hrs + "h";
-      var days = Math.floor(hrs/24);
+      const days = Math.floor(hrs/24);
       if (days === 1) return "Tomorrow";
       return d.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});
-    }
+    };
 
     return (
       <div style={{position:"sticky",top:0,zIndex:10,padding:"0 0 8px",background:C.bg}}>
@@ -504,9 +489,9 @@ export default function TimelineView({
           Up next
         </div>
         <div style={{display:"flex",gap:8}}>
-          {next.map(function(item,i){
-            var color = item.type==="cal"?"#4285F4":(item.cat?SEGMENTS[catToSeg(item.cat)]?.color:null)||C.acc;
-            var typeLabel = item.type==="cal"?"Synced":item.type==="routine"?"Routine":"Step";
+          {next.map((item,i) => {
+            const color = item.type==="cal"?"#4285F4":(item.cat?SEGMENTS[catToSeg(item.cat)]?.color:null)||C.acc;
+            const typeLabel = item.type==="cal"?"Synced":item.type==="routine"?"Routine":"Step";
             return (
               <div key={i} style={{flex:1,padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,borderLeft:"3px solid "+color,minWidth:0}}>
                 <div style={{...F,fontSize:10,fontWeight:600,color:color,textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>{typeLabel}</div>
