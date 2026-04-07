@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { X, Check, Sparkles, RotateCcw } from "lucide-react";
 import { C, F, SEGMENTS } from "./constants.js";
 import { FadeIn, catToSeg } from "./utils.jsx";
 
-export default function RoutineCard({routine,onPause,onDelete,onComplete,onTalk,delay=0}){
+export default memo(function RoutineCard({routine,onPause,onDelete,onComplete,onTalk,delay=0}){
   const [justCompleted, setJustCompleted] = useState(false);
   const seg=SEGMENTS[catToSeg(routine.category)];
   const days=(routine.days||[]).map(d=>d.slice(0,3).charAt(0).toUpperCase()+d.slice(1,3)).join(", ");
@@ -33,4 +33,4 @@ export default function RoutineCard({routine,onPause,onDelete,onComplete,onTalk,
       <button onClick={function(){onTalk('Update my "'+routine.title+'" routine. Make it better or change the schedule.');}} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Sparkles size={14}/> Improve</button>
     </div>
   </div></FadeIn>);
-}
+})

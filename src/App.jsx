@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Heart, Sparkles, Calendar, Settings, ArrowUp, MessageCircle, ChevronRight, X, Check, Search, Flame, HelpCircle } from "lucide-react";
 
 import { font, H, F, C, SEGMENTS, SEG_KEYS, SYSTEM_PROMPT, PROFILE_SECTIONS, AFF } from "./constants.js";
@@ -22,7 +22,7 @@ import QuickProfile from "./QuickProfile.jsx";
 import WeeklySummary from "./WeeklySummary.jsx";
 import Walkthrough from "./Walkthrough.jsx";
 import BadgesModal, { getBadges } from "./Badges.jsx";
-import { requestNotificationPermission, startReminderChecks } from "./notifications.js";
+import { requestNotificationPermission, startReminderChecks, stopReminderChecks } from "./notifications.js";
 
 // ─── MAIN APP ───
 export default function App(){
@@ -66,7 +66,20 @@ export default function App(){
   const[petBreed,setPetBreed]=useState("");
   const[petAge,setPetAge]=useState("");
   const[transitionMsg,setTransitionMsg]=useState(null); // {text, targetSeg, count, type}
-  const chatEnd=useRef(null);const inputRef=useRef(null);
+  const chatEnd=useRef(null);const inputRef=useRef(null);const persistTimer=useRef(null);
+
+  const trimChats = (ch) => {
+    if (!ch) return ch;
+    var out = {};
+    for (var k in ch) {
+      if (Array.isArray(ch[k]) && ch[k].length > 50) {
+        out[k] = ch[k].slice(-50);
+      } else {
+        out[k] = ch[k];
+      }
+    }
+    return out;
+  };
 
   const normalizeChats = (ch) => {
     if (!ch) return {career:[],wellness:[],adventure:[]};
@@ -96,23 +109,42 @@ export default function App(){
   // Load data
   useEffect(()=>{(async()=>{
     try{const hint=localStorage.getItem("mns_last_user");if(hint){
-      const data=await loadFB(hint,"appdata");
-      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);setScreen("main");}
-      const sv=await loadFB(hint,"strava");if(sv)setStravaData(sv);
-      const cv=await loadFB(hint,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}
+      const [data, sv, cv] = await Promise.all([
+        loadFB(hint, "appdata"),
+        loadFB(hint, "strava"),
+        loadFB(hint, "calendar")
+      ]);
+      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);setScreen("main");}
+      if(sv)setStravaData(sv);
+      if(cv){setCalToken(cv.token);setCalData(cv.events);}
     }}catch{}
     // Migration from old format
     try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setChats({career:[],wellness:d.messages||[],fun:[],adventure:[]});setPreferences(d.preferences||[]);setScreen("main");const uid=getUserId(d.profile);if(uid){saveFB(uid,"appdata",{...d,chats:{career:[],wellness:d.messages||[],fun:[],adventure:[]}});window.storage.delete("mns-v11").catch(()=>{});}}}}catch{}
   })();},[]);
 
-  useEffect(()=>{if(screen==="main"){requestNotificationPermission();startReminderChecks(()=>({allSteps,allRoutines,calData}));}},[screen]);
+  useEffect(()=>{
+    if(screen==="main"){requestNotificationPermission();startReminderChecks(()=>({allSteps,allRoutines,calData}));}
+    return ()=>{ stopReminderChecks(); };
+  },[screen]);
 
   // Follow-up check: prompt feedback for booked events that have passed
   useEffect(()=>{if(screen!=="main"||!allSteps.length)return;const now=new Date();allSteps.filter(s=>s.status==="active"&&s.booked&&s.time).forEach(s=>{const t=(s.time||"").toLowerCase();let eventDate=new Date();if(t.includes("yesterday")||t.includes("last")){setFeedbackStep(s);return;}const age=s.createdAt?(now-new Date(s.createdAt))/36e5:0;if((t.includes("today")&&age>18)||(t.includes("tonight")&&age>12)){setFeedbackStep(s);}});},[screen,allSteps.length]);
 
-  const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
+  const persist=(p,s,pl,ch,pr,rt)=>{
+    const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};
+    const uid=getUserId(p||profile);
+    if(!uid)return;
+    localStorage.setItem("mns_last_user",uid);
+    // Save to localStorage immediately for instant feel
+    try{localStorage.setItem("mns_appdata_"+uid,JSON.stringify(data));}catch{}
+    // Debounce Firebase write to 2 seconds
+    if(persistTimer.current)clearTimeout(persistTimer.current);
+    persistTimer.current=setTimeout(()=>{
+      saveFB(uid,"appdata",data);
+    },2000);
+  };
 
-  const handleAuth=async(auth)=>{const uid=auth.email?auth.email.replace(/[^a-zA-Z0-9]/g,"_"):null;if(uid){const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);const sv=await loadFB(uid,"strava");if(sv)setStravaData(sv);const cv=await loadFB(uid,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}setScreen("main");return;}}const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
+  const handleAuth=async(auth)=>{const uid=auth.email?auth.email.replace(/[^a-zA-Z0-9]/g,"_"):null;if(uid){const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);const sv=await loadFB(uid,"strava");if(sv)setStravaData(sv);const cv=await loadFB(uid,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}setScreen("main");return;}}const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
   const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); setScreen("welcome");};
   const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
@@ -133,14 +165,14 @@ export default function App(){
 
     // Build full profile context from ALL segments
     const allMsgs=[...(chats.career||[]),...(chats.wellness||[]),...(chats.fun||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0));
-    const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
+    const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.slice(-15).map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
     const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
-    const stepsCtx=activeSteps.length>0?"\n\nALL ACTIVE STEPS:\n"+activeSteps.map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
-    const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\n\nLOVED STEPS (recommend more like these):\n"+allSteps.filter(s=>s.loved).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
-    const dislikedCtx=allSteps.filter(s=>s.disliked).length>0?"\n\nDISLIKED ITEMS (NEVER suggest these or similar again):\n"+allSteps.filter(s=>s.disliked).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
+    const stepsCtx=activeSteps.length>0?"\n\nALL ACTIVE STEPS:\n"+activeSteps.slice(0,15).map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
+    const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\n\nLOVED STEPS (recommend more like these):\n"+allSteps.filter(s=>s.loved).slice(0,5).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
+    const dislikedCtx=allSteps.filter(s=>s.disliked).length>0?"\n\nDISLIKED ITEMS (NEVER suggest these or similar again):\n"+allSteps.filter(s=>s.disliked).slice(0,10).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
     const completedCtx=doneSteps.length>0?"\n\nRECENTLY COMPLETED (user enjoys these types):\n"+doneSteps.slice(0,10).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
     const now=new Date();const timeCtx=`\n\nCURRENT TIME: ${now.toLocaleString()} (${now.toLocaleDateString([],{weekday:"long"})}). ${now.getHours()>=20?"It's late evening \u2014 suggest things for tomorrow unless they specifically ask for tonight.":now.getHours()>=17?"It's evening.":now.getHours()>=12?"It's afternoon.":"It's morning."}${now.getDay()===0||now.getDay()===6?" It's the weekend.":" It's a weekday."}`;
-    const favsCtx=(profile?.favorites||[]).length>0?"\n\nFAVORITES (places/things user loves):\n"+(profile.favorites).map(f=>`- "${f.title}" (${f.category})`).join("\n"):"";
+    const favsCtx=(profile?.favorites||[]).length>0?"\n\nFAVORITES (places/things user loves):\n"+(profile.favorites).slice(0,10).map(f=>`- "${f.title}" (${f.category})`).join("\n"):"";
     const petsCtx=(profile?.pets||[]).length>0?"\n\nPETS:\n"+(profile.pets).map(p=>`- ${p.name} (${p.type}${p.breed?" / "+p.breed:""}${p.age?", "+p.age:""})`).join("\n"):"";
     const plansCtx=allPlans.length>0?"\n\nJOURNEYS:\n"+allPlans.map(p=>{const d=p.tasks?.filter(t=>t.done).length||0;return`- "${p.title}" (${p.date||"no date"}, ${d}/${p.tasks?.length||0} done)`;}).join("\n"):"";
     const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\n\nACTIVE ROUTINES:\n"+allRoutines.filter(r=>!r.paused).map(r=>`- "${r.title}" (${r.schedule}, ${(r.days||[]).join("/")||"flexible"}, ${r.category})`).join("\n"):"";
@@ -155,7 +187,7 @@ export default function App(){
     const travelCtx=profile?.travel?`\n\nTRAVEL PREFERENCES:\nCabin: ${profile.travel.flightClass||"not set"}\nStops: ${profile.travel.flightStops||"not set"}\nSeat: ${profile.travel.flightSeat||"not set"}\nHotel room: ${profile.travel.hotelRoom||"not set"}\nHotel budget: ${profile.travel.hotelBudget||"not set"}\nHotel style: ${profile.travel.hotelStyle||"not set"}${(profile.travel.loyalty||[]).length>0?"\nLoyalty programs: "+(profile.travel.loyalty).map(l=>`${l.name} (${l.type}${l.number?" #"+l.number:""})`).join(", "):""}`:"";
     // Cross-segment context summary
     const otherSegs=SEG_KEYS.filter(s=>s!==segment);
-    const crossCtx=otherSegs.map(s=>{const msgs=chats[s]||[];if(!msgs.length)return"";const last=msgs.filter(m=>m.role==="user").slice(-2).map(m=>m.content).join(", ");return last?`\nIn ${SEGMENTS[s].label}: recently discussed "${last.slice(0,80)}"`:"";}).filter(Boolean).join("");
+    const crossCtx=otherSegs.map(s=>{const msgs=chats[s]||[];if(!msgs.length)return"";const last=msgs.filter(m=>m.role==="user").slice(-1).map(m=>m.content).join(", ");return last?`\nIn ${SEGMENTS[s].label}: recently discussed "${last.slice(0,80)}"`:"";}).filter(Boolean).join("");
 
     try{
       // Strip ts field and ensure valid alternating roles for API
@@ -259,10 +291,10 @@ export default function App(){
     setLoading(false);
   };
 
-  const deleteStep=id=>{const u=allSteps.filter(s=>s.id!==id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
-  const markStep=(id,st)=>{const step=allSteps.find(s=>s.id===id);if(st==="done"){setFeedbackStep(step);if(step){const pref={key:`completed_${step.category||"general"}`,value:`Completed "${step.title}" - user enjoys ${step.category||"this type"}`};const np=[...preferences.filter(p=>p.key!==pref.key),pref];setPreferences(np);const u=allSteps.map(s=>s.id===id?{...s,status:st,completedAt:new Date().toISOString()}:s);setAllSteps(u);persist(profile,u,allPlans,chats,np);return;}}const u=allSteps.map(s=>s.id===id?{...s,status:st}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
-  const dislikeStep=(id)=>{const step=allSteps.find(s=>s.id===id);if(step){const pref={key:`dislike_${(step.title||"").slice(0,30).replace(/\s+/g,"_").toLowerCase()}`,value:`Disliked "${step.title}" - do NOT recommend this or similar again`};const np=[...preferences,pref];setPreferences(np);setFeedbackStep(step);const u=allSteps.map(s=>s.id===id?{...s,status:"done",disliked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,np);}};
-  const loveStep=id=>{const step=allSteps.find(s=>s.id===id);const u=allSteps.map(s=>s.id===id?{...s,loved:!s.loved}:s);setAllSteps(u);if(step&&!step.loved){const pref={key:`loved_${step.category||"general"}`,value:`Loved "${step.title}"`};const np=[...preferences.filter(p=>p.key!==pref.key),pref];setPreferences(np);const fav={title:step.title,category:step.category||"general",link:step.link,addedAt:new Date().toISOString()};const favs=[fav,...(profile?.favorites||[]).filter(f=>f.title!==step.title)].slice(0,30);const p={...profile,favorites:favs};setProfile(p);persist(p,u,allPlans,chats,np);}else{if(step?.loved){const favs=(profile?.favorites||[]).filter(f=>f.title!==step.title);const p={...profile,favorites:favs};setProfile(p);persist(p,u,allPlans,chats,preferences);}else persist(profile,u,allPlans,chats,preferences);}};
+  const deleteStep=useCallback(id=>{const u=allSteps.filter(s=>s.id!==id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);},[allSteps,profile,allPlans,chats,preferences]);
+  const markStep=useCallback((id,st)=>{const step=allSteps.find(s=>s.id===id);if(st==="done"){setFeedbackStep(step);if(step){const pref={key:`completed_${step.category||"general"}`,value:`Completed "${step.title}" - user enjoys ${step.category||"this type"}`};const np=[...preferences.filter(p=>p.key!==pref.key),pref];setPreferences(np);const u=allSteps.map(s=>s.id===id?{...s,status:st,completedAt:new Date().toISOString()}:s);setAllSteps(u);persist(profile,u,allPlans,chats,np);return;}}const u=allSteps.map(s=>s.id===id?{...s,status:st}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);},[allSteps,profile,allPlans,chats,preferences]);
+  const dislikeStep=useCallback((id)=>{const step=allSteps.find(s=>s.id===id);if(step){const pref={key:`dislike_${(step.title||"").slice(0,30).replace(/\s+/g,"_").toLowerCase()}`,value:`Disliked "${step.title}" - do NOT recommend this or similar again`};const np=[...preferences,pref];setPreferences(np);setFeedbackStep(step);const u=allSteps.map(s=>s.id===id?{...s,status:"done",disliked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,np);}},[allSteps,profile,allPlans,chats,preferences]);
+  const loveStep=useCallback(id=>{const step=allSteps.find(s=>s.id===id);const u=allSteps.map(s=>s.id===id?{...s,loved:!s.loved}:s);setAllSteps(u);if(step&&!step.loved){const pref={key:`loved_${step.category||"general"}`,value:`Loved "${step.title}"`};const np=[...preferences.filter(p=>p.key!==pref.key),pref];setPreferences(np);const fav={title:step.title,category:step.category||"general",link:step.link,addedAt:new Date().toISOString()};const favs=[fav,...(profile?.favorites||[]).filter(f=>f.title!==step.title)].slice(0,30);const p={...profile,favorites:favs};setProfile(p);persist(p,u,allPlans,chats,np);}else{if(step?.loved){const favs=(profile?.favorites||[]).filter(f=>f.title!==step.title);const p={...profile,favorites:favs};setProfile(p);persist(p,u,allPlans,chats,preferences);}else persist(profile,u,allPlans,chats,preferences);}},[allSteps,profile,allPlans,chats,preferences]);
   const submitFeedback=()=>{if(!feedbackText.trim()||!feedbackStep)return;sendMessage(`Completed "${feedbackStep.title}": ${feedbackText.trim()}`);setFeedbackStep(null);setFeedbackText("");setView("chat");};
   const submitMissedReason=()=>{if(!missedReason.trim()||!missedStep)return;sendMessage(`I didn't do "${missedStep.title}". Reason: ${missedReason.trim()}`);const u=allSteps.filter(s=>s.id!==missedStep.id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);setMissedStep(null);setMissedReason("");setView("chat");};
   const dismissMissed=id=>{const u=allSteps.filter(s=>s.id!==id);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
@@ -271,16 +303,16 @@ export default function App(){
   const pauseRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,paused:!r.paused}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const deleteRoutine=id=>{showConfirm("Delete this routine permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
   const completeRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,completions:(r.completions||0)+1,lastCompleted:new Date().toISOString()}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
-  const snoozeStep=(id,until)=>{const u=allSteps.map(s=>s.id===id?{...s,snoozedUntil:until,status:"active"}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);showToast("Snoozed until "+new Date(until).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));};
-  const talkAbout=text=>{if(segment==="everything")setSegment("wellness");setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
+  const snoozeStep=useCallback((id,until)=>{const u=allSteps.map(s=>s.id===id?{...s,snoozedUntil:until,status:"active"}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);showToast("Snoozed until "+new Date(until).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));},[allSteps,profile,allPlans,chats,preferences]);
+  const talkAbout=useCallback(text=>{if(segment==="everything")setSegment("wellness");setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);},[segment]);
   const[shareModalItem,setShareModalItem]=useState(null);
-  const shareItem=(item)=>{setShareModalItem(item);};
-  const handleBooked=(step)=>{handleAddCal(step.title,step.why,step.time);const u=allSteps.map(s=>s.id===step.id?{...s,booked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);};
+  const shareItem=useCallback((item)=>{setShareModalItem(item);},[]);
+  const handleBooked=useCallback((step)=>{handleAddCal(step.title,step.why,step.time);const u=allSteps.map(s=>s.id===step.id?{...s,booked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);},[allSteps,profile,allPlans,chats,preferences,calToken]);
   // Compute insights for stats
   const completedByCategory={};doneSteps.forEach(s=>{const c=s.category||"other";completedByCategory[c]=(completedByCategory[c]||0)+1;});
   const totalCompleted=doneSteps.length;
   const thisWeekDone=doneSteps.filter(s=>{const d=new Date(s.completedAt||s.createdAt);return(Date.now()-d.getTime())<7*864e5;}).length;
-  const handleAddCal=async(title,why,time)=>{const addWithToken=async(token)=>{const ok=await addGCalEvent(token,title,why,time);if(ok){showToast("Added to Calendar!");return true;}return false;};if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});return;}const ok=await addWithToken(calToken);if(!ok){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});}};
+  const handleAddCal=useCallback(async(title,why,time)=>{const addWithToken=async(token)=>{const ok=await addGCalEvent(token,title,why,time);if(ok){showToast("Added to Calendar!");return true;}return false;};if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});return;}const ok=await addWithToken(calToken);if(!ok){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});}},[calToken,profile]);
   const resetAll=async(deleteAccount)=>{const uid=getUserId(profile);if(uid&&deleteAccount){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({career:[],wellness:[],adventure:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
 
   // Expiration check

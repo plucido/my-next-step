@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { X, Check, Sparkles, Share2, Calendar, AlertTriangle, ExternalLink } from "lucide-react";
 import { C, F } from "./constants.js";
 import { FadeIn, TLink } from "./utils.jsx";
 
-export default function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,onShare,delay=0}){
+export default memo(function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onToggleTask,onShare,delay=0}){
   const done=plan.tasks?.filter(t=>t.done).length||0,total=plan.tasks?.length||0,allDone=total>0&&done===total;
   let isPast=false;try{const m=(plan.date||"").match(/(\w+)\s+\d{1,2}\s*[-\u2013]\s*(\d{1,2}),?\s*(\d{4})/);if(m){const d=new Date(`${m[1]} ${m[2]}, ${m[3]}`);d.setHours(23,59);isPast=d<new Date();}else{const s=(plan.date||"").match(/(\w+\s+\d{1,2}),?\s*(\d{4})/);if(s){const d=new Date(`${s[1]}, ${s[2]}`);d.setHours(23,59);isPast=d<new Date();}}}catch{}
   const borderColor=isPast&&!allDone?"#DC3C3C":allDone?C.teal:C.b1;
@@ -31,4 +32,4 @@ export default function JourneyCard({plan,pi,open,onToggle,onDelete,onTalk,onTog
         </div></div></div>))}
     </div>}
   </div></FadeIn>);
-}
+})

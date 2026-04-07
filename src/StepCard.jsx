@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { X, Check, Heart, Sparkles, Share2, Calendar, ExternalLink, ThumbsDown, Clock } from "lucide-react";
 import { C, F, SEGMENTS } from "./constants.js";
 import { FadeIn, catToSeg, catIcon, TLink } from "./utils.jsx";
@@ -15,7 +15,7 @@ function getSnoozeDate(option){
 
 const SNOOZE_OPTIONS=["1h","Tonight","Tomorrow","This weekend","Next week"];
 
-export default function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove,onTalk,onAddCal,onShare,onSnooze,delay=0}){
+export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove,onTalk,onAddCal,onShare,onSnooze,delay=0}){
   const seg=SEGMENTS[catToSeg(step.category)];
   const [showSnooze,setShowSnooze]=useState(false);
   return(<FadeIn delay={delay}><div style={{padding:"18px 20px",borderRadius:18,marginBottom:10,background:step.booked?C.tealSoft:C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${step.booked?C.teal:seg?.color||C.acc}`}}>
@@ -46,4 +46,4 @@ export default function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove
     </div>
     {showSnooze&&<div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap"}}>{SNOOZE_OPTIONS.map(opt=>(<button key={opt} onClick={()=>{onSnooze(step.id,getSnoozeDate(opt));setShowSnooze(false);}} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.goldSoft,border:"none",color:C.gold,cursor:"pointer",fontWeight:600}}>{opt}</button>))}</div>}
   </div></FadeIn>);
-}
+})

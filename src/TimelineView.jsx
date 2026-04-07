@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Calendar, Check, Heart, ChevronLeft, ChevronRight } from "lucide-react";
 import { H, F, C, SEGMENTS } from "./constants.js";
 import { FadeIn, catToSeg, catIcon } from "./utils.jsx";
@@ -21,59 +21,60 @@ export default function TimelineView({
   const todayStr = now.toDateString();
 
   const dayNameMap = {sunday:0,monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6};
-  const routinesByDate = {};
-  allRoutines.filter((r) => !r.paused).forEach((r) => {
-    let days = r.days || [];
-    if(days.length===0 && r.schedule==="daily") days=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
-    days.forEach((dayName) => {
-      const dayNum = dayNameMap[dayName.toLowerCase()];
-      if(dayNum===undefined) return;
-      for(let i=0;i<60;i++){
-        const d=new Date(now);d.setDate(d.getDate()+i);
-        if(d.getDay()===dayNum){
+
+  const routinesByDate = useMemo(() => {
+    const map = {};
+    allRoutines.filter((r) => !r.paused).forEach((r) => {
+      let days = r.days || [];
+      if(days.length===0 && r.schedule==="daily") days=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"];
+      days.forEach((dayName) => {
+        const dayNum = dayNameMap[dayName.toLowerCase()];
+        if(dayNum===undefined) return;
+        const start = new Date(now);
+        while(start.getDay()!==dayNum) start.setDate(start.getDate()+1);
+        for(let d=new Date(start);d-now<60*864e5;d.setDate(d.getDate()+7)){
           const key=d.toDateString();
-          if(!routinesByDate[key])routinesByDate[key]=[];
-          if(!routinesByDate[key].find((x) => x.id===r.id))routinesByDate[key].push(r);
+          if(!map[key])map[key]=[];
+          map[key].push(r);
         }
-      }
+      });
     });
-  });
+    return map;
+  }, [allRoutines]);
 
-  const calByDate = {};
-  (calData || []).forEach((e) => {
-    const d = new Date(e.start);
-    const key = d.toDateString();
-    if (!calByDate[key]) calByDate[key] = [];
-    calByDate[key].push(e);
-  });
+  const {calByDate, stepsByDate, unscheduledSteps} = useMemo(() => {
+    const cMap = {};
+    (calData || []).forEach((e) => {
+      const d = new Date(e.start);
+      const key = d.toDateString();
+      if (!cMap[key]) cMap[key] = [];
+      cMap[key].push(e);
+    });
 
-  const stepsByDate = {};
-  allSteps.filter((s) => s.status === "active").forEach((s) => {
-    const t = (s.time || "").toLowerCase();
-    let key = now.toDateString();
-    if (t.includes("tomorrow")) {
-      const d = new Date(now);
-      d.setDate(d.getDate() + 1);
-      key = d.toDateString();
-    } else if (t.includes("this week") || t.includes("this weekend")) {
-      const d2 = new Date(now);
-      d2.setDate(d2.getDate() + ((6 - d2.getDay() + 7) % 7 || 7));
-      key = d2.toDateString();
-    }
-    if (!stepsByDate[key]) stepsByDate[key] = [];
-    stepsByDate[key].push(s);
-  });
+    const sMap = {};
+    const scheduled = new Set();
+    allSteps.filter((s) => s.status === "active").forEach((s) => {
+      const t = (s.time || "").toLowerCase();
+      let key = now.toDateString();
+      if (t.includes("tomorrow")) {
+        const d = new Date(now); d.setDate(d.getDate() + 1); key = d.toDateString();
+      } else if (t.includes("this week") || t.includes("this weekend")) {
+        const d2 = new Date(now); d2.setDate(d2.getDate() + ((6 - d2.getDay() + 7) % 7 || 7)); key = d2.toDateString();
+      }
+      if (!sMap[key]) sMap[key] = [];
+      sMap[key].push(s);
+      scheduled.add(s.id);
+    });
 
-  const scheduledIds = new Set();
-  Object.values(stepsByDate).forEach((arr) => {
-    arr.forEach((s) => { scheduledIds.add(s.id); });
-  });
-  const unscheduledSteps = allSteps.filter((s) => s.status === "active" && !scheduledIds.has(s.id));
-  unscheduledSteps.forEach((s) => {
-    const key = now.toDateString();
-    if (!stepsByDate[key]) stepsByDate[key] = [];
-    stepsByDate[key].push(s);
-  });
+    const unsched = allSteps.filter((s) => s.status === "active" && !scheduled.has(s.id));
+    unsched.forEach((s) => {
+      const key = now.toDateString();
+      if (!sMap[key]) sMap[key] = [];
+      sMap[key].push(s);
+    });
+
+    return {calByDate: cMap, stepsByDate: sMap, unscheduledSteps: unsched};
+  }, [allSteps, calData]);
 
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
