@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from "react";
 import { Heart, Sparkles, Calendar, Settings, ArrowUp, MessageCircle, ChevronRight, X, Check, Search, Flame, HelpCircle } from "lucide-react";
 
 import { font, H, F, C, SEGMENTS, SEG_KEYS, SYSTEM_PROMPT, PROFILE_SECTIONS, AFF } from "./lib/constants.js";
@@ -9,20 +9,23 @@ import StepCard from "./components/StepCard.jsx";
 import JourneyCard from "./components/JourneyCard.jsx";
 import RoutineCard from "./components/RoutineCard.jsx";
 import TimelineView from "./components/TimelineView.jsx";
-import AuthScreen from "./screens/AuthScreen.jsx";
-import SetupScreen from "./screens/SetupScreen.jsx";
-import DeepProfileChat from "./screens/DeepProfileChat.jsx";
-import LegalModal from "./modals/LegalModal.jsx";
-import ShareModal from "./modals/ShareModal.jsx";
-import SettingsPanel from "./screens/Settings.jsx";
-import HelpModal from "./modals/HelpModal.jsx";
 import ToastContainer, { showToast, showConfirm } from "./components/Toast.jsx";
-import SearchModal from "./modals/SearchModal.jsx";
-import QuickProfile from "./screens/QuickProfile.jsx";
-import WeeklySummary from "./modals/WeeklySummary.jsx";
-import Walkthrough from "./screens/Walkthrough.jsx";
-import BadgesModal, { getBadges } from "./modals/Badges.jsx";
+import { getBadges } from "./modals/Badges.jsx";
 import { requestNotificationPermission, startReminderChecks, stopReminderChecks } from "./lib/notifications.js";
+
+// Lazy-loaded screens and modals
+const AuthScreen = lazy(() => import("./screens/AuthScreen.jsx"));
+const SetupScreen = lazy(() => import("./screens/SetupScreen.jsx"));
+const QuickProfile = lazy(() => import("./screens/QuickProfile.jsx"));
+const DeepProfileChat = lazy(() => import("./screens/DeepProfileChat.jsx"));
+const SettingsPanel = lazy(() => import("./screens/Settings.jsx"));
+const Walkthrough = lazy(() => import("./screens/Walkthrough.jsx"));
+const HelpModal = lazy(() => import("./modals/HelpModal.jsx"));
+const SearchModal = lazy(() => import("./modals/SearchModal.jsx"));
+const ShareModal = lazy(() => import("./modals/ShareModal.jsx"));
+const WeeklySummary = lazy(() => import("./modals/WeeklySummary.jsx"));
+const BadgesModal = lazy(() => import("./modals/Badges.jsx"));
+const LegalModal = lazy(() => import("./modals/LegalModal.jsx"));
 
 // ─── MAIN APP ───
 export default function App(){
@@ -323,9 +326,9 @@ export default function App(){
   // Expiration check
   useEffect(()=>{const now=new Date(),h=now.getHours();let changed=false;const u=allSteps.map(s=>{if(s.status!=="active")return s;const t=(s.time||"").toLowerCase(),age=s.createdAt?(Date.now()-new Date(s.createdAt).getTime())/36e5:0;if((age>48)||(t.includes("tonight")&&age>14)||(t.includes("today")&&age>24)){changed=true;return{...s,status:"expired"};}return s;});if(changed){setAllSteps(u);persist(profile,u,allPlans,chats,preferences);}},[allSteps.length]);
 
-  if(screen==="auth")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><AuthScreen onAuth={handleAuth}/></div>);
-  if(screen==="setup")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SetupScreen profile={profile} onComplete={handleSetup}/></div>);
-  if(screen==="quickprofile")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><QuickProfile profile={profile} onComplete={handleQuickProfile}/></div>);
+  if(screen==="auth")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><AuthScreen onAuth={handleAuth}/></div></Suspense>);
+  if(screen==="setup")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SetupScreen profile={profile} onComplete={handleSetup}/></div></Suspense>);
+  if(screen==="quickprofile")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><QuickProfile profile={profile} onComplete={handleQuickProfile}/></div></Suspense>);
   if(screen==="welcome")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style>
     <FadeIn><div style={{maxWidth:440,margin:"0 auto",padding:"60px 24px 40px"}}>
       <div style={{textAlign:"center",marginBottom:36}}>
@@ -350,12 +353,13 @@ export default function App(){
       </div>
     </div></FadeIn>
   </div>);
-  if(screen==="deepprofile")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepFinish} existingInsights={profile?.insights||[]}/></div>);
+  if(screen==="deepprofile")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepFinish} existingInsights={profile?.insights||[]}/></div></Suspense>);
 
   const segInfo=SEGMENTS[segment]||{label:"Timeline",color:C.acc,soft:C.accSoft,desc:"all your steps and journeys across every area of your life"};
   const bubble=u=>({...F,maxWidth:"82%",padding:"13px 18px",borderRadius:20,fontSize:15,lineHeight:1.65,whiteSpace:"pre-wrap",...(u?{background:C.accGrad,color:"#fff",borderBottomRightRadius:6}:{background:C.card,color:C.t1,borderBottomLeftRadius:6,boxShadow:C.shadow})});
 
   return(
+    <Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}>
     <div style={{...F,height:"100vh",color:C.t1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg}}>
       <style>{font}{`
         *{-webkit-tap-highlight-color:transparent;}
@@ -603,5 +607,6 @@ export default function App(){
       {showWalkthrough&&screen==="main"?<Walkthrough onComplete={()=>{setShowWalkthrough(false);try{localStorage.setItem("mns_walkthrough_done","1");}catch{}}}/>:null}
       {showSearch?<SearchModal allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} onClose={()=>setShowSearch(false)} onNavigate={function(r){if(r.seg)setSegment(r.seg);setView("steps");}}/>:null}
     </div>
+    </Suspense>
   );
 }

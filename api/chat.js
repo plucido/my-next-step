@@ -1,28 +1,84 @@
 // Vercel Serverless Function: Claude API Proxy
-// Supports both streaming and non-streaming, with smart model routing
-import { getUserId, rateLimit, handleCors, cors } from "./middleware.js";
+// Supports streaming and non-streaming, with tier-based model routing and usage metering
+import { authenticate, db, rateLimit, handleCors, cors } from "./middleware.js";
 
-// Determine which model to use based on query complexity
-function pickModel(messages, system, tools) {
+// Monthly quota limits per tier
+const TIER_QUOTAS = {
+  free: 50,   // 50 messages per month
+  pro: 1000,  // 1000 messages per month
+};
+
+// Model access per tier
+const TIER_MODELS = {
+  free: "claude-haiku-3-20240307",
+  pro: "claude-sonnet-4-20250514",
+};
+
+/**
+ * Get current month usage count for a user.
+ * Returns { count, monthKey } where monthKey is "YYYY-MM".
+ */
+async function getUsage(uid) {
+  const now = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  try {
+    const usageDoc = await db.collection("users").doc(uid).collection("usage").doc(monthKey).get();
+    if (usageDoc.exists) {
+      return { count: usageDoc.data().count || 0, monthKey };
+    }
+  } catch (e) {
+    console.warn("Failed to read usage:", e.message);
+  }
+  return { count: 0, monthKey };
+}
+
+/**
+ * Increment usage counter for the current month.
+ */
+async function incrementUsage(uid, monthKey) {
+  try {
+    const ref = db.collection("users").doc(uid).collection("usage").doc(monthKey);
+    const doc = await ref.get();
+    if (doc.exists) {
+      await ref.update({ count: (doc.data().count || 0) + 1, lastUsedAt: new Date().toISOString() });
+    } else {
+      await ref.set({ count: 1, lastUsedAt: new Date().toISOString() });
+    }
+  } catch (e) {
+    // Don't fail the request if usage tracking fails
+    console.error("Failed to increment usage:", e.message);
+  }
+}
+
+/**
+ * Pick model based on user tier.
+ * Free users always get Haiku. Pro users get Sonnet for complex queries, Haiku for simple ones.
+ */
+function pickModel(tier, messages) {
+  if (tier === "free") {
+    return TIER_MODELS.free;
+  }
+
+  // Pro users: smart routing based on message complexity
   const lastMsg = messages[messages.length - 1]?.content || "";
   const msg = typeof lastMsg === "string" ? lastMsg.toLowerCase() : "";
 
   // Haiku for very short/simple messages (fast, cheap)
   if (msg.length < 30 && /^(yes|no|ok|sure|sounds good|thanks|love it|not for me|more|next|skip|done)/i.test(msg)) {
-    return "claude-haiku-3-20240307";
+    return TIER_MODELS.free;
   }
 
-  // Sonnet for complex tasks that need accuracy
+  // Sonnet for complex tasks
   if (
     msg.length > 300 ||
     /plan.*(trip|journey|itinerary)|book.*(flight|hotel|restaurant)|doctor|medical|insurance|workout plan|meal plan/i.test(msg) ||
     /compare|analyze|research|detailed|specific options/i.test(msg)
   ) {
-    return "claude-sonnet-4-20250514";
+    return TIER_MODELS.pro;
   }
 
-  // Haiku for medium messages — handles most daily interactions well
-  return "claude-haiku-3-20240307";
+  // Default: Haiku for pro users on medium messages (cost optimization)
+  return TIER_MODELS.free;
 }
 
 export const config = {
@@ -37,13 +93,30 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const uid = getUserId(req);
-  if (!uid) {
-    return res.status(401).json({ error: "Missing user ID" });
+  // Authenticate user via Firebase ID token or legacy header
+  let user;
+  try {
+    user = await authenticate(req);
+  } catch (err) {
+    return res.status(401).json({ error: err.message });
   }
 
-  if (!rateLimit(uid)) {
+  if (!rateLimit(user.uid)) {
     return res.status(429).json({ error: "Too many requests. Please wait a moment." });
+  }
+
+  // Check monthly quota before making API call
+  const { count: usageCount, monthKey } = await getUsage(user.uid);
+  const quota = TIER_QUOTAS[user.tier] || TIER_QUOTAS.free;
+  const remaining = Math.max(0, quota - usageCount);
+
+  if (remaining <= 0) {
+    return res.status(429).json({
+      error: "Monthly quota exceeded. Upgrade to Pro for more messages.",
+      quota,
+      used: usageCount,
+      tier: user.tier,
+    });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -58,8 +131,13 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Messages array required" });
     }
 
-    // Smart model selection (can be overridden by client)
-    const selectedModel = model === "auto" ? pickModel(messages, system, tools) : (model || "claude-sonnet-4-20250514");
+    // Tier-based model selection: free users always get Haiku
+    const selectedModel =
+      model === "auto" || !model
+        ? pickModel(user.tier, messages)
+        : user.tier === "free"
+          ? TIER_MODELS.free // Free users cannot override to a better model
+          : model;
 
     const anthropicBody = {
       model: selectedModel,
@@ -77,7 +155,7 @@ export default async function handler(req, res) {
       "anthropic-version": "2023-06-01",
     };
 
-    if (tools && tools.some(t => t.type === "web_search_20250305")) {
+    if (tools && tools.some((t) => t.type === "web_search_20250305")) {
       headers["anthropic-beta"] = "web-search-2025-03-05";
     }
 
@@ -93,12 +171,17 @@ export default async function handler(req, res) {
       return res.status(response.status).json(errData);
     }
 
+    // Increment usage after successful API call
+    await incrementUsage(user.uid, monthKey);
+    const newRemaining = remaining - 1;
+
     // Streaming mode: pipe SSE events directly to client
     if (stream && response.body) {
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
       res.setHeader("X-Model-Used", selectedModel);
+      res.setHeader("X-Remaining-Quota", String(newRemaining));
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -118,8 +201,8 @@ export default async function handler(req, res) {
 
     // Non-streaming mode
     const data = await response.json();
-    // Include which model was used so client knows
     data._model = selectedModel;
+    res.setHeader("X-Remaining-Quota", String(newRemaining));
     return res.status(200).json(data);
   } catch (err) {
     console.error("Chat proxy error:", err);

@@ -1,4 +1,52 @@
+// OAuth callback handler with token encryption at rest
+// Security: Tokens are encrypted with AES-256-CBC before storage in Firestore
+import crypto from "crypto";
 import { db } from "../middleware.js";
+
+// ── Token Encryption ────────────────────────────────────────────────
+// Uses AES-256-CBC with a random IV per encryption.
+// ENCRYPTION_KEY must be a 64-char hex string (32 bytes) set in environment.
+
+const ALGORITHM = "aes-256-cbc";
+const IV_LENGTH = 16; // AES block size
+
+/**
+ * Encrypt plaintext using AES-256-CBC.
+ * Returns "iv:encrypted" as hex strings.
+ */
+export function encrypt(text) {
+  const key = process.env.ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error("ENCRYPTION_KEY environment variable is required");
+  }
+  const keyBuffer = Buffer.from(key, "hex");
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv(ALGORITHM, keyBuffer, iv);
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  // Store IV alongside ciphertext so each encryption is unique
+  return iv.toString("hex") + ":" + encrypted;
+}
+
+/**
+ * Decrypt a value produced by encrypt().
+ * Expects "iv:encrypted" format (hex strings).
+ */
+export function decrypt(text) {
+  const key = process.env.ENCRYPTION_KEY;
+  if (!key) {
+    throw new Error("ENCRYPTION_KEY environment variable is required");
+  }
+  const keyBuffer = Buffer.from(key, "hex");
+  const [ivHex, encryptedHex] = text.split(":");
+  const iv = Buffer.from(ivHex, "hex");
+  const decipher = crypto.createDecipheriv(ALGORITHM, keyBuffer, iv);
+  let decrypted = decipher.update(encryptedHex, "hex", "utf8");
+  decrypted += decipher.final("utf8");
+  return decrypted;
+}
+
+// ── OAuth Provider Config ───────────────────────────────────────────
 
 const PROVIDERS = {
   google: {
@@ -27,6 +75,8 @@ const PROVIDERS = {
     clientSecretEnv: "STRAVA_CLIENT_SECRET",
   },
 };
+
+// ── Handler ─────────────────────────────────────────────────────────
 
 export default async function handler(req, res) {
   try {
@@ -69,7 +119,13 @@ export default async function handler(req, res) {
       redirectUri,
     });
 
-    // Store tokens in Firestore
+    // Encrypt tokens before storing in Firestore
+    // Security: tokens are never stored in plaintext
+    const encryptedAccess = encrypt(tokens.access_token);
+    const encryptedRefresh = tokens.refresh_token
+      ? encrypt(tokens.refresh_token)
+      : null;
+
     await db
       .collection("users")
       .doc(uid)
@@ -77,10 +133,11 @@ export default async function handler(req, res) {
       .doc(provider)
       .set(
         {
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token || null,
+          accessToken: encryptedAccess,
+          refreshToken: encryptedRefresh,
           expiresIn: tokens.expires_in || null,
           tokenType: tokens.token_type || "Bearer",
+          encrypted: true, // Flag so readers know to decrypt
           connectedAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         },

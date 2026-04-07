@@ -1,31 +1,19 @@
 {
   "crons": [
-    {
-      "path": "/api/sync/run",
-      "schedule": "0 */6 * * *"
-    }
+    { "path": "/api/sync/run", "schedule": "0 */6 * * *" }
   ],
   "functions": {
-    "api/sync/run.js": {
-      "maxDuration": 30
-    },
-    "api/sync/google.js": {
-      "maxDuration": 30
-    },
-    "api/sync/spotify.js": {
-      "maxDuration": 30
-    },
-    "api/sync/facebook.js": {
-      "maxDuration": 30
-    },
-    "api/sync/instagram.js": {
-      "maxDuration": 30
-    },
-    "api/sync/strava.js": {
-      "maxDuration": 30
-    },
-    "api/profile/build.js": {
-      "maxDuration": 60
+    "api/chat.js": { "maxDuration": 60 },
+    "api/sync/*.js": { "maxDuration": 30 },
+    "api/profile/build.js": { "maxDuration": 60 },
+    "api/billing/*.js": { "maxDuration": 10 }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "X-Request-Id", "value": "{requestId}" }
+      ]
     }
-  }
+  ]
 }
