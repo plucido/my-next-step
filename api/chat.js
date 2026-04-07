@@ -1,6 +1,36 @@
 // Vercel Serverless Function: Claude API Proxy
-// Keeps the Anthropic API key server-side, never exposed to browser
+// Supports both streaming and non-streaming, with smart model routing
 import { getUserId, rateLimit, handleCors, cors } from "./middleware.js";
+
+// Determine which model to use based on query complexity
+function pickModel(messages, system, tools) {
+  const lastMsg = messages[messages.length - 1]?.content || "";
+  const msg = typeof lastMsg === "string" ? lastMsg.toLowerCase() : "";
+
+  // Use Sonnet (expensive, smart) for:
+  // - Web search queries (need to process search results)
+  // - Trip/journey planning (complex multi-step)
+  // - Medical/health advice (needs accuracy)
+  // - Long messages (complex requests)
+  const needsSonnet =
+    (tools && tools.some(t => t.type === "web_search_20250305")) ||
+    msg.length > 200 ||
+    /plan|trip|journey|itinerary|schedule|budget|book|reserve|find me|search|doctor|medical|health insurance/i.test(msg) ||
+    /how much|where should|what should|recommend|suggest|best/i.test(msg);
+
+  if (needsSonnet) return "claude-sonnet-4-20250514";
+
+  // Use Haiku (fast, cheap) for:
+  // - Simple follow-ups ("yes", "sounds good", "more like that")
+  // - Feedback responses
+  // - Quick clarifications
+  // - Short messages under 50 chars
+  return "claude-haiku-3-20240307";
+}
+
+export const config = {
+  maxDuration: 60,
+};
 
 export default async function handler(req, res) {
   if (handleCors(req, res)) return;
@@ -25,22 +55,24 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { model, max_tokens, system, messages, tools } = req.body;
+    const { model, max_tokens, system, messages, tools, stream } = req.body;
 
-    // Validate required fields
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: "Messages array required" });
     }
 
-    // Build the request to Anthropic
+    // Smart model selection (can be overridden by client)
+    const selectedModel = model === "auto" ? pickModel(messages, system, tools) : (model || "claude-sonnet-4-20250514");
+
     const anthropicBody = {
-      model: model || "claude-sonnet-4-20250514",
-      max_tokens: Math.min(max_tokens || 2000, 4000), // Cap at 4000
+      model: selectedModel,
+      max_tokens: Math.min(max_tokens || 2000, 4000),
       messages: messages,
     };
 
     if (system) anthropicBody.system = system;
     if (tools) anthropicBody.tools = tools;
+    if (stream) anthropicBody.stream = true;
 
     const headers = {
       "Content-Type": "application/json",
@@ -48,7 +80,6 @@ export default async function handler(req, res) {
       "anthropic-version": "2023-06-01",
     };
 
-    // Add beta header if web search tool is used
     if (tools && tools.some(t => t.type === "web_search_20250305")) {
       headers["anthropic-beta"] = "web-search-2025-03-05";
     }
@@ -59,13 +90,39 @@ export default async function handler(req, res) {
       body: JSON.stringify(anthropicBody),
     });
 
-    const data = await response.json();
-
     if (!response.ok) {
-      console.error("Anthropic API error:", response.status, JSON.stringify(data));
-      return res.status(response.status).json(data);
+      const errData = await response.json();
+      console.error("Anthropic API error:", response.status, JSON.stringify(errData));
+      return res.status(response.status).json(errData);
     }
 
+    // Streaming mode: pipe SSE events directly to client
+    if (stream && response.body) {
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Model-Used", selectedModel);
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(decoder.decode(value, { stream: true }));
+        }
+      } catch (e) {
+        console.error("Stream error:", e);
+      }
+      res.end();
+      return;
+    }
+
+    // Non-streaming mode
+    const data = await response.json();
+    // Include which model was used so client knows
+    data._model = selectedModel;
     return res.status(200).json(data);
   } catch (err) {
     console.error("Chat proxy error:", err);

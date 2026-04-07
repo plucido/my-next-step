@@ -107,6 +107,9 @@ export default function App(){
 
   useEffect(()=>{if(screen==="main"){requestNotificationPermission();startReminderChecks(()=>({allSteps,allRoutines,calData}));}},[screen]);
 
+  // Follow-up check: prompt feedback for booked events that have passed
+  useEffect(()=>{if(screen!=="main"||!allSteps.length)return;const now=new Date();allSteps.filter(s=>s.status==="active"&&s.booked&&s.time).forEach(s=>{const t=(s.time||"").toLowerCase();let eventDate=new Date();if(t.includes("yesterday")||t.includes("last")){setFeedbackStep(s);return;}const age=s.createdAt?(now-new Date(s.createdAt))/36e5:0;if((t.includes("today")&&age>18)||(t.includes("tonight")&&age>12)){setFeedbackStep(s);}});},[screen,allSteps.length]);
+
   const persist=(p,s,pl,ch,pr,rt)=>{const data={profile:p||profile,steps:s||allSteps,plans:pl||allPlans,chats:ch||chats,preferences:pr||preferences,routines:rt||allRoutines};const uid=getUserId(p||profile);if(uid){saveFB(uid,"appdata",data);localStorage.setItem("mns_last_user",uid);}};
 
   const handleAuth=async(auth)=>{const uid=auth.email?auth.email.replace(/[^a-zA-Z0-9]/g,"_"):null;if(uid){const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(normalizeChats(data.chats));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);const sv=await loadFB(uid,"strava");if(sv)setStravaData(sv);const cv=await loadFB(uid,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}setScreen("main");return;}}const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
@@ -177,11 +180,10 @@ export default function App(){
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
-        const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json","x-user-id":getUserId(profile)},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:2000,tools:[{type:"web_search_20250305",name:"web_search"}],system:sysPrompt,messages:currentMsgs})});
-        if(res.status===429){
-          // Rate limited - wait and retry
+        const res=await fetch("/api/chat",{method:"POST",headers:{"Content-Type":"application/json","x-user-id":getUserId(profile)},body:JSON.stringify({model:"auto",max_tokens:2000,tools:[{type:"web_search_20250305",name:"web_search"}],system:sysPrompt,messages:currentMsgs})});
+        if(res.status===429||res.status>=500){
           const wait=attempts*3000;
-          console.log(`Rate limited, waiting ${wait}ms...`);
+          console.log(`API ${res.status}, retrying in ${wait}ms (attempt ${attempts}/3)...`);
           await new Promise(r=>setTimeout(r,wait));
           continue;
         }
@@ -214,7 +216,7 @@ export default function App(){
         const items=JSON.parse(jsonStr);
         for(const item of(Array.isArray(items)?items:[items])){
           const defaultCat=segment==="career"?"career":segment==="wellness"?"fitness":segment==="adventure"?"social":"travel";
-          if(item.type==="step")newSteps=[{...item,title:clean(item.title),why:clean(item.why),category:item.category||defaultCat,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()},...newSteps];
+          if(item.type==="step"){const newStep={...item,title:clean(item.title),why:clean(item.why),category:item.category||defaultCat,status:"active",id:Date.now()+Math.random(),createdAt:new Date().toISOString()};newSteps=[newStep,...newSteps];if(calToken&&item.time)addGCalEvent(calToken,newStep.title,newStep.why,item.time).catch(()=>{});}
           else if(item.type==="plan")newPlans=[{...item,title:clean(item.title),tasks:(item.tasks||[]).map(t=>({...t,title:clean(t.title),done:false,category:t.category||item.category||defaultCat}))},...newPlans.filter(p=>p.title!==item.title)];
           else if(item.type==="routine"){newRoutines=[{...item,category:item.category||defaultCat,id:Date.now()+Math.random(),createdAt:new Date().toISOString(),paused:false},...newRoutines.filter(r=>r.title!==item.title)];if(calToken)addGCalRecurring(calToken,item.title,item.description,item.schedule,item.days,item.time).catch(()=>{});}
           else if(item.type==="preference")newPrefs=[...newPrefs.filter(p=>p.key!==item.key),item];
@@ -433,7 +435,11 @@ export default function App(){
                 <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto 24px"}}>Tell your guide what you're looking for and I'll create personalized steps and journeys.</div>
                 <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Talk to your guide {"\u2192"}</button>
                 <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap",marginTop:8}}>
-                  {(segment==="career"?["Help me grow my career","Find a course","Networking events"]:segment==="adventure"?["Plan a trip","Find events this weekend","Plan something with friends"]:["What should I do today?","Build a workout routine","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
+                  {(()=>{const qp=profile?.quickProfile||{};const interests=(qp.interests||[]);const loc=profile?.setup?.location||"";
+                    if(segment==="career"){const base=["Help me grow my career","Find a course near me"];if(qp.work)base.push(qp.work.includes("Between")?"Help me find a job":"Networking events in "+loc);return base;}
+                    if(segment==="adventure"){const base=[];if(interests.includes("Travel"))base.push("Plan a weekend trip");if(interests.includes("Nightlife")||interests.includes("Wine & Dining"))base.push("Find a great restaurant for tonight");base.push("Find events this weekend");if(interests.includes("Outdoors"))base.push("Outdoor activities near me");if(base.length<3)base.push("Plan something fun with friends");return base.slice(0,4);}
+                    const base=["What should I do today?"];if(interests.includes("Fitness")||interests.includes("Yoga"))base.push("Build me a workout plan");else base.push("Help me start exercising");if(interests.includes("Meditation"))base.push("Set up a meditation routine");else base.push("Find a gym or class near me");return base;
+                  })().map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
                 </div>
               </div></FadeIn>
             ):(<>
