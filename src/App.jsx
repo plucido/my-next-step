@@ -166,7 +166,7 @@ export default function App(){
     // No localStorage cache — try Firebase directly
     try{const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);setScreen("main");return;}}catch(e){console.log("Firebase load failed during auth:",e);}
     }const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); setScreen("welcome");};
+  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);setAllSteps([]);setAllPlans([]);setAllRoutines([]);setPreferences([]);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Tell me what's on your mind and I'll make it happen.",ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,adventure:[]},[],[]); setScreen("welcome");};
   const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
@@ -352,12 +352,22 @@ export default function App(){
   if(screen==="setup")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SetupScreen profile={profile} onComplete={handleSetup}/></div></Suspense>);
   if(screen==="quickprofile")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><QuickProfile profile={profile} onComplete={handleQuickProfile}/></div></Suspense>);
   if(screen==="welcome")return(<div style={{background:C.bg,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}><style>{font}</style>
-    <FadeIn><div style={{maxWidth:400,textAlign:"center"}}>
+    <FadeIn><div style={{maxWidth:420,textAlign:"center"}}>
       <div style={{width:72,height:72,borderRadius:22,margin:"0 auto 20px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 8px 28px rgba(212,82,42,0.25)"}}><Logo size={38} color="#fff"/></div>
       <h1 style={{...H,fontSize:28,color:C.t1,marginBottom:8}}>Hey {profile?.name}!</h1>
-      <p style={{...F,fontSize:16,color:C.t2,lineHeight:1.6,marginBottom:8}}>I'm your AI life guide. Tell me what you want to do and I'll make it happen.</p>
-      <p style={{...F,fontSize:14,color:C.t3,lineHeight:1.5,marginBottom:32}}>Plan a trip. Find a restaurant. Start a workout routine. I'll create actionable steps with real booking links.</p>
-      <button onClick={()=>{setScreen("main");setView("chat");setSegment("wellness");setTimeout(()=>inputRef.current?.focus(),200);}} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Let's go</button>
+      <p style={{...F,fontSize:15,color:C.t2,lineHeight:1.6,marginBottom:24}}>I'm your AI life guide. Tell me what you want to do and I'll create actionable steps with real booking links.</p>
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:20}}>
+        {SEG_KEYS.map((s,i) => {const info=SEGMENTS[s];return(
+          <FadeIn key={s} delay={100+i*80}><button onClick={()=>{setSegment(s);setView("chat");setScreen("main");setTimeout(()=>inputRef.current?.focus(),200);}} style={{...F,width:"100%",padding:"16px 20px",borderRadius:16,background:C.card,boxShadow:C.shadow,border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
+            <div style={{width:44,height:44,borderRadius:14,background:info.soft,display:"flex",alignItems:"center",justifyContent:"center"}}>{segIcon(s,20,info.color)}</div>
+            <div style={{flex:1}}>
+              <div style={{fontSize:15,fontWeight:600,color:C.t1}}>{info.label}</div>
+              <div style={{fontSize:12,color:C.t3,marginTop:2}}>{info.desc.split(",").slice(0,3).join(",")}</div>
+            </div>
+            <ChevronRight size={16} color={C.t3}/>
+          </button></FadeIn>
+        );})}
+      </div>
     </div></FadeIn>
   </div>);
   if(screen==="deepprofile")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepFinish} existingInsights={profile?.insights||[]}/></div></Suspense>);
