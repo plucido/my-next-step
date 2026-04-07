@@ -7,24 +7,21 @@ function pickModel(messages, system, tools) {
   const lastMsg = messages[messages.length - 1]?.content || "";
   const msg = typeof lastMsg === "string" ? lastMsg.toLowerCase() : "";
 
-  // Use Sonnet (expensive, smart) for:
-  // - Web search queries (need to process search results)
-  // - Trip/journey planning (complex multi-step)
-  // - Medical/health advice (needs accuracy)
-  // - Long messages (complex requests)
-  const needsSonnet =
-    (tools && tools.some(t => t.type === "web_search_20250305")) ||
-    msg.length > 200 ||
-    /plan|trip|journey|itinerary|schedule|budget|book|reserve|find me|search|doctor|medical|health insurance/i.test(msg) ||
-    /how much|where should|what should|recommend|suggest|best/i.test(msg);
+  // Haiku for very short/simple messages (fast, cheap)
+  if (msg.length < 30 && /^(yes|no|ok|sure|sounds good|thanks|love it|not for me|more|next|skip|done)/i.test(msg)) {
+    return "claude-haiku-3-20240307";
+  }
 
-  if (needsSonnet) return "claude-sonnet-4-20250514";
+  // Sonnet for complex tasks that need accuracy
+  if (
+    msg.length > 300 ||
+    /plan.*(trip|journey|itinerary)|book.*(flight|hotel|restaurant)|doctor|medical|insurance|workout plan|meal plan/i.test(msg) ||
+    /compare|analyze|research|detailed|specific options/i.test(msg)
+  ) {
+    return "claude-sonnet-4-20250514";
+  }
 
-  // Use Haiku (fast, cheap) for:
-  // - Simple follow-ups ("yes", "sounds good", "more like that")
-  // - Feedback responses
-  // - Quick clarifications
-  // - Short messages under 50 chars
+  // Haiku for medium messages — handles most daily interactions well
   return "claude-haiku-3-20240307";
 }
 

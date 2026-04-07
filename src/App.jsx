@@ -163,29 +163,34 @@ export default function App(){
     setChats(newChats);setInput("");setLoading(true);
     if(inputRef.current)inputRef.current.style.height="auto";
 
-    // Build full profile context from ALL segments
-    const allMsgs=[...(chats.career||[]),...(chats.wellness||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0));
-    const prefText=preferences.length>0?"\n\nPREFERENCES:\n"+preferences.slice(-15).map(p=>`- ${p.key}: ${p.value}`).join("\n"):"";
-    const sp=stravaData?.profile;const stravaText=sp?`\n\nSTRAVA: ${sp.name} | ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
-    const stepsCtx=activeSteps.length>0?"\n\nALL ACTIVE STEPS:\n"+activeSteps.slice(0,15).map(s=>`- "${s.title}" (${s.category}, ${catToSeg(s.category)})${s.loved?" [LOVED]":""}`).join("\n"):"";
-    const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\n\nLOVED STEPS (recommend more like these):\n"+allSteps.filter(s=>s.loved).slice(0,5).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
-    const dislikedCtx=allSteps.filter(s=>s.disliked).length>0?"\n\nDISLIKED ITEMS (NEVER suggest these or similar again):\n"+allSteps.filter(s=>s.disliked).slice(0,10).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
-    const completedCtx=doneSteps.length>0?"\n\nRECENTLY COMPLETED (user enjoys these types):\n"+doneSteps.slice(0,10).map(s=>`- "${s.title}" (${s.category})`).join("\n"):"";
-    const now=new Date();const timeCtx=`\n\nCURRENT TIME: ${now.toLocaleString()} (${now.toLocaleDateString([],{weekday:"long"})}). ${now.getHours()>=20?"It's late evening \u2014 suggest things for tomorrow unless they specifically ask for tonight.":now.getHours()>=17?"It's evening.":now.getHours()>=12?"It's afternoon.":"It's morning."}${now.getDay()===0||now.getDay()===6?" It's the weekend.":" It's a weekday."}`;
-    const favsCtx=(profile?.favorites||[]).length>0?"\n\nFAVORITES (places/things user loves):\n"+(profile.favorites).slice(0,10).map(f=>`- "${f.title}" (${f.category})`).join("\n"):"";
-    const petsCtx=(profile?.pets||[]).length>0?"\n\nPETS:\n"+(profile.pets).map(p=>`- ${p.name} (${p.type}${p.breed?" / "+p.breed:""}${p.age?", "+p.age:""})`).join("\n"):"";
-    const plansCtx=allPlans.length>0?"\n\nJOURNEYS:\n"+allPlans.map(p=>{const d=p.tasks?.filter(t=>t.done).length||0;return`- "${p.title}" (${p.date||"no date"}, ${d}/${p.tasks?.length||0} done)`;}).join("\n"):"";
-    const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\n\nACTIVE ROUTINES:\n"+allRoutines.filter(r=>!r.paused).map(r=>`- "${r.title}" (${r.schedule}, ${(r.days||[]).join("/")||"flexible"}, ${r.category})`).join("\n"):"";
-    const calCtx=calData?.length>0?"\n\nCALENDAR:\n"+calData.slice(0,10).map(e=>{const d=new Date(e.start);return`- ${d.toLocaleDateString()} ${e.allDay?"all day":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}: ${e.title}`;}).join("\n"):"";
-    const profileCtx=profile?.setup?`\nAge: ${profile.setup.age||"?"} | Gender: ${profile.setup.gender||"?"}`:"";
-    const qp=profile?.quickProfile;const quickCtx=qp?`\n\nPERSONALITY & LIFESTYLE:\nInterests: ${(qp.interests||[]).join(", ")||"not set"}\nMonthly budget: ${qp.budget||"not set"}\nRelationship: ${qp.relationship||"not set"}\nWork: ${qp.work||"not set"}`:"";
-    const healthFitness=profile?.health?`\n\nHEALTH & FITNESS:\nHeight: ${profile.health.height||"not set"}\nWeight: ${profile.health.weight||"not set"}\nFitness level: ${profile.health.fitnessLevel||"not set"}\nGoals: ${(profile.health.fitnessGoals||[]).join(", ")||"not set"}\nPrefers: ${(profile.health.workoutPrefs||[]).join(", ")||"not set"}\nFrequency: ${profile.health.workoutFreq||"not set"}\nInjuries/limits: ${profile.health.injuries||"none"}\nAllergies: ${(profile.health.allergies||[]).join(", ")||"none"}\nDietary preferences: ${(profile.health.diets||[]).join(", ")||"none"}${profile.health.otherAllergies?"\nOther allergies: "+profile.health.otherAllergies:""}`:"";
-    const healthMedical=profile?.health?.medicalEnabled?`\n\nMEDICAL (user opted in):\nInsurance: ${profile.health.provider||"not set"}\nPlan type: ${profile.health.planType||"not set"}${profile.health.planType==="HMO"?" (REQUIRES PCP REFERRAL for specialists)":""}\nPCP: ${profile.health.pcp||"not set"}`:"";
-    const healthCtx=healthFitness+healthMedical;
-    const dp=profile?.derivedProfile;const derivedCtx=dp?`\n\nDERIVED PROFILE (from connected apps - USE THIS for personalization):\nCuisine preferences: ${(dp.cuisinePreferences||[]).join(", ")||"unknown"}\nSpending: ${dp.spendingPatterns?JSON.stringify(dp.spendingPatterns):"unknown"}\nFitness habits: ${dp.fitnessHabits?JSON.stringify(dp.fitnessHabits):"unknown"}\nMusic taste: ${(dp.musicTaste||[]).join(", ")||"unknown"}\nTravel style: ${dp.travelStyle||"unknown"}\nSocial style: ${dp.socialStyle||"unknown"}\nRecent interests: ${(dp.recentInterests||[]).join(", ")||"unknown"}\nUpcoming events: ${(dp.upcomingEvents||[]).join(", ")||"none"}\nPersonality: ${dp.personalityTraits?JSON.stringify(dp.personalityTraits):"unknown"}`:"";
+    // Build context — only include what's relevant to save tokens
+    const msgLower=msg.toLowerCase();
+    const isHealth=/workout|gym|run|yoga|exercise|diet|doctor|health|fitness|weight|medical|allerg/i.test(msgLower);
+    const isTravel=/trip|travel|flight|hotel|vacation|book|reserve|airport/i.test(msgLower);
+    const isFood=/restaurant|dinner|lunch|food|eat|cuisine|cook/i.test(msgLower);
+    const isSchedule=/calendar|schedule|when|tonight|tomorrow|weekend|today|time|busy/i.test(msgLower);
 
-    const travelCtx=profile?.travel?`\n\nTRAVEL PREFERENCES:\nCabin: ${profile.travel.flightClass||"not set"}\nStops: ${profile.travel.flightStops||"not set"}\nSeat: ${profile.travel.flightSeat||"not set"}\nHotel room: ${profile.travel.hotelRoom||"not set"}\nHotel budget: ${profile.travel.hotelBudget||"not set"}\nHotel style: ${profile.travel.hotelStyle||"not set"}${(profile.travel.loyalty||[]).length>0?"\nLoyalty programs: "+(profile.travel.loyalty).map(l=>`${l.name} (${l.type}${l.number?" #"+l.number:""})`).join(", "):""}`:"";
-    // Cross-segment context summary
+    const now=new Date();const timeCtx=`\nTIME: ${now.toLocaleString()} ${["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][now.getDay()]}. ${now.getHours()>=20?"Late evening.":now.getHours()>=17?"Evening.":""}${now.getDay()===0||now.getDay()===6?" Weekend.":""}`;
+    const profileCtx=profile?.setup?`\nAge: ${profile.setup.age||"?"} | Gender: ${profile.setup.gender||"?"}`:"";
+    const qp=profile?.quickProfile;const quickCtx=qp?`\nInterests: ${(qp.interests||[]).join(", ")||"?"} | Budget: ${qp.budget||"?"} | ${qp.relationship||""} | ${qp.work||""}`:"";
+
+    const stepsCtx=activeSteps.length>0?"\n\nACTIVE STEPS:\n"+activeSteps.slice(0,10).map(s=>`- "${s.title}" (${s.category})${s.loved?" [LOVED]":""}`).join("\n"):"";
+    const dislikedCtx=allSteps.filter(s=>s.disliked).length>0?"\nDISLIKED: "+allSteps.filter(s=>s.disliked).slice(0,8).map(s=>s.title).join(", "):"";
+    const lovedCtx=allSteps.filter(s=>s.loved).length>0?"\nLOVED: "+allSteps.filter(s=>s.loved).slice(0,5).map(s=>s.title).join(", "):"";
+    const completedCtx=doneSteps.length>0?"\nRecent completions: "+doneSteps.slice(0,5).map(s=>s.title).join(", "):"";
+    const prefText=preferences.length>0?"\nPrefs: "+preferences.slice(-10).map(p=>p.value).join("; "):"";
+    const favsCtx=(profile?.favorites||[]).length>0?"\nFavorites: "+(profile.favorites).slice(0,8).map(f=>f.title).join(", "):"";
+    const petsCtx=(profile?.pets||[]).length>0?"\nPets: "+(profile.pets).map(p=>p.name+" ("+p.type+")").join(", "):"";
+    const plansCtx=allPlans.length>0?"\nJourneys: "+allPlans.slice(0,5).map(p=>p.title).join(", "):"";
+    const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\nRoutines: "+allRoutines.filter(r=>!r.paused).slice(0,5).map(r=>r.title+" ("+r.schedule+")").join(", "):"";
+
+    // Conditional — only include heavy sections when relevant
+    const healthCtx=isHealth&&profile?.health?`\n\nHEALTH: Level:${profile.health.fitnessLevel||"?"} Goals:${(profile.health.fitnessGoals||[]).join(",")} Prefs:${(profile.health.workoutPrefs||[]).join(",")} Injuries:${profile.health.injuries||"none"} Allergies:${(profile.health.allergies||[]).join(",")} Diet:${(profile.health.diets||[]).join(",")}`:"";
+    const calCtx=isSchedule&&calData?.length>0?"\n\nCALENDAR:\n"+calData.slice(0,8).map(e=>{const d=new Date(e.start);return`- ${d.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"})} ${e.allDay?"":d.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}: ${e.title}`;}).join("\n"):"";
+    const travelCtx=isTravel&&profile?.travel?`\nTravel: ${profile.travel.flightClass||""} ${profile.travel.flightStops||""} Hotel:${profile.travel.hotelBudget||""} ${profile.travel.hotelStyle||""}${(profile.travel.brands||[]).length>0?" Brands:"+profile.travel.brands.join(","):""}`:"";
+    const sp=stravaData?.profile;const stravaText=isHealth&&sp?`\nStrava: ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
+    const dp=profile?.derivedProfile;const derivedCtx=dp?`\nProfile: cuisine:${(dp.cuisinePreferences||[]).join(",")} music:${(dp.musicTaste||[]).join(",")} travel:${dp.travelStyle||"?"} social:${dp.socialStyle||"?"}`:"";
+
     const otherSegs=SEG_KEYS.filter(s=>s!==segment);
     const crossCtx=otherSegs.map(s=>{const msgs=chats[s]||[];if(!msgs.length)return"";const last=msgs.filter(m=>m.role==="user").slice(-1).map(m=>m.content).join(", ");return last?`\nIn ${SEGMENTS[s].label}: recently discussed "${last.slice(0,80)}"`:"";}).filter(Boolean).join("");
 
