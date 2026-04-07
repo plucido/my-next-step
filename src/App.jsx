@@ -113,17 +113,21 @@ export default function App(){
   // Strava OAuth redirect
   useEffect(()=>{const p=new URLSearchParams(window.location.search);const code=p.get("code");if(code&&p.get("scope")?.includes("read")){window.history.replaceState({},"",window.location.pathname);setShowSettings(true);setSettingsTab("connections");exchStrava(code).then(async d=>{if(d?.access_token){const pr=await fetchStrava(d.access_token);const full={...d,profile:pr};setStravaData(full);const uid=getUserId(profile);if(uid)saveFB(uid,"strava",full);}});}},[]);
 
-  // Load data
+  // Load data — try localStorage first for instant load, then Firebase for latest
   useEffect(()=>{(async()=>{
     try{const hint=localStorage.getItem("mns_last_user");if(hint){
-      const [data, sv, cv] = await Promise.all([
+      // Instant load from localStorage cache (no network needed)
+      try{const cached=localStorage.getItem("mns_appdata_"+hint);if(cached){const d=JSON.parse(cached);if(d?.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setAllRoutines(d.routines||[]);setChats(trimChats(normalizeChats(d.chats)));setPreferences(d.preferences||[]);setScreen("main");}}}catch{}
+      // Then sync from Firebase in background for latest data
+      try{const [data, sv, cv] = await Promise.all([
         loadFB(hint, "appdata"),
         loadFB(hint, "strava"),
         loadFB(hint, "calendar")
       ]);
-      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);setScreen("main");}
+      if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);}
       if(sv)setStravaData(sv);
       if(cv){setCalToken(cv.token);setCalData(cv.events);}
+      }catch(e){console.log("Firebase sync failed, using cached data:",e);}
     }}catch{}
     // Migration from old format
     try{const s=await window.storage.get("mns-v11");if(s){const d=JSON.parse(s.value);if(d.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setChats({career:[],wellness:d.messages||[],adventure:[]});setPreferences(d.preferences||[]);setScreen("main");const uid=getUserId(d.profile);if(uid){saveFB(uid,"appdata",{...d,chats:{career:[],wellness:d.messages||[],adventure:[]}});window.storage.delete("mns-v11").catch(()=>{});}}}}catch{}
