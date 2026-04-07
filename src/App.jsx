@@ -351,7 +351,15 @@ export default function App(){
   if(screen==="auth")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><AuthScreen onAuth={handleAuth}/></div></Suspense>);
   if(screen==="setup")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SetupScreen profile={profile} onComplete={handleSetup}/></div></Suspense>);
   if(screen==="quickprofile")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><QuickProfile profile={profile} onComplete={handleQuickProfile}/></div></Suspense>);
-  if(screen==="welcome"){setScreen("main");setView("chat");setSegment("wellness");return null;}
+  if(screen==="welcome")return(<div style={{background:C.bg,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24}}><style>{font}</style>
+    <FadeIn><div style={{maxWidth:400,textAlign:"center"}}>
+      <div style={{width:72,height:72,borderRadius:22,margin:"0 auto 20px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 8px 28px rgba(212,82,42,0.25)"}}><Logo size={38} color="#fff"/></div>
+      <h1 style={{...H,fontSize:28,color:C.t1,marginBottom:8}}>Hey {profile?.name}!</h1>
+      <p style={{...F,fontSize:16,color:C.t2,lineHeight:1.6,marginBottom:8}}>I'm your AI life guide. Tell me what you want to do and I'll make it happen.</p>
+      <p style={{...F,fontSize:14,color:C.t3,lineHeight:1.5,marginBottom:32}}>Plan a trip. Find a restaurant. Start a workout routine. I'll create actionable steps with real booking links.</p>
+      <button onClick={()=>{setScreen("main");setView("chat");setSegment("wellness");setTimeout(()=>inputRef.current?.focus(),200);}} style={{...F,width:"100%",padding:"16px",borderRadius:16,fontSize:16,fontWeight:600,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Let's go</button>
+    </div></FadeIn>
+  </div>);
   if(screen==="deepprofile")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepFinish} existingInsights={profile?.insights||[]}/></div></Suspense>);
 
   const segInfo=SEGMENTS[segment]||{label:"Timeline",color:C.acc,soft:C.accSoft,desc:"all your steps and journeys across every area of your life"};
