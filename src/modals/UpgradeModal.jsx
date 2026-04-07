@@ -71,9 +71,9 @@ export default function UpgradeModal({onClose, onUpgrade}) {
         </div>
 
         <div style={{...H,fontSize:32,color:C.t1,marginBottom:4}}>{regional.price}<span style={{...F,fontSize:14,color:C.t3,fontWeight:400}}>/month</span></div>
-        <div style={{...F,fontSize:12,color:C.t3,marginBottom:20}}>Cancel anytime. 7-day free trial.</div>
+        <div style={{...F,fontSize:12,color:C.t3,marginBottom:20}}>Cancel anytime.</div>
 
-        <button onClick={function(){if(onUpgrade)onUpgrade(regional.currency);}} style={{...F,width:"100%",padding:"16px",borderRadius:16,border:"none",fontSize:16,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.3)",marginBottom:12}}>Start free trial</button>
+        <button onClick={function(){if(onUpgrade)onUpgrade(regional.currency);}} style={{...F,width:"100%",padding:"16px",borderRadius:16,border:"none",fontSize:16,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.3)",marginBottom:12}}>Upgrade to Pro</button>
         <button onClick={onClose} style={{...F,fontSize:13,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:8}}>Maybe later</button>
       </div>
     </div>

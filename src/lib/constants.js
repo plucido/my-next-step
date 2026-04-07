@@ -33,7 +33,7 @@ export const C = lightC;
 export const SEGMENTS = {
   career: { label: "Career", color: "#6D28D9", soft: "#EDE9FE", desc: "Work, professional growth, side hustles, networking, courses" },
   wellness: { label: "Wellness", color: "#0F766E", soft: "#E6F7F5", desc: "Fitness, nutrition, self-care, doctor search, mental health" },
-  adventure: { label: "Adventure", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, friends, events, dining, going out, hobbies, fun" },
+  adventure: { label: "Adventure", color: "#D97706", soft: "#FEF3C7", desc: "Trips, travel, friends, events, dining, going out, hobbies" },
 };
 export const SEG_KEYS = ["career", "wellness", "adventure"];
 

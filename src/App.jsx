@@ -160,7 +160,7 @@ export default function App(){
   const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, fun plans, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); }
+    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); }
     else persist(full,allSteps,allPlans,chats,preferences);
     setView("steps");setScreen("main");
   };
@@ -399,11 +399,12 @@ export default function App(){
         <div style={{display:"flex",gap:10}}><button onClick={()=>{dismissMissed(missedStep.id);setMissedStep(null);setMissedReason("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Just remove</button><button onClick={submitMissedReason} disabled={!missedReason.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:missedReason.trim()?"pointer":"default",background:missedReason.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:missedReason.trim()?"#fff":C.t3}}>Tell guide</button></div>
       </div></div>)}
       <div style={{padding:"14px 20px 4px",flexShrink:0}}>
-        <div style={{...F,fontSize:12,color:C.t3,marginBottom:2}}>{getGreeting()},</div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{...H,fontSize:22,color:C.t1}}>{profile?.name}</div>
-          <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...H,fontSize:22,fontWeight:700,color:C.t1,cursor:"pointer"}}>Take your next step!</div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+          <div>
+            <div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div>
+            <div style={{...H,fontSize:20,color:C.t1}}>{profile?.name}</div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
           {(()=>{
             const now=new Date();const weekAgo=new Date(now-7*864e5);
             const thisWeek=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;
@@ -425,6 +426,7 @@ export default function App(){
           <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
           </div>
         </div>
+        <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...H,fontSize:18,fontWeight:700,color:C.t1,cursor:"pointer",textAlign:"center",padding:"2px 0"}}>Take your next step!</div>
       </div>
       {(()=>{
         var upNext=null;var items=[];
@@ -488,7 +490,7 @@ export default function App(){
                 <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap",marginTop:8}}>
                   {(()=>{const qp=profile?.quickProfile||{};const interests=(qp.interests||[]);const loc=profile?.setup?.location||"";
                     if(segment==="career"){const base=["Help me grow my career","Find a course near me"];if(qp.work)base.push(qp.work.includes("Between")?"Help me find a job":"Networking events in "+loc);return base;}
-                    if(segment==="adventure"){const base=[];if(interests.includes("Travel"))base.push("Plan a weekend trip");if(interests.includes("Nightlife")||interests.includes("Wine & Dining"))base.push("Find a great restaurant for tonight");base.push("Find events this weekend");if(interests.includes("Outdoors"))base.push("Outdoor activities near me");if(base.length<3)base.push("Plan something fun with friends");return base.slice(0,4);}
+                    if(segment==="adventure"){const base=[];if(interests.includes("Travel"))base.push("Plan a weekend trip");if(interests.includes("Nightlife")||interests.includes("Wine & Dining"))base.push("Find a great restaurant for tonight");base.push("Find events this weekend");if(interests.includes("Outdoors"))base.push("Outdoor activities near me");if(base.length<3)base.push("Plan something with friends");return base.slice(0,4);}
                     const base=["What should I do today?"];if(interests.includes("Fitness")||interests.includes("Yoga"))base.push("Build me a workout plan");else base.push("Help me start exercising");if(interests.includes("Meditation"))base.push("Set up a meditation routine");else base.push("Find a gym or class near me");return base;
                   })().map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
                 </div>
