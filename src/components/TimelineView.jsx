@@ -231,21 +231,7 @@ export default function TimelineView({
               <div style={{ ...sectionHeader, marginBottom: 10 }}>Anytime</div>
               {unscheduledSteps.slice(0,5).map((s, i) => renderCompactStep(s, i))}
             </div> : null}
-            {allPlans.length > 0 ? <div style={{marginTop:16}}>
-              <div style={{ ...sectionHeader, marginBottom: 10 }}>Journeys ({allPlans.length})</div>
-              {allPlans.slice(0,3).map((p, i) => {
-                const done = (p.tasks||[]).filter((t) => t.done).length;
-                const total = (p.tasks||[]).length;
-                return <div key={i} style={{padding:"10px 14px",borderRadius:12,marginBottom:6,background:C.card,boxShadow:C.shadow}}>
-                  <div style={{...F,fontSize:13,fontWeight:600,color:C.t1}}>{p.title}</div>
-                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:6}}>
-                    <div style={{flex:1,height:3,background:C.cream,borderRadius:2}}><div style={{height:"100%",width:total?(done/total*100)+"%":"0%",background:done===total?C.teal:C.accGrad,borderRadius:2}}>{null}</div></div>
-                    <span style={{...F,fontSize:10,color:C.t3}}>{done}/{total}</span>
-                  </div>
-                </div>;
-              })}
-            </div> : null}
-            {upcomingItems.length===0 && unscheduledSteps.length===0 && allPlans.length===0 ? <div>
+            {upcomingItems.length===0 && unscheduledSteps.length===0 ? <div>
               <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming Up</div>
               <div style={{ ...F, fontSize: 13, color: C.t3, fontStyle: "italic" }}>Nothing scheduled yet</div>
             </div> : null}
