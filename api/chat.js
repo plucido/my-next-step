@@ -12,7 +12,7 @@ const TIER_RATE_LIMITS = {
 
 // Model access per tier
 const TIER_MODELS = {
-  free: "claude-haiku-3-20240307",
+  free: "claude-3-5-haiku-20241022",
   pro: "claude-sonnet-4-20250514",
 };
 
