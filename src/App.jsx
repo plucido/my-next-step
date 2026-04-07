@@ -503,11 +503,14 @@ export default function App(){
               </div></FadeIn>
             )}
           </div>
-          {segment!=="everything"&&(view==="steps")&&(
-            <div style={{padding:"8px 20px 16px",flexShrink:0,borderTop:`1px solid ${C.b1}`}}>
+          {view==="steps"&&(
+            <div style={{padding:"6px 20px 14px",flexShrink:0,borderTop:`1px solid ${C.b1}`}}>
+              <div style={{display:"flex",gap:5,marginBottom:8,overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+                {(segment==="career"?["Find my next job opportunity","Help me network","Suggest a course"]:segment==="adventure"?["Plan me a trip","Find a restaurant tonight","What events are nearby?"]:segment==="wellness"?["Build me a workout","Find a yoga class","Help me eat healthier"]:["What should I do today?","Plan something fun","Help me be productive"]).map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"6px 12px",borderRadius:12,fontSize:12,fontWeight:500,background:C.card,border:`1px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}</button>))}
+              </div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){e.preventDefault();setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}}} placeholder="Quick ask your guide..." style={{...F,flex:1,padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} onFocus={e=>{e.target.style.borderColor=segInfo.color;}} onBlur={e=>{e.target.style.borderColor=C.b2;}}/>
-                <button onClick={()=>{if(input.trim()){setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}else{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}}} style={{width:44,height:44,borderRadius:14,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(212,82,42,0.2)"}}>{input.trim()?<ArrowUp size={18}/>:<MessageCircle size={18}/>}</button>
+                <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){e.preventDefault();setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}}} placeholder="Ask your guide..." style={{...F,flex:1,padding:"12px 16px",fontSize:16,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} onFocus={e=>{e.target.style.borderColor=C.acc;}} onBlur={e=>{e.target.style.borderColor=C.b2;}}/>
+                <button onClick={()=>{if(input.trim()){setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}else{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}}} style={{width:44,height:44,borderRadius:14,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(212,82,42,0.2)"}}>{input.trim()?<ArrowUp size={18}/>:<MessageCircle size={18}/>}</button>
               </div>
             </div>
           )}
