@@ -4,18 +4,28 @@ import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 
-// Initialize Firebase Admin (singleton)
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-    }),
-  });
+// Initialize Firebase Admin (singleton) — gracefully handles missing credentials
+let db = null;
+let adminAuth = null;
+try {
+  if (!getApps().length && process.env.FIREBASE_PROJECT_ID) {
+    initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+      }),
+    });
+  }
+  if (getApps().length) {
+    db = getFirestore();
+    adminAuth = getAuth();
+  }
+} catch (e) {
+  console.warn("Firebase Admin init failed (credentials may not be set):", e.message);
 }
 
-export const db = getFirestore();
+export { db };
 
 /**
  * Authenticate a request using Firebase ID tokens.
@@ -31,10 +41,10 @@ export async function authenticate(req) {
   const authHeader = req.headers["authorization"] || req.headers["Authorization"];
 
   // Primary path: verify Firebase ID token from Authorization header
-  if (authHeader && authHeader.startsWith("Bearer ")) {
+  if (authHeader && authHeader.startsWith("Bearer ") && adminAuth) {
     const idToken = authHeader.slice(7);
     try {
-      const decoded = await getAuth().verifyIdToken(idToken);
+      const decoded = await adminAuth.verifyIdToken(idToken);
 
       // Fetch user tier from Firestore (defaults to "free")
       let tier = "free";

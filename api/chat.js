@@ -23,6 +23,7 @@ const TIER_MODELS = {
 async function getUsage(uid) {
   const now = new Date();
   const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  if (!db) return { count: 0, monthKey };
   try {
     const usageDoc = await db.collection("users").doc(uid).collection("usage").doc(monthKey).get();
     if (usageDoc.exists) {
@@ -38,6 +39,7 @@ async function getUsage(uid) {
  * Increment usage counter for the current month.
  */
 async function incrementUsage(uid, monthKey) {
+  if (!db) return;
   try {
     const ref = db.collection("users").doc(uid).collection("usage").doc(monthKey);
     const doc = await ref.get();
