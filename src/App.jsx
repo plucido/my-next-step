@@ -341,30 +341,7 @@ export default function App(){
   if(screen==="auth")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><AuthScreen onAuth={handleAuth}/></div></Suspense>);
   if(screen==="setup")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><SetupScreen profile={profile} onComplete={handleSetup}/></div></Suspense>);
   if(screen==="quickprofile")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><QuickProfile profile={profile} onComplete={handleQuickProfile}/></div></Suspense>);
-  if(screen==="welcome")return(<div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style>
-    <FadeIn><div style={{maxWidth:440,margin:"0 auto",padding:"60px 24px 40px"}}>
-      <div style={{textAlign:"center",marginBottom:36}}>
-        <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 8px 28px rgba(212,82,42,0.25)"}}><Logo size={34} color="#fff"/></div>
-        <h1 style={{...H,fontSize:28,color:C.t1,margin:"0 0 8px"}}>Welcome, {profile?.name}</h1>
-        <p style={{...F,fontSize:15,color:C.t2,lineHeight:1.6,margin:0}}>Your guide is ready. Where would you like to start?</p>
-      </div>
-      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:28}}>
-        {SEG_KEYS.map(s=>{const info=SEGMENTS[s];return(
-          <button key={s} onClick={()=>{setSegment(s);setView("chat");setScreen("main");setTimeout(()=>inputRef.current?.focus(),200);}} style={{...F,width:"100%",padding:"18px 20px",borderRadius:18,background:C.card,boxShadow:C.shadow,border:`1.5px solid ${info.color}15`,cursor:"pointer",display:"flex",alignItems:"center",gap:14,textAlign:"left"}}>
-            <div style={{width:48,height:48,borderRadius:16,background:info.soft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{segIcon(s)}</div>
-            <div style={{flex:1}}>
-              <div style={{fontSize:16,fontWeight:600,color:C.t1}}>{info.label}</div>
-              <div style={{fontSize:13,color:C.t3,marginTop:3}}>{info.desc}</div>
-            </div>
-            <span style={{color:info.color,fontSize:20}}><ChevronRight size={16}/></span>
-          </button>
-        );})}
-      </div>
-      <div style={{textAlign:"center"}}>
-        <button onClick={()=>setScreen("main")} style={{...F,fontSize:14,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"12px 24px"}}>Skip for now {"\u2192"}</button>
-      </div>
-    </div></FadeIn>
-  </div>);
+  if(screen==="welcome"){setScreen("main");setView("chat");setSegment("wellness");return null;}
   if(screen==="deepprofile")return(<Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}><div style={{background:C.bg,minHeight:"100vh"}}><style>{font}</style><DeepProfileChat profile={profile} onFinish={handleDeepFinish} existingInsights={profile?.insights||[]}/></div></Suspense>);
 
   const segInfo=SEGMENTS[segment]||{label:"Timeline",color:C.acc,soft:C.accSoft,desc:"all your steps and journeys across every area of your life"};
@@ -409,58 +386,21 @@ export default function App(){
             <div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div>
             <div style={{...H,fontSize:20,color:C.t1}}>{profile?.name}</div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
           {(()=>{
             const now=new Date();const weekAgo=new Date(now-7*864e5);
             const thisWeek=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;
-            const today=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===now.toDateString()).length;
-            const activeCount=activeSteps.length;
-            // Calculate streak days
             let streak=0;const d=new Date(now);d.setHours(0,0,0,0);
             while(true){const ds=d.toDateString();if(allSteps.some(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt).toDateString()===ds)){streak++;d.setDate(d.getDate()-1);}else break;}
-            if(thisWeek===0&&streak===0)return null;
-            return(<div onClick={()=>setShowWeekly(true)} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:12,background:streak>=3?C.goldSoft:C.cream,cursor:"pointer"}}>
-              {streak>0&&<><span style={{fontSize:14}}><Flame size={14} color={streak>=7?"#EF4444":C.gold}/></span><span style={{...F,fontSize:12,fontWeight:700,color:streak>=3?C.gold:C.t2}}>{streak}d</span></>}
-              {thisWeek>0&&<span style={{...F,fontSize:11,color:C.t3}}>{thisWeek} this week</span>}
+            if(streak<2)return null;
+            return(<div style={{display:"flex",alignItems:"center",gap:4,padding:"4px 10px",borderRadius:10,background:C.goldSoft}}>
+              <Flame size={12} color={C.gold}/><span style={{...F,fontSize:11,fontWeight:700,color:C.gold}}>{streak}</span>
             </div>);
           })()}
-          {userTier==="free"?<button onClick={()=>setShowUpgrade(true)} style={{...F,height:36,padding:"0 14px",borderRadius:12,background:C.accGrad,border:"none",boxShadow:"0 2px 8px rgba(212,82,42,0.2)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4,fontSize:12,fontWeight:700,color:"#fff"}}><Sparkles size={12}/> Pro</button>:null}
-          <button onClick={()=>setShowBadges(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>🏅</button>
-          <button onClick={()=>setShowSearch(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Search size={16} color={C.t3}/></button>
-          <button onClick={()=>setShowHelp(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><HelpCircle size={16} color={C.t3}/></button>
-          <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}><Settings size={16}/></button>
+          <button onClick={()=>setShowSettings(true)} style={{width:36,height:36,borderRadius:12,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}><Settings size={16}/></button>
           </div>
         </div>
-        <div onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...H,fontSize:18,fontWeight:700,color:C.t1,cursor:"pointer",textAlign:"center",padding:"2px 0"}}>Take your next step!</div>
       </div>
-      {(()=>{
-        var upNext=null;var items=[];
-        (calData||[]).forEach(e=>{var d=new Date(e.start);if(d>new Date())items.push({title:e.title,time:d,type:"cal"});});
-        activeSteps.forEach(s=>{var t=(s.time||"").toLowerCase();var d=new Date();if(t.includes("tonight")||t.includes("pm")){var m=t.match(/(\d{1,2})\s*pm/);d.setHours(m?parseInt(m[1])+12:19,0,0);}else if(t.includes("am")){var m2=t.match(/(\d{1,2})\s*am/);if(m2)d.setHours(parseInt(m2[1]),0,0);}else if(t.includes("tomorrow")){d.setDate(d.getDate()+1);d.setHours(9,0,0);}else{d=null;}if(d&&d>new Date())items.push({title:s.title,time:d,type:"step",cat:s.category,seg:catToSeg(s.category)});});
-        allRoutines.filter(r=>!r.paused&&r.days?.length>0).forEach(r=>{for(var i=0;i<7;i++){var d=new Date();d.setDate(d.getDate()+i);var dn=["sunday","monday","tuesday","wednesday","thursday","friday","saturday"][d.getDay()];if(r.days.map(x=>x.toLowerCase()).includes(dn)){var rt=new Date(d);var tp=(r.time||"").toLowerCase();var pm=tp.match(/(\d{1,2})\s*pm/);var am=tp.match(/(\d{1,2})\s*am/);if(pm)rt.setHours(parseInt(pm[1])+(parseInt(pm[1])===12?0:12),0,0);else if(am)rt.setHours(parseInt(am[1])===12?0:parseInt(am[1]),0,0);else rt.setHours(9,0,0);if(rt>new Date()){items.push({title:r.title,time:rt,type:"routine",cat:r.category,seg:catToSeg(r.category)});break;}}}});
-        items.sort((a,b)=>a.time-b.time);
-        upNext=items[0]||null;
-        var withinWeek=upNext&&(upNext.time-new Date())<7*864e5;
-        if(!withinWeek||!upNext)return null;
-        var diff=upNext.time-new Date();var mins=Math.floor(diff/6e4);var label="";
-        if(mins<60)label="in "+mins+" min";else if(mins<1440)label="in "+Math.floor(mins/60)+"h";else if(mins<2880)label="Tomorrow";else label=upNext.time.toLocaleDateString([],{weekday:"short",month:"short",day:"numeric"});
-        var color=upNext.type==="cal"?"#4285F4":SEGMENTS[upNext.seg]?.color||C.acc;
-        return <div style={{padding:"0 20px 6px",flexShrink:0}}>
-          <div onClick={()=>{setSegment("everything");setView("steps");}} style={{...F,padding:"10px 16px",borderRadius:14,background:C.card,border:`1px solid ${C.b1}`,boxShadow:C.shadow,cursor:"pointer",display:"flex",alignItems:"center",gap:10}}>
-            <div style={{width:6,height:6,borderRadius:3,background:color,flexShrink:0}}>{null}</div>
-            <div style={{flex:1,overflow:"hidden"}}><div style={{fontSize:13,fontWeight:600,color:C.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{upNext.title}</div></div>
-            <div style={{...F,fontSize:11,fontWeight:600,color:color,flexShrink:0}}>{label}</div>
-            <span style={{color:C.t3}}><ChevronRight size={14}/></span>
-          </div>
-        </div>;
-      })()}
-      {!profile?.quickProfile&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
-        <button onClick={()=>setScreen("quickprofile")} style={{...F,width:"100%",padding:"10px 16px",borderRadius:14,background:C.cream,border:`1px solid ${C.b1}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
-          <span style={{fontSize:16}}><Sparkles size={14}/></span>
-          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:C.t1}}>Help me personalize</div><div style={{fontSize:11,color:C.t3}}>Quick checklist to tailor your experience</div></div>
-          <span style={{fontSize:12,color:C.t3}}><ChevronRight size={16}/></span>
-        </button>
-      </div>}
       <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:4}}>
         {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&segment!=="everything";const stepCount=activeSteps.filter(x=>catToSeg(x.category)===s).length;const planCount=allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);return cats.length?cats.some(c=>catToSeg(c)===s):false;}).length;const routineCount=allRoutines.filter(r=>catToSeg(r.category)===s&&!r.paused).length;const count=stepCount+planCount+routineCount;
           return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:13,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s"}}>
@@ -623,7 +563,6 @@ export default function App(){
       {showWeekly?<WeeklySummary onClose={()=>setShowWeekly(false)} allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} profile={profile}/>:null}
       {showBadges?<BadgesModal onClose={()=>setShowBadges(false)} allSteps={allSteps} allRoutines={allRoutines} allPlans={allPlans} profile={profile}/>:null}
       {showUpgrade?<Suspense fallback={null}><UpgradeModal onClose={()=>setShowUpgrade(false)} onUpgrade={()=>{window.open("/api/billing/checkout","_blank");setShowUpgrade(false);}}/></Suspense>:null}
-      {showWalkthrough&&screen==="main"?<Walkthrough onComplete={()=>{setShowWalkthrough(false);try{localStorage.setItem("mns_walkthrough_done","1");}catch{}}}/>:null}
       {showSearch?<SearchModal allSteps={allSteps} allPlans={allPlans} allRoutines={allRoutines} onClose={()=>setShowSearch(false)} onNavigate={function(r){if(r.seg)setSegment(r.seg);setView("steps");}}/>:null}
     </div>
     </Suspense>
