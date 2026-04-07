@@ -155,7 +155,17 @@ export default function App(){
     },2000);
   };
 
-  const handleAuth=async(auth)=>{const uid=auth.email?auth.email.replace(/[^a-zA-Z0-9]/g,"_"):null;if(uid){const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);const sv=await loadFB(uid,"strava");if(sv)setStravaData(sv);const cv=await loadFB(uid,"calendar");if(cv){setCalToken(cv.token);setCalData(cv.events);}setScreen("main");return;}}const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
+  const handleAuth=async(auth)=>{const uid=auth.email?auth.email.replace(/[^a-zA-Z0-9]/g,"_"):null;if(uid){
+    // Check localStorage first (instant, works offline)
+    try{const cached=localStorage.getItem("mns_appdata_"+uid);if(cached){const d=JSON.parse(cached);if(d?.profile?.setup){setProfile(d.profile);setAllSteps(d.steps||[]);setAllPlans(d.plans||[]);setAllRoutines(d.routines||[]);setChats(trimChats(normalizeChats(d.chats)));setPreferences(d.preferences||[]);localStorage.setItem("mns_last_user",uid);setScreen("main");
+    // Background sync from Firebase
+    loadFB(uid,"appdata").then(data=>{if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);}}).catch(()=>{});
+    loadFB(uid,"strava").then(sv=>{if(sv)setStravaData(sv);}).catch(()=>{});
+    loadFB(uid,"calendar").then(cv=>{if(cv){setCalToken(cv.token);setCalData(cv.events);}}).catch(()=>{});
+    return;}}}catch{}
+    // No localStorage cache — try Firebase directly
+    try{const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);setScreen("main");return;}}catch(e){console.log("Firebase load failed during auth:",e);}
+    }const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
   const handleSetup=function(setup){const full={...profile,setup};setProfile(full);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Pick a segment above and tell me what's on your mind.\n\nI'll turn it into real steps you can act on today.",ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); setScreen("welcome");};
   const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
