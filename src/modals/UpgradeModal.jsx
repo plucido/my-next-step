@@ -44,10 +44,10 @@ export default function UpgradeModal({onClose, onUpgrade}) {
   var regional = getRegionalPrice();
 
   var features = [
-    {icon: <Zap size={16} color={C.acc}/>, text: "Most powerful AI (Claude Sonnet)"},
+    {icon: <Zap size={16} color={C.acc}/>, text: "Most powerful AI for better recommendations"},
     {icon: <Shield size={16} color={C.teal}/>, text: "Ad-free experience"},
     {icon: <Sparkles size={16} color="#D97706"/>, text: "Priority web search results"},
-    {icon: <Check size={16} color="#6D28D9"/>, text: "Unlimited messages"},
+    {icon: <Check size={16} color="#6D28D9"/>, text: "Support independent development"},
   ];
 
   return (
