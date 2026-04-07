@@ -39,8 +39,8 @@ export default function App(){
   const[allPlans,setAllPlans]=useState([]);
   const[allRoutines,setAllRoutines]=useState([]);
   const[preferences,setPreferences]=useState([]);
-  // Per-segment chat histories
-  const[chats,setChats]=useState({career:[],wellness:[],adventure:[]});
+  // Single unified chat history (guide knows everything across all segments)
+  const[chats,setChats]=useState({all:[]});
   const[input,setInput]=useState("");
   const[loading,setLoading]=useState(false);
   const[expandedPlan,setExpandedPlan]=useState(null);
@@ -89,12 +89,12 @@ export default function App(){
   };
 
   const normalizeChats = (ch) => {
-    if (!ch) return {career:[],wellness:[],adventure:[]};
-    return {
-      career: ch.career || ch.work || [],
-      wellness: ch.wellness || ch.me || [],
-      adventure: [...(ch.adventure || []), ...(ch.fun || []), ...(ch.social || [])].sort((a,b)=>(a.ts||0)-(b.ts||0)),
-    };
+    if (!ch) return {all:[]};
+    // If already unified format
+    if (ch.all) return {all: ch.all};
+    // Migrate from per-segment format: merge all into one sorted conversation
+    const all = [...(ch.career||ch.work||[]),...(ch.wellness||ch.me||[]),...(ch.adventure||[]),...(ch.fun||[]),...(ch.social||[])].sort((a,b)=>(a.ts||0)-(b.ts||0));
+    return {all};
   };
 
   // Current segment's data
@@ -104,7 +104,7 @@ export default function App(){
   const matchPlanKeywords=(title,seg)=>{const t=title.toLowerCase();const kw={career:["career","work","job","interview","resume","linkedin"],wellness:["gym","yoga","run","health","diet","meditation"],adventure:["friend","party","dinner","concert","group","date","trip","travel","flight","hotel","vacation","hike","explore","fun","event"]};if((kw[seg]||[]).some(w=>t.includes(w)))return true;return false;};
   const segPlans=segment==="everything"?allPlans:allPlans.filter(p=>{const cats=(p.tasks||[]).map(t=>t.category).filter(Boolean);if(cats.length)return cats.some(c=>catToSeg(c)===segment);const title=(p.title||"").toLowerCase();if(matchPlanKeywords(title,segment))return true;if(SEG_KEYS.some(s=>s!==segment&&matchPlanKeywords(title,s)))return false;return segment==="wellness";});
   const segRoutines=filterBySeg(allRoutines,segment,r=>catToSeg(r.category));
-  const segMessages=segment==="everything"?[...(chats.career||[]),...(chats.wellness||[]),...(chats.adventure||[])].sort((a,b)=>(a.ts||0)-(b.ts||0)):chats[segment]||[];
+  const segMessages=chats.all||[];
   const doneSteps=allSteps.filter(s=>s.status==="done");
   const expiredSteps=allSteps.filter(s=>s.status==="expired");
 
@@ -166,21 +166,21 @@ export default function App(){
     // No localStorage cache — try Firebase directly
     try{const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);setScreen("main");return;}}catch(e){console.log("Firebase load failed during auth:",e);}
     }const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
-  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);setAllSteps([]);setAllPlans([]);setAllRoutines([]);setPreferences([]);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Tell me what's on your mind and I'll make it happen.",ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});setView("steps");persist(full,[],[],{career:[],wellness:w,adventure:[]},[],[]); setScreen("welcome");};
+  const handleSetup=function(setup){const full={...profile,setup};setProfile(full);setAllSteps([]);setAllPlans([]);setAllRoutines([]);setPreferences([]);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Tell me what's on your mind and I'll make it happen.",ts:Date.now()}];setChats({all:w});setView("steps");persist(full,[],[],{all:w},[],[]); setScreen("welcome");};
   const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({career:[],wellness:w,adventure:[]});persist(full,[],[],{career:[],wellness:w,adventure:[]},[]); }
+    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({all:w});persist(full,[],[],{all:w},[]); }
     else persist(full,allSteps,allPlans,chats,preferences);
     setView("steps");setScreen("main");
   };
 
   const sendMessage=async text=>{
-    const msg=text||input.trim();if(!msg||loading||segment==="everything")return;
+    const msg=text||input.trim();if(!msg||loading)return;
     const ts=Date.now();
     const userMsg={role:"user",content:msg,ts};
-    const segChat=[...(chats[segment]||[]),userMsg];
-    const newChats={...chats,[segment]:segChat};
+    const allChat=[...(chats.all||[]),userMsg];
+    const newChats={all:allChat};
     setChats(newChats);setInput("");setLoading(true);
     if(inputRef.current)inputRef.current.style.height="auto";
 
@@ -212,12 +212,10 @@ export default function App(){
     const sp=stravaData?.profile;const stravaText=isHealth&&sp?`\nStrava: ${sp.allTimeRuns} runs, ${sp.allTimeRides} rides`:"";
     const dp=profile?.derivedProfile;const derivedCtx=dp?`\nProfile: cuisine:${(dp.cuisinePreferences||[]).join(",")} music:${(dp.musicTaste||[]).join(",")} travel:${dp.travelStyle||"?"} social:${dp.socialStyle||"?"}`:"";
 
-    const otherSegs=SEG_KEYS.filter(s=>s!==segment);
-    const crossCtx=otherSegs.map(s=>{const msgs=chats[s]||[];if(!msgs.length)return"";const last=msgs.filter(m=>m.role==="user").slice(-1).map(m=>m.content).join(", ");return last?`\nIn ${SEGMENTS[s].label}: recently discussed "${last.slice(0,80)}"`:"";}).filter(Boolean).join("");
 
     try{
       // Strip ts field and ensure valid alternating roles for API
-      const cleanMsgs=segChat.slice(-10).filter(m=>!m.isError).map(m=>({role:m.role,content:typeof m.content==="string"?m.content:JSON.stringify(m.content)})).filter(m=>m.content&&m.content.trim()&&!m.content.startsWith("Something went wrong")&&!m.content.startsWith("Quick hiccup"));
+      const cleanMsgs=allChat.slice(-10).filter(m=>!m.isError).map(m=>({role:m.role,content:typeof m.content==="string"?m.content:JSON.stringify(m.content)})).filter(m=>m.content&&m.content.trim()&&!m.content.startsWith("Something went wrong")&&!m.content.startsWith("Quick hiccup"));
       // Ensure messages alternate user/assistant (API requirement)
       const apiMsgs=[];
       for(const m of cleanMsgs){
@@ -234,7 +232,7 @@ export default function App(){
       // Safety: ensure no empty content
       const safeApiMsgs=apiMsgs.filter(m=>m.content&&m.content.trim()).map(m=>({role:m.role,content:m.content.trim()}));
 
-      const sysPrompt=SYSTEM_PROMPT+`\n\nCURRENT SEGMENT: ${SEGMENTS[segment].label} (${SEGMENTS[segment].desc})\nDefault category for this segment: ${segment==="career"?"career":segment==="wellness"?"fitness":"travel"}\nUse this segment's default category UNLESS the content clearly belongs elsewhere (e.g. a trip mentioned in Wellness should be "travel", a workout mentioned in Adventure should be "fitness").\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${quickCtx}${healthCtx}${prefText}${stravaText}${timeCtx}${stepsCtx}${lovedCtx}${dislikedCtx}${completedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${travelCtx}${derivedCtx}${crossCtx}`;
+      const sysPrompt=SYSTEM_PROMPT+`\n\nUser is viewing: ${SEGMENTS[segment]?.label||"Timeline"} segment. Auto-categorize items to the right segment.\n\nUser: ${profile?.name}\nLocation: ${profile?.setup?.location||""}${profileCtx}${quickCtx}${healthCtx}${prefText}${stravaText}${timeCtx}${stepsCtx}${lovedCtx}${dislikedCtx}${completedCtx}${favsCtx}${petsCtx}${plansCtx}${routineCtx}${calCtx}${travelCtx}${derivedCtx}`;
 
       let finalText="",currentMsgs=[...safeApiMsgs],attempts=0;
       while(attempts<3){attempts++;
@@ -296,7 +294,7 @@ export default function App(){
       if(!displayText)displayText=newSteps.length>allSteps.length?"Here's what I found!":newPlans.length>allPlans.length?"Journey mapped out!":"Let me know what you think.";
 
       const isError=displayText.startsWith("Something went wrong")||displayText.startsWith("Hmm, I didn't")||displayText.startsWith("Quick hiccup");
-      const finalChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:clean(displayText),ts:Date.now(),isError:isError}]};
+      const finalChat={all:[...(newChats.all||[]),{role:"assistant",content:clean(displayText),ts:Date.now(),isError:isError}]};
       setChats(finalChat);
       if(!isError)persist(profile,newSteps,newPlans,finalChat,newPrefs,newRoutines);
       // Auto-navigate to the correct segment with transition
@@ -317,7 +315,7 @@ export default function App(){
           setTransitionMsg({text,targetSeg,targetLabel,count:totalCreated});
         }
       }
-    }catch(err){console.error(err);const errChat={...newChats,[segment]:[...(newChats[segment]||[]),{role:"assistant",content:"Quick hiccup \u2014 say that again?",ts:Date.now(),isError:true}]};setChats(errChat);}
+    }catch(err){console.error(err);const errChat={all:[...(newChats.all||[]),{role:"assistant",content:"Quick hiccup \u2014 say that again?",ts:Date.now(),isError:true}]};setChats(errChat);}
     setLoading(false);
   };
 
@@ -334,7 +332,7 @@ export default function App(){
   const deleteRoutine=id=>{showConfirm("Delete this routine permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
   const completeRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,completions:(r.completions||0)+1,lastCompleted:new Date().toISOString()}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const snoozeStep=useCallback((id,until)=>{const u=allSteps.map(s=>s.id===id?{...s,snoozedUntil:until,status:"active"}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);showToast("Snoozed until "+new Date(until).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));},[allSteps,profile,allPlans,chats,preferences]);
-  const talkAbout=useCallback(text=>{if(segment==="everything")setSegment("wellness");setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);},[segment]);
+  const talkAbout=useCallback(text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);},[]);
   const[shareModalItem,setShareModalItem]=useState(null);
   const shareItem=useCallback((item)=>{setShareModalItem(item);},[]);
   const handleBooked=useCallback((step)=>{handleAddCal(step.title,step.why,step.time);const u=allSteps.map(s=>s.id===step.id?{...s,booked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);},[allSteps,profile,allPlans,chats,preferences,calToken]);
@@ -343,7 +341,7 @@ export default function App(){
   const totalCompleted=doneSteps.length;
   const thisWeekDone=doneSteps.filter(s=>{const d=new Date(s.completedAt||s.createdAt);return(Date.now()-d.getTime())<7*864e5;}).length;
   const handleAddCal=useCallback(async(title,why,time)=>{const addWithToken=async(token)=>{const ok=await addGCalEvent(token,title,why,time);if(ok){showToast("Added to Calendar!");return true;}return false;};if(!calToken){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});return;}const ok=await addWithToken(calToken);if(!ok){connectGCal(async r=>{setCalToken(r.access_token);const ev=await fetchGCal(r.access_token);setCalData(ev);const uid=getUserId(profile);if(uid)saveFB(uid,"calendar",{token:r.access_token,events:ev});await addWithToken(r.access_token);});}},[calToken,profile]);
-  const resetAll=async(deleteAccount)=>{const uid=getUserId(profile);if(uid&&deleteAccount){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({career:[],wellness:[],adventure:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
+  const resetAll=async(deleteAccount)=>{const uid=getUserId(profile);if(uid&&deleteAccount){deleteFB(uid,"appdata");deleteFB(uid,"strava");deleteFB(uid,"calendar");}localStorage.removeItem("mns_last_user");setProfile(null);setAllSteps([]);setAllPlans([]);setChats({all:[]});setPreferences([]);setStravaData(null);setCalData(null);setScreen("auth");setShowSettings(false);};
 
   // Expiration check
   useEffect(()=>{const now=new Date(),h=now.getHours();let changed=false;const u=allSteps.map(s=>{if(s.status!=="active")return s;const t=(s.time||"").toLowerCase(),age=s.createdAt?(Date.now()-new Date(s.createdAt).getTime())/36e5:0;if((age>48)||(t.includes("tonight")&&age>14)||(t.includes("today")&&age>24)){changed=true;return{...s,status:"expired"};}return s;});if(changed){setAllSteps(u);persist(profile,u,allPlans,chats,preferences);}},[allSteps.length]);
@@ -516,7 +514,7 @@ export default function App(){
             </div>
           )}
         </>)}
-        {view==="chat"&&segment!=="everything"&&(<>
+        {view==="chat"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"10px 20px"}}>
             {(chats[segment]||[]).length===0&&!loading&&(
               <div style={{textAlign:"center",padding:"40px 20px"}}>
@@ -549,7 +547,7 @@ export default function App(){
             </div>
           </div>}
           {(chats[segment]||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
-            <button onClick={()=>{showConfirm("Clear this conversation?",function(){const nc={...chats,[segment]:[]};setChats(nc);persist(profile,allSteps,allPlans,nc,preferences);});}} style={{...F,fontSize:11,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"4px 8px"}}>Clear conversation</button>
+            <button onClick={()=>{showConfirm("Clear this conversation?",function(){const nc={all:[]};setChats(nc);persist(profile,allSteps,allPlans,nc,preferences);});}} style={{...F,fontSize:11,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"4px 8px"}}>Clear conversation</button>
           </div>}
           <BottomBanner tier={userTier} onUpgrade={()=>setShowUpgrade(true)}/>
           <div style={{padding:"6px 20px 16px",flexShrink:0}}>
