@@ -40,6 +40,7 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
     </div>
     <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
       <button onClick={()=>onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`)} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Swap</button>
+      {step.time&&<button onClick={()=>onTalk(`Reschedule "${step.title}" to a different time. Suggest a few options that work with my calendar.`)} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Clock size={11}/> Reschedule</button>}
       <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Share</button>
     </div>
   </div></FadeIn>);
