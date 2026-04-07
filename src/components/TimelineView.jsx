@@ -218,7 +218,7 @@ export default function TimelineView({
 
     return (
       <FadeIn delay={120}>
-        <div style={{ display: "flex", gap: 16, marginBottom: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
           <div style={{ flex: 1 }}>
             {upcomingItems.length > 0 ? <div>
               <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming Up</div>
@@ -305,7 +305,7 @@ export default function TimelineView({
     const selUnscheduled = sel && sel === todayStr ? unscheduledSteps : [];
 
     return (
-      <div style={{ width: 280, flexShrink: 0 }}>
+      <div style={{ width: "100%", flexShrink: 0 }}>
         <div style={{ padding: 16, borderRadius: 16, background: C.card, boxShadow: C.shadow }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
             <button onClick={prevMonth} style={{ background: "none", border: "none", cursor: "pointer", color: C.t3, padding: 4 }}><ChevronLeft size={16} /></button>

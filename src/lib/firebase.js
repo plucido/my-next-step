@@ -59,7 +59,7 @@ export async function apiCall(path, method = "GET", body = null, legacyUid = nul
     headers["x-user-id"] = legacyUid;
   }
 
-  const opts = { method, headers };
+  const opts = { method, headers, signal: AbortSignal.timeout(5000) };
   if (body && method !== "GET") {
     opts.body = JSON.stringify(body);
   }
@@ -74,9 +74,10 @@ export async function apiCall(path, method = "GET", body = null, legacyUid = nul
 export async function saveFB(uid, key, data) {
   if (!uid) return;
   try {
-    await apiCall("/api/profile", "POST", { uid, key, data }, uid);
+    const res = await apiCall("/api/profile", "POST", { uid, key, data }, uid);
+    if (!res.ok) console.error("FB save failed:", res.status);
   } catch (e) {
-    console.error("FB save:", e);
+    console.error("FB save:", e.name === "TimeoutError" ? "Request timed out" : e);
   }
 }
 
@@ -88,13 +89,16 @@ export async function loadFB(uid, key) {
   if (!uid) return null;
   try {
     const res = await apiCall(`/api/profile?uid=${encodeURIComponent(uid)}&key=${encodeURIComponent(key)}`, "GET", null, uid);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error("FB load failed:", res.status, "for key:", key);
+      return null;
+    }
     const result = await res.json();
     return result.data ?? null;
   } catch (e) {
-    console.error("FB load:", e);
+    console.error("FB load:", e.name === "TimeoutError" ? "Request timed out for key: " + key : e);
+    return null;
   }
-  return null;
 }
 
 /**
@@ -104,8 +108,9 @@ export async function loadFB(uid, key) {
 export async function deleteFB(uid, key) {
   if (!uid) return;
   try {
-    await apiCall("/api/profile", "DELETE", { uid, key }, uid);
+    const res = await apiCall("/api/profile", "DELETE", { uid, key }, uid);
+    if (!res.ok) console.error("FB delete failed:", res.status, "for key:", key);
   } catch (e) {
-    // Silently ignore delete failures (matches original behavior)
+    console.error("FB delete:", e.name === "TimeoutError" ? "Request timed out for key: " + key : e);
   }
 }

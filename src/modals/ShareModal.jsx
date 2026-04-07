@@ -41,7 +41,7 @@ export default function ShareModal({item, onClose}) {
         <div style={{...F,fontSize:16,fontWeight:600,color:C.t1,marginBottom:4}}>Share</div>
         <div style={{...F,fontSize:13,color:C.t3,marginBottom:16,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{item.title}</div>
 
-        <div style={{display:"grid",gridTemplateColumns:"repeat(4, 1fr)",gap:12,marginBottom:20}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3, 1fr)",gap:12,marginBottom:20}}>
           {socials.map(function(s){
             return (
               <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" onClick={function(e){if(s.url.startsWith("sms:")){return;}}} style={{textDecoration:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer"}}>

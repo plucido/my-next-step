@@ -382,6 +382,7 @@ export default function App(){
         button:active{transform:scale(0.97);opacity:0.9;}
         input:focus,textarea:focus{border-color:${C.acc} !important;box-shadow:0 0 0 3px rgba(212,82,42,0.08);}
         ::-webkit-scrollbar{width:0;height:0;}
+        input,textarea,select{font-size:16px !important;}
       `}</style>
       {feedbackStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
         <div style={{...F,fontSize:12,color:C.acc,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>How did it go?</div>
@@ -404,7 +405,7 @@ export default function App(){
             <div style={{...F,fontSize:12,color:C.t3}}>{getGreeting()},</div>
             <div style={{...H,fontSize:20,color:C.t1}}>{profile?.name}</div>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <div style={{display:"flex",alignItems:"center",gap:4,flexWrap:"wrap",justifyContent:"flex-end"}}>
           {(()=>{
             const now=new Date();const weekAgo=new Date(now-7*864e5);
             const thisWeek=allSteps.filter(s=>s.status==="done"&&s.createdAt&&new Date(s.createdAt)>=weekAgo).length;

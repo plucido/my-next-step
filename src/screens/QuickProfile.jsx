@@ -56,8 +56,9 @@ export default function QuickProfile({ profile, onComplete }) {
   }
 
   var chipBase = {
-    ...F, padding: "10px 16px", borderRadius: 12, fontSize: 14, cursor: "pointer",
-    border: "1.5px solid transparent", transition: "all 0.15s", fontWeight: 500
+    ...F, padding: "8px 12px", borderRadius: 12, fontSize: 14, cursor: "pointer",
+    border: "1.5px solid transparent", transition: "all 0.15s", fontWeight: 500,
+    minHeight: 36
   };
   var chipOff = { ...chipBase, background: C.cream, color: C.t2 };
   var chipOn = { ...chipBase, background: C.accSoft, color: C.acc, borderColor: C.acc, fontWeight: 600 };
@@ -101,7 +102,7 @@ export default function QuickProfile({ profile, onComplete }) {
         <button onClick={next} style={{
           ...F, width: "100%", padding: "16px", borderRadius: 16, fontSize: 16,
           fontWeight: 600, border: "none", cursor: "pointer",
-          background: C.accGrad, color: "#fff"
+          background: C.accGrad, color: "#fff", minHeight: 44
         }}>
           {label || "Next"}
         </button>
@@ -116,7 +117,7 @@ export default function QuickProfile({ profile, onComplete }) {
           {step > 0 && (
             <button onClick={back} style={{
               background: "none", border: "none", cursor: "pointer", padding: 4,
-              color: C.t2, display: "flex", alignItems: "center"
+              color: C.t2, display: "flex", alignItems: "center", minWidth: 44, minHeight: 44, justifyContent: "center"
             }}>
               <ChevronLeft size={20} />
             </button>
@@ -134,7 +135,7 @@ export default function QuickProfile({ profile, onComplete }) {
     return (
       <div>
         {renderHeader("What are you into?", "Tap all that apply")}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {INTEREST_OPTIONS.map(function(item) {
             var on = interests.includes(item);
             return (
@@ -190,7 +191,7 @@ export default function QuickProfile({ profile, onComplete }) {
         </div>
         <div style={{ marginBottom: 16 }}>
           <p style={{ ...F, fontSize: 12, color: C.t3, margin: "0 0 6px 0" }}>Other allergies</p>
-          <input value={otherAllergies} onChange={function(e){setOtherAllergies(e.target.value);}} placeholder="e.g. kiwi, latex, medications" style={{ ...F, width: "100%", padding: "10px 14px", fontSize: 14, borderRadius: 12, border: "1.5px solid " + C.b2, background: C.card, color: C.t1, outline: "none", boxSizing: "border-box" }} />
+          <input value={otherAllergies} onChange={function(e){setOtherAllergies(e.target.value);}} placeholder="e.g. kiwi, latex, medications" style={{ ...F, width: "100%", padding: "10px 14px", fontSize: 16, borderRadius: 12, border: "1.5px solid " + C.b2, background: C.card, color: C.t1, outline: "none", boxSizing: "border-box" }} />
         </div>
         <button onClick={function(){ toggleDiet("No restrictions"); }} style={diet.includes("No restrictions") ? chipOn : chipOff}>No restrictions</button>
         {renderNav("Next")}
