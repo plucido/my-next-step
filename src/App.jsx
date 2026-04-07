@@ -12,7 +12,7 @@ import TimelineView from "./components/TimelineView.jsx";
 import ToastContainer, { showToast, showConfirm } from "./components/Toast.jsx";
 import { getBadges } from "./modals/Badges.jsx";
 import { requestNotificationPermission, startReminderChecks, stopReminderChecks } from "./lib/notifications.js";
-import { SponsorCard, AdBanner } from "./components/AdBanner.jsx";
+import { SponsorCard, BottomBanner, InlineFeedAd, CalendarAd } from "./components/AdBanner.jsx";
 const UpgradeModal = lazy(() => import("./modals/UpgradeModal.jsx"));
 
 // Lazy-loaded screens and modals
@@ -470,6 +470,7 @@ export default function App(){
             markStep={markStep} deleteStep={deleteStep} loveStep={loveStep} dislikeStep={dislikeStep} handleBooked={handleBooked}
             deletePlan={deletePlan} toggleTask={toggleTask} pauseRoutine={pauseRoutine} deleteRoutine={deleteRoutine} completeRoutine={completeRoutine}
             talkAbout={talkAbout} shareItem={shareItem} handleAddCal={handleAddCal} snoozeStep={snoozeStep}
+            userTier={userTier}
           />
         )}
         {view==="steps"&&segment!=="everything"&&(<>
@@ -491,7 +492,7 @@ export default function App(){
             ):(<>
               {segSteps.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
-                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><>{i===3&&userTier==="free"?<SponsorCard segment={segment}/>:null}<StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i*50}/></>)}
+                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><>{i===2&&userTier==="free"?<SponsorCard segment={segment} onUpgrade={()=>setShowUpgrade(true)}/>:null}{i===4&&userTier==="free"?<InlineFeedAd tier={userTier}/>:null}<StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i*50}/></>)}
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>
@@ -571,6 +572,7 @@ export default function App(){
           {(chats[segment]||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>
             <button onClick={()=>{showConfirm("Clear this conversation?",function(){const nc={...chats,[segment]:[]};setChats(nc);persist(profile,allSteps,allPlans,nc,preferences);});}} style={{...F,fontSize:11,color:C.t3,background:"none",border:"none",cursor:"pointer",padding:"4px 8px"}}>Clear conversation</button>
           </div>}
+          <BottomBanner tier={userTier} onUpgrade={()=>setShowUpgrade(true)}/>
           <div style={{padding:"6px 20px 16px",flexShrink:0}}>
             <div style={{display:"flex",gap:10,alignItems:"flex-end"}}>
               <textarea ref={inputRef} value={input} onChange={e=>{setInput(e.target.value);e.target.style.height="auto";e.target.style.height=Math.min(e.target.scrollHeight,150)+"px";}} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}} placeholder={`Ask about ${segInfo.label.toLowerCase()}...`} rows={1} style={{...F,flex:1,padding:"13px 18px",fontSize:15,borderRadius:18,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow,resize:"none",maxHeight:150,lineHeight:1.5}} onFocus={e=>{e.target.style.borderColor=segInfo.color;e.target.style.boxShadow=`0 0 0 3px ${segInfo.color}15`;}} onBlur={e=>{e.target.style.borderColor=C.b2;e.target.style.boxShadow=C.shadow;}}/>

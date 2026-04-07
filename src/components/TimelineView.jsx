@@ -5,6 +5,7 @@ import { FadeIn, catToSeg, catIcon } from "../lib/utils.jsx";
 import StepCard from "../components/StepCard.jsx";
 import JourneyCard from "../components/JourneyCard.jsx";
 import RoutineCard from "../components/RoutineCard.jsx";
+import { CalendarAd } from "../components/AdBanner.jsx";
 
 const CARD_STYLE = { padding: "10px 14px", borderRadius: 12, marginBottom: 6, background: C.card, boxShadow: C.shadow, display: "flex", alignItems: "center", gap: 10 };
 
@@ -13,7 +14,7 @@ export default function TimelineView({
   expandedPlan, setExpandedPlan,
   markStep, deleteStep, loveStep, dislikeStep, handleBooked,
   deletePlan, toggleTask, pauseRoutine, deleteRoutine, completeRoutine,
-  talkAbout, shareItem, handleAddCal, snoozeStep
+  talkAbout, shareItem, handleAddCal, snoozeStep, userTier
 }) {
   const [calMonth, setCalMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -249,8 +250,11 @@ export default function TimelineView({
               <div style={{ ...F, fontSize: 13, color: C.t3, fontStyle: "italic" }}>Nothing scheduled yet</div>
             </div> : null}
           </div>
-          {renderMiniCalendar()}
-        </div>
+          <div>
+            {renderMiniCalendar()}
+            <CalendarAd tier={userTier}/>
+          </div>
+</div>
       </FadeIn>
     );
   }
