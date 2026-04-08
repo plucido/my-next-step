@@ -341,7 +341,7 @@ export default function TimelineView({
             <span style={{ ...F, fontSize: 11, color: segColor, fontWeight: 600, minWidth: 50 }}>{r.time || r.schedule}</span>
             <div style={{ flex: 1 }}>
               <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1 }}>{r.title}</div>
-              <div style={{ ...F, fontSize: 11, color: C.t3 }}>{r.schedule} routine</div>
+              <div style={{ ...F, fontSize: 11, color: C.t3 }}>{r.schedule} habit</div>
             </div>
           </div>;
         })}
@@ -372,7 +372,7 @@ export default function TimelineView({
     return (
       <FadeIn delay={180}>
         <div style={{ marginBottom: 24 }}>
-          <div style={{ ...sectionHeader, marginBottom: 12 }}>Routines ({active.length})</div>
+          <div style={{ ...sectionHeader, marginBottom: 12 }}>Habits ({active.length})</div>
           {active.map((r, i) => (
             <RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onComplete={completeRoutine} onTalk={talkAbout} delay={i * 30} />
           ))}
@@ -386,7 +386,7 @@ export default function TimelineView({
     return (
       <FadeIn delay={240}>
         <div style={{ marginBottom: 24 }}>
-          <div style={{ ...sectionHeader, marginBottom: 12 }}>Journeys ({allPlans.length})</div>
+          <div style={{ ...sectionHeader, marginBottom: 12 }}>Paths ({allPlans.length})</div>
           {allPlans.map((plan, pi) => (
             <JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan === pi} onToggle={(i) => { setExpandedPlan(expandedPlan === i ? null : i); }} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onSnooze={snoozeStep} onShare={shareItem} delay={pi * 30} />
           ))}
@@ -419,8 +419,8 @@ export default function TimelineView({
       <FadeIn>
         <div style={{ textAlign: "center", padding: "44px 20px" }}>
           <div style={{ width: 64, height: 64, borderRadius: 20, margin: "0 auto 16px", background: C.accSoft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}><Calendar size={20} /></div>
-          <div style={{ ...H, fontSize: 20, color: C.t1, marginBottom: 8 }}>Your timeline</div>
-          <div style={{ ...F, fontSize: 14, color: C.t2, lineHeight: 1.6, maxWidth: 280, margin: "0 auto" }}>Start chatting in any segment to see your steps, journeys, and calendar events here.</div>
+          <div style={{ ...H, fontSize: 20, color: C.t1, marginBottom: 8 }}>Your journey</div>
+          <div style={{ ...F, fontSize: 14, color: C.t2, lineHeight: 1.6, maxWidth: 280, margin: "0 auto" }}>Start chatting in any segment to see your steps, paths, and calendar events here.</div>
         </div>
       </FadeIn>
     );
@@ -482,7 +482,7 @@ export default function TimelineView({
         <div style={{display:"flex",gap:8}}>
           {next.map((item,i) => {
             const color = item.type==="cal"?"#4285F4":(item.cat?SEGMENTS[catToSeg(item.cat)]?.color:null)||C.acc;
-            const typeLabel = item.type==="cal"?"Synced":item.type==="routine"?"Routine":"Step";
+            const typeLabel = item.type==="cal"?"Synced":item.type==="routine"?"Habit":"Step";
             return (
               <div key={i} style={{flex:1,padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,borderLeft:"3px solid "+color,minWidth:0}}>
                 <div style={{...F,fontSize:10,fontWeight:600,color:color,textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>{typeLabel}</div>

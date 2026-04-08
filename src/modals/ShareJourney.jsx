@@ -24,19 +24,19 @@ function ShareJourney(props) {
   var total = (journey.tasks || []).length;
   var pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-  var summaryText = "Journey: " + journey.title
+  var summaryText = "Path: " + journey.title
     + (journey.date ? "\nDate: " + journey.date : "")
     + "\nProgress: " + done + "/" + total + " tasks done (" + pct + "%)"
     + "\nTasks:\n" + (journey.tasks || []).map(function(t){ return (t.done ? "[x] " : "[ ] ") + t.title; }).join("\n")
     + "\n\nPlanned with My Next Step";
 
   var encodedText = encodeURIComponent(summaryText);
-  var encodedTitle = encodeURIComponent(journey.title || "My Next Step Journey");
+  var encodedTitle = encodeURIComponent(journey.title || "My Next Step Path");
 
   function handleSendInvite() {
     if (!email) return;
-    var subject = encodeURIComponent("Join me on my journey: " + journey.title);
-    var body = encodeURIComponent(message + "\n\n--- Journey Details ---\n" + summaryText);
+    var subject = encodeURIComponent("Join me on my path: " + journey.title);
+    var body = encodeURIComponent(message + "\n\n--- Path Details ---\n" + summaryText);
     window.open("mailto:" + encodeURIComponent(email) + "?subject=" + subject + "&body=" + body, "_self");
     setSent(true);
     setTimeout(function(){ setSent(false); }, 3000);
@@ -70,7 +70,7 @@ function ShareJourney(props) {
         React.createElement("div", {style:handle}, null),
 
         React.createElement("div", {style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}},
-          React.createElement("div", {style:{...H,fontSize:18,fontWeight:600,color:C.t1}}, "Share Journey"),
+          React.createElement("div", {style:{...H,fontSize:18,fontWeight:600,color:C.t1}}, "Share Path"),
           React.createElement("button", {onClick:onClose, style:{background:"none",border:"none",color:C.t3,cursor:"pointer",padding:4}},
             React.createElement(X, {size:18})
           )
@@ -119,7 +119,7 @@ function ShareJourney(props) {
           style:{...F,width:"100%",padding:"11px 16px",borderRadius:12,border:"1px solid "+C.b2,background:copied?C.tealSoft:C.bg,color:copied?C.teal:C.t1,fontSize:13,fontWeight:600,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8,marginBottom:16,transition:"all 0.2s"}
         },
           copied ? React.createElement(Check, {size:15}) : React.createElement(Link2, {size:15}),
-          copied ? "Copied!" : "Copy journey summary"
+          copied ? "Copied!" : "Copy path summary"
         ),
 
         React.createElement("div", {style:{...F,fontSize:13,fontWeight:600,color:C.t1,marginBottom:10}}, "Share via"),

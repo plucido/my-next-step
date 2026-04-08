@@ -9,8 +9,8 @@ var BADGE_DEFS = [
   { id: "step_master", emoji: "⭐", name: "Step Master", desc: "Completed 25 steps" },
   { id: "legend", emoji: "🏆", name: "Legend", desc: "Completed 50 steps" },
   { id: "explorer", emoji: "🧭", name: "Explorer", desc: "Used all 3 segments" },
-  { id: "planner", emoji: "🗺️", name: "Planner", desc: "Created your first journey" },
-  { id: "creature_of_habit", emoji: "🔁", name: "Creature of Habit", desc: "Completed a routine 5 times" },
+  { id: "planner", emoji: "🗺️", name: "Planner", desc: "Created your first path" },
+  { id: "creature_of_habit", emoji: "🔁", name: "Creature of Habit", desc: "Completed a habit 5 times" },
   { id: "streak_3", emoji: "💪", name: "Streak 3", desc: "3-day completion streak" },
   { id: "streak_7", emoji: "🎯", name: "Streak 7", desc: "7-day completion streak" },
   { id: "streak_30", emoji: "👑", name: "Streak 30", desc: "30-day completion streak" }

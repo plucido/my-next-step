@@ -8,7 +8,7 @@ export default function ShareModal({item, onClose}) {
 
   var isJourney = !!item.tasks;
   var text = isJourney
-    ? "Check out this journey: " + item.title + (item.date ? "\nDate: " + item.date : "") + "\nTasks:\n" + (item.tasks || []).map(function(t){return "- " + t.title;}).join("\n") + "\n\nPlanned with My Next Step"
+    ? "Check out this path: " + item.title + (item.date ? "\nDate: " + item.date : "") + "\nTasks:\n" + (item.tasks || []).map(function(t){return "- " + t.title;}).join("\n") + "\n\nPlanned with My Next Step"
     : item.title + (item.why ? " - " + item.why : "") + (item.time ? "\nWhen: " + item.time : "") + (item.link ? "\n" + item.link : "") + "\n\nShared from My Next Step";
 
   var encodedText = encodeURIComponent(text);

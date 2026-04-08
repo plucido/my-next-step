@@ -24,7 +24,7 @@ export default function SearchModal({allSteps, allPlans, allRoutines, onClose, o
       if (match) {
         var done = (p.tasks||[]).filter(function(t){return t.done;}).length;
         var total = (p.tasks||[]).length;
-        results.push({type:"journey", item:p, title:p.title, sub:p.date||(done+"/"+total+" tasks"), seg:"adventure"});
+        results.push({type:"path", item:p, title:p.title, sub:p.date||(done+"/"+total+" tasks"), seg:"adventure"});
       }
     });
     allRoutines.forEach(function(r) {
@@ -35,7 +35,7 @@ export default function SearchModal({allSteps, allPlans, allRoutines, onClose, o
 
   function renderIcon(type) {
     if (type === "step") return <Footprints size={14}/>;
-    if (type === "journey") return <Map size={14}/>;
+    if (type === "path") return <Map size={14}/>;
     return <RotateCcw size={14}/>;
   }
 
@@ -44,7 +44,7 @@ export default function SearchModal({allSteps, allPlans, allRoutines, onClose, o
       <div onClick={function(e){e.stopPropagation();}} style={{width:"100%",maxWidth:480,background:C.card,borderRadius:20,boxShadow:C.shadowLg,overflow:"hidden"}}>
         <div style={{display:"flex",alignItems:"center",gap:10,padding:"14px 18px",borderBottom:"1px solid "+C.b1}}>
           <Search size={18} color={C.t3}/>
-          <input ref={inputRef} value={query} onChange={function(e){setQuery(e.target.value);}} placeholder="Search steps, journeys, routines..." style={{...F,flex:1,fontSize:16,border:"none",outline:"none",background:"transparent",color:C.t1}}/>
+          <input ref={inputRef} value={query} onChange={function(e){setQuery(e.target.value);}} placeholder="Search steps, paths, habits..." style={{...F,flex:1,fontSize:16,border:"none",outline:"none",background:"transparent",color:C.t1}}/>
           {query?<button onClick={function(){setQuery("");}} style={{background:"none",border:"none",color:C.t3,cursor:"pointer"}}><X size={16}/></button>:null}
         </div>
         <div style={{maxHeight:400,overflowY:"auto"}}>
@@ -59,7 +59,7 @@ export default function SearchModal({allSteps, allPlans, allRoutines, onClose, o
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:14,fontWeight:500,color:C.t1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.title}</div>
                   <div style={{fontSize:12,color:C.t3,marginTop:1,display:"flex",alignItems:"center",gap:6}}>
-                    <span style={{textTransform:"capitalize"}}>{r.type}</span>
+                    <span style={{textTransform:"capitalize"}}>{r.type==="routine"?"habit":r.type}</span>
                     {r.status==="done"?<span style={{color:C.teal}}><Check size={12}/> Done</span>:null}
                     {r.item?.loved?<span style={{color:"#DC2626"}}><Heart size={12}/></span>:null}
                     {r.sub?<span>{r.sub}</span>:null}

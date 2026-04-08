@@ -97,7 +97,7 @@ export default function WeeklySummary({ onClose, allSteps, allPlans, allRoutines
       }
     });
     if (data.journeyTasksDone > 0) {
-      lines.push(data.journeyTasksDone + " journey tasks across " + data.activeJourneys + " journeys");
+      lines.push(data.journeyTasksDone + " path tasks across " + data.activeJourneys + " paths");
     }
     if (data.streak > 0) {
       lines.push("Current streak: " + data.streak + " days");
@@ -169,7 +169,7 @@ export default function WeeklySummary({ onClose, allSteps, allPlans, allRoutines
             <div style={{background:C.cream,borderRadius:14,padding:"14px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
               <Calendar size={16} color={C.teal}/>
               <div style={{...F,fontSize:14,color:C.t1}}>
-                <span style={{fontWeight:600}}>{data.journeyTasksDone}</span> tasks completed across <span style={{fontWeight:600}}>{data.activeJourneys}</span> {data.activeJourneys === 1 ? "journey" : "journeys"}
+                <span style={{fontWeight:600}}>{data.journeyTasksDone}</span> tasks completed across <span style={{fontWeight:600}}>{data.activeJourneys}</span> {data.activeJourneys === 1 ? "path" : "paths"}
               </div>
             </div>
           ) : null}
@@ -178,7 +178,7 @@ export default function WeeklySummary({ onClose, allSteps, allPlans, allRoutines
             <div style={{background:C.cream,borderRadius:14,padding:"14px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
               <Flame size={16} color="#D97706"/>
               <div style={{...F,fontSize:14,color:C.t1}}>
-                <span style={{fontWeight:600}}>{data.routineCompletions}</span> routine {data.routineCompletions === 1 ? "completion" : "completions"} this week
+                <span style={{fontWeight:600}}>{data.routineCompletions}</span> habit {data.routineCompletions === 1 ? "completion" : "completions"} this week
               </div>
             </div>
           ) : null}
