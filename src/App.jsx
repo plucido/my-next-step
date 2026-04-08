@@ -59,7 +59,6 @@ export default function App(){
   const[showBadges,setShowBadges]=useState(false);
   const[showUpgrade,setShowUpgrade]=useState(false);
   const userTier=profile?.tier||"free";
-  const[showWalkthrough,setShowWalkthrough]=useState(()=>{try{return !localStorage.getItem("mns_walkthrough_done");}catch{return true;}});
   const[settingsTab,setSettingsTab]=useState("profile");
   const[editField,setEditField]=useState(null);
   const[editVal,setEditVal]=useState("");
@@ -167,10 +166,10 @@ export default function App(){
     try{const data=await loadFB(uid,"appdata");if(data?.profile?.setup){setProfile(data.profile);setAllSteps(data.steps||[]);setAllPlans(data.plans||[]);setAllRoutines(data.routines||[]);setChats(trimChats(normalizeChats(data.chats)));setPreferences(data.preferences||[]);localStorage.setItem("mns_last_user",uid);setScreen("main");return;}}catch(e){console.log("Firebase load failed during auth:",e);}
     }const p={name:auth.name,email:auth.email,method:auth.method};setProfile(p);setAllSteps([]);setAllPlans([]);setAllRoutines([]);setChats({all:[]});setPreferences([]);localStorage.setItem("mns_last_user",getUserId(p));setScreen("setup");};
   const handleSetup=function(setup){const full={...profile,setup};setProfile(full);setAllSteps([]);setAllPlans([]);setAllRoutines([]);setPreferences([]);const w=[{role:"assistant",content:"Hey "+full.name+"!\n\nI'm your Next Step guide. Tell me what's on your mind and I'll make it happen.",ts:Date.now()}];setChats({all:w});setView("steps");persist(full,[],[],{all:w},[],[]); setScreen("welcome");};
-  const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
+  const handleQuickProfile=function(data){const full={...profile,quickProfile:data,health:{...(profile?.health||{}),fitnessLevel:data.fitness==="Just starting"?"Beginner":data.fitness==="Active"?"Intermediate":data.fitness==="Very active"?"Advanced":profile?.health?.fitnessLevel,allergies:data.allergies||[],diets:data.diet||[],otherAllergies:data.otherAllergies||profile?.health?.otherAllergies||""}};setProfile(full);persist(full,allSteps,allPlans,chats,preferences,allRoutines);if(data.deepProfile){setScreen("deepprofile");}else{setScreen("main");}};
   const handleDeepFinish=insights=>{
     const full={...profile,insights};setProfile(full);
-    if(!chats.wellness.length){const w=[{role:"assistant",content:`Hey ${full.name}! \n\nI'm your Next Step guide. I'm here to help with your career, wellness, and adventures.\n\nWhat's on your mind?`,ts:Date.now()}];setChats({all:w});persist(full,[],[],{all:w},[]); }
+    if(!(chats.all||[]).length){const w=[{role:"assistant",content:`Hey ${full.name}! I'm your Next Step guide. Tell me what's on your mind and I'll make it happen.`,ts:Date.now()}];setChats({all:w});persist(full,[],[],{all:w},[],[]); }
     else persist(full,allSteps,allPlans,chats,preferences);
     setView("steps");setScreen("main");
   };
@@ -448,7 +447,7 @@ export default function App(){
             userTier={userTier}
           />
         )}
-        {view==="steps"&&segment!=="everything"&&segment!=="chat"&&(<>
+        {view==="steps"&&segment!=="everything"&&(<>
           <div style={{flex:1,overflowY:"auto",padding:"8px 20px 80px"}}>
             {segSteps.length===0&&segPlans.length===0&&segRoutines.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
               <FadeIn><div style={{textAlign:"center",padding:"36px 20px"}}>
