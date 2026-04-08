@@ -56,8 +56,8 @@ export default function HelpModal({onClose}) {
 
         {renderSection(
           <RotateCcw size={18} color={C.acc}/>,
-          "Habits",
-          "A habit is a recurring activity — weekly workouts, Saturday adventures, daily meditation. The AI generates fresh content for each occurrence and can add them to your calendar automatically.",
+          "Recurring Steps",
+          "A recurring step is an activity that repeats — weekly workouts, Saturday adventures, daily meditation. The AI generates fresh content for each occurrence and can add them to your calendar automatically.",
           null
         )}
 
@@ -67,7 +67,7 @@ export default function HelpModal({onClose}) {
             <div style={{...H,fontSize:18,color:C.t1}}>The Guide</div>
           </div>
           <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6}}>
-            Your AI guide lives in the Guide tab. Just tell it what you want — "plan a trip to Florence", "find a restaurant tonight", "build me a workout plan" — and it creates steps, paths, or habits for you. It searches the web for real options with prices and booking links.
+            Your AI guide lives in the Guide tab. Just tell it what you want — "plan a trip to Florence", "find a restaurant tonight", "build me a workout plan" — and it creates steps, paths, or recurring steps for you. It searches the web for real options with prices and booking links.
           </div>
         </div>
 

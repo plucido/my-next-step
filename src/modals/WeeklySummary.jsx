@@ -178,7 +178,7 @@ export default function WeeklySummary({ onClose, allSteps, allPlans, allRoutines
             <div style={{background:C.cream,borderRadius:14,padding:"14px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12}}>
               <Flame size={16} color="#D97706"/>
               <div style={{...F,fontSize:14,color:C.t1}}>
-                <span style={{fontWeight:600}}>{data.routineCompletions}</span> habit {data.routineCompletions === 1 ? "completion" : "completions"} this week
+                <span style={{fontWeight:600}}>{data.routineCompletions}</span> recurring step {data.routineCompletions === 1 ? "completion" : "completions"} this week
               </div>
             </div>
           ) : null}

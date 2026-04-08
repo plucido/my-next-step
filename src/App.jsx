@@ -202,7 +202,7 @@ export default function App(){
     const favsCtx=(profile?.favorites||[]).length>0?"\nFavorites: "+(profile.favorites).slice(0,8).map(f=>f.title).join(", "):"";
     const petsCtx=(profile?.pets||[]).length>0?"\nPets: "+(profile.pets).map(p=>p.name+" ("+p.type+")").join(", "):"";
     const plansCtx=allPlans.length>0?"\nPaths: "+allPlans.slice(0,5).map(p=>p.title).join(", "):"";
-    const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\nHabits: "+allRoutines.filter(r=>!r.paused).slice(0,5).map(r=>r.title+" ("+r.schedule+")").join(", "):"";
+    const routineCtx=allRoutines.filter(r=>!r.paused).length>0?"\nRecurring: "+allRoutines.filter(r=>!r.paused).slice(0,5).map(r=>r.title+" ("+r.schedule+")").join(", "):"";
 
     // Conditional — only include heavy sections when relevant
     const healthCtx=isHealth&&profile?.health?`\n\nHEALTH: Level:${profile.health.fitnessLevel||"?"} Goals:${(profile.health.fitnessGoals||[]).join(",")} Prefs:${(profile.health.workoutPrefs||[]).join(",")} Injuries:${profile.health.injuries||"none"} Allergies:${(profile.health.allergies||[]).join(",")} Diet:${(profile.health.diets||[]).join(",")}`:"";
@@ -309,8 +309,8 @@ export default function App(){
           const itemCat=firstItem?.category||(firstPlan?.tasks?.[0]?.category)||firstRoutine?.category||null;
           const targetSeg=itemCat?catToSeg(itemCat):segment;
           const targetLabel=SEGMENTS[targetSeg]?.label||"Your Journey";
-          const type=createdSteps.length>0?"step":createdPlans.length>0?"path":"habit";
-          const text=totalCreated===1?(type==="step"?`New step: ${firstItem?.title||"Ready!"}`:(type==="path"?`Path: ${firstPlan?.title||"Mapped out!"}`:`Habit: ${firstRoutine?.title||"Set up!"}`)):`${totalCreated} new items created`;
+          const type=createdSteps.length>0?"step":createdPlans.length>0?"path":"recurring step";
+          const text=totalCreated===1?(type==="step"?`New step: ${firstItem?.title||"Ready!"}`:(type==="path"?`Path: ${firstPlan?.title||"Mapped out!"}`:`Recurring: ${firstRoutine?.title||"Set up!"}`)):`${totalCreated} new items created`;
           setTransitionMsg({text,targetSeg,targetLabel,count:totalCreated});
         }
       }
@@ -328,7 +328,7 @@ export default function App(){
   const deletePlan=idx=>{const u=allPlans.filter((_,i)=>i!==idx);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const toggleTask=(pi,ti)=>{const u=allPlans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const pauseRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,paused:!r.paused}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
-  const deleteRoutine=id=>{showConfirm("Delete this habit permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
+  const deleteRoutine=id=>{showConfirm("Delete this recurring step permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
   const completeRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,completions:(r.completions||0)+1,lastCompleted:new Date().toISOString()}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const snoozeStep=useCallback((id,until)=>{const u=allSteps.map(s=>s.id===id?{...s,snoozedUntil:until,status:"active"}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);showToast("Snoozed until "+new Date(until).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));},[allSteps,profile,allPlans,chats,preferences]);
   const talkAbout=useCallback(text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);},[]);
@@ -459,7 +459,7 @@ export default function App(){
                   {(()=>{const qp=profile?.quickProfile||{};const interests=(qp.interests||[]);const loc=profile?.setup?.location||"";
                     if(segment==="career"){const base=["Help me grow my career","Find a course near me"];if(qp.work)base.push(qp.work.includes("Between")?"Help me find a job":"Networking events in "+loc);return base;}
                     if(segment==="adventure"){const base=[];if(interests.includes("Travel"))base.push("Plan a weekend trip");if(interests.includes("Nightlife")||interests.includes("Wine & Dining"))base.push("Find a great restaurant for tonight");base.push("Find events this weekend");if(interests.includes("Outdoors"))base.push("Outdoor activities near me");if(base.length<3)base.push("Plan something with friends");return base.slice(0,4);}
-                    const base=["What should I do today?"];if(interests.includes("Fitness")||interests.includes("Yoga"))base.push("Build me a workout plan");else base.push("Help me start exercising");if(interests.includes("Meditation"))base.push("Set up a meditation habit");else base.push("Find a gym or class near me");return base;
+                    const base=["What should I do today?"];if(interests.includes("Fitness")||interests.includes("Yoga"))base.push("Build me a workout plan");else base.push("Help me start exercising");if(interests.includes("Meditation"))base.push("Set up a meditation recurring step");else base.push("Find a gym or class near me");return base;
                   })().map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
                 </div>
               </div></FadeIn>
@@ -475,7 +475,7 @@ export default function App(){
                 {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all paths</button>}
               </div>}
               {segRoutines.length>0&&<div style={{marginBottom:20}}>
-                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Habits ({segRoutines.length})</div>
+                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Recurring ({segRoutines.length})</div>
                 {segRoutines.map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onComplete={completeRoutine} onTalk={talkAbout} delay={i*50}/>)}
               </div>}
               {(()=>{const segDone=segment==="everything"?doneSteps:doneSteps.filter(s=>catToSeg(s.category)===segment);return segDone.length>0?<div style={{marginBottom:20}}><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({segDone.length})</div>{segDone.slice(0,segment==="everything"?5:3).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Heart size={14} color={C.t3}/>}</button><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}><X size={16}/></button></div>))}{segDone.length>(segment==="everything"?5:3)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:4}}>+{segDone.length-(segment==="everything"?5:3)} more</div>}</div>:null;})()}
@@ -520,7 +520,7 @@ export default function App(){
               <div style={{textAlign:"center",padding:"40px 20px"}}>
                 <div style={{width:56,height:56,borderRadius:18,margin:"0 auto 14px",background:C.accSoft,display:"flex",alignItems:"center",justifyContent:"center"}}><Logo size={28} color={C.acc}/></div>
                 <div style={{...H,fontSize:20,color:C.t1,marginBottom:6}}>What can I help you with?</div>
-                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Plan a trip, find a restaurant, start a workout habit, grow your career — I'll create actionable steps you can book right away.</div>
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:300,margin:"0 auto"}}>Plan a trip, find a restaurant, start a workout routine, grow your career — I'll create actionable steps you can book right away.</div>
               </div>
             )}
             {(chats.all||[]).map((msg,i)=>(
@@ -543,7 +543,7 @@ export default function App(){
           </div>
           {(chats.all||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
             <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
-              {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="adventure"?["Plan a trip","Find events this weekend","Plan something with friends"]:["What should I do today?","Help me build a habit","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
+              {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="adventure"?["Plan a trip","Find events this weekend","Plan something with friends"]:["What should I do today?","Help me build a recurring step","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
             </div>
           </div>}
           {(chats.all||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>

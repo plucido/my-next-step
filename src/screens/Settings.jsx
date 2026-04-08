@@ -318,7 +318,7 @@ export default function Settings({
           {!deleteConfirm?<button onClick={()=>{setDeleteConfirm(true);setDeleteText("");}} style={{...F,width:"100%",padding:"12px 16px",borderRadius:12,background:"rgba(220,60,60,0.04)",border:"1px solid rgba(220,60,60,0.1)",color:"#DC3C3C",fontSize:13,cursor:"pointer",textAlign:"left"}}>Delete my account and all data</button>
           :<div>
             <div style={{...F,fontSize:14,color:"#DC3C3C",fontWeight:600,marginBottom:8}}>This is permanent</div>
-            <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:12}}>Your profile, all steps, paths, habits, chat history, and connected accounts will be permanently deleted. This cannot be undone.</div>
+            <div style={{...F,fontSize:13,color:C.t2,lineHeight:1.6,marginBottom:12}}>Your profile, all steps, paths, recurring steps, chat history, and connected accounts will be permanently deleted. This cannot be undone.</div>
             <div style={{...F,fontSize:12,color:C.t3,marginBottom:8}}>Type <span style={{fontWeight:700,color:"#DC3C3C"}}>delete my account</span> to confirm:</div>
             <input value={deleteText} onChange={e=>setDeleteText(e.target.value)} placeholder="delete my account" style={{...F,width:"100%",padding:"10px 14px",fontSize:14,borderRadius:12,border:"1.5px solid rgba(220,60,60,0.3)",background:C.bg,color:C.t1,outline:"none",boxSizing:"border-box",marginBottom:12}}/>
             <div style={{display:"flex",gap:8}}>

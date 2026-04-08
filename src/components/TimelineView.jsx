@@ -341,7 +341,7 @@ export default function TimelineView({
             <span style={{ ...F, fontSize: 11, color: segColor, fontWeight: 600, minWidth: 50 }}>{r.time || r.schedule}</span>
             <div style={{ flex: 1 }}>
               <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1 }}>{r.title}</div>
-              <div style={{ ...F, fontSize: 11, color: C.t3 }}>{r.schedule} habit</div>
+              <div style={{ ...F, fontSize: 11, color: C.t3 }}>{r.schedule} routine</div>
             </div>
           </div>;
         })}
@@ -372,7 +372,7 @@ export default function TimelineView({
     return (
       <FadeIn delay={180}>
         <div style={{ marginBottom: 24 }}>
-          <div style={{ ...sectionHeader, marginBottom: 12 }}>Habits ({active.length})</div>
+          <div style={{ ...sectionHeader, marginBottom: 12 }}>Recurring ({active.length})</div>
           {active.map((r, i) => (
             <RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onComplete={completeRoutine} onTalk={talkAbout} delay={i * 30} />
           ))}
@@ -482,7 +482,7 @@ export default function TimelineView({
         <div style={{display:"flex",gap:8}}>
           {next.map((item,i) => {
             const color = item.type==="cal"?"#4285F4":(item.cat?SEGMENTS[catToSeg(item.cat)]?.color:null)||C.acc;
-            const typeLabel = item.type==="cal"?"Synced":item.type==="routine"?"Habit":"Step";
+            const typeLabel = item.type==="cal"?"Synced":item.type==="routine"?"Recurring":"Step";
             return (
               <div key={i} style={{flex:1,padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,borderLeft:"3px solid "+color,minWidth:0}}>
                 <div style={{...F,fontSize:10,fontWeight:600,color:color,textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>{typeLabel}</div>
