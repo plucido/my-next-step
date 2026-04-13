@@ -377,9 +377,10 @@ export default function App(){
 
   return(
     <Suspense fallback={<div style={{background:C.bg,minHeight:"100vh"}}/>}>
-    <div style={{...F,height:"100vh",color:C.t1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg}}>
+    <div style={{...F,height:"100vh",color:C.t1,display:"flex",flexDirection:"column",overflow:"hidden",background:C.bg,paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
       <style>{font}{`
         *{-webkit-tap-highlight-color:transparent;}
+        html{padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) 0 env(safe-area-inset-left,0);}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes dpb{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
         @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
@@ -393,14 +394,14 @@ export default function App(){
         ::-webkit-scrollbar{width:0;height:0;}
         input,textarea,select{font-size:16px !important;}
       `}</style>
-      {feedbackStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
+      {feedbackStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:400,width:"calc(100% - 40px)",background:C.card,borderRadius:24,padding:24,boxShadow:C.shadowLg}}>
         <div style={{...F,fontSize:12,color:C.acc,fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>How did it go?</div>
         <div style={{...H,fontSize:20,color:C.t1,marginBottom:16}}>{feedbackStep.title}</div>
         <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>{["Loved it!","It was okay","Not for me","Too expensive","Too far","More like this"].map(q=>(<button key={q} onClick={()=>setFeedbackText(q)} style={{...F,padding:"8px 14px",borderRadius:12,fontSize:13,cursor:"pointer",background:feedbackText===q?C.accSoft:C.cream,border:`1.5px solid ${feedbackText===q?C.acc:C.b2}`,color:feedbackText===q?C.acc:C.t2}}>{q}</button>))}</div>
         <textarea value={feedbackText} onChange={e=>setFeedbackText(e.target.value)} rows={2} placeholder="Or type..." style={{...F,width:"100%",padding:"12px 16px",fontSize:14,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.bg,color:C.t1,outline:"none",resize:"none",boxSizing:"border-box",marginBottom:14}}/>
         <div style={{display:"flex",gap:10}}><button onClick={()=>{setFeedbackStep(null);setFeedbackText("");}} style={{...F,flex:1,padding:12,borderRadius:16,border:`1px solid ${C.b1}`,background:C.card,color:C.t2,fontSize:14,cursor:"pointer"}}>Skip</button><button onClick={submitFeedback} disabled={!feedbackText.trim()} style={{...F,flex:1,padding:12,borderRadius:16,border:"none",fontSize:14,fontWeight:600,cursor:feedbackText.trim()?"pointer":"default",background:feedbackText.trim()?C.accGrad:"rgba(0,0,0,0.04)",color:feedbackText.trim()?"#fff":C.t3}}>Submit</button></div>
       </div></div>)}
-      {missedStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:420,background:C.card,borderRadius:24,padding:28,boxShadow:C.shadowLg}}>
+      {missedStep&&(<div style={{position:"fixed",inset:0,zIndex:100,background:"rgba(0,0,0,0.2)",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}><div style={{width:"100%",maxWidth:400,width:"calc(100% - 40px)",background:C.card,borderRadius:24,padding:24,boxShadow:C.shadowLg}}>
         <div style={{...F,fontSize:12,color:"#B45309",fontWeight:600,textTransform:"uppercase",letterSpacing:1.5,marginBottom:10}}>Missed step</div>
         <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>{missedStep.title}</div>
         <div style={{...F,fontSize:14,color:C.t3,marginBottom:16,lineHeight:1.5}}>Telling your guide why helps improve future recommendations.</div>
@@ -429,14 +430,14 @@ export default function App(){
           </div>
         </div>
       </div>
-      <div style={{display:"flex",padding:"0 20px",gap:6,flexShrink:0,marginBottom:6}}>
-        <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:"0 0 auto",padding:"10px 16px",background:view==="chat"?C.accGrad:"transparent",border:view==="chat"?"none":`1.5px solid ${C.b2}`,borderRadius:14,cursor:"pointer",fontSize:13,fontWeight:600,color:view==="chat"?"#fff":C.t2,boxShadow:view==="chat"?"0 2px 8px rgba(212,82,42,0.2)":"none",display:"flex",alignItems:"center",gap:5,transition:"all 0.2s"}}><MessageCircle size={14}/> Guide</button>
+      <div style={{display:"flex",padding:"0 16px",gap:4,flexShrink:0,marginBottom:6,overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
+        <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,flex:"0 0 auto",padding:"10px 14px",background:view==="chat"?C.accGrad:"transparent",border:view==="chat"?"none":`1.5px solid ${C.b2}`,borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:600,color:view==="chat"?"#fff":C.t2,boxShadow:view==="chat"?"0 2px 8px rgba(212,82,42,0.2)":"none",display:"flex",alignItems:"center",gap:5,transition:"all 0.2s"}}><MessageCircle size={14}/> Guide</button>
         {SEG_KEYS.map(s=>{const info=SEGMENTS[s];const active=segment===s&&view==="steps";const count=activeSteps.filter(x=>catToSeg(x.category)===s).length;
-          return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:1,padding:"10px 4px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:3,transition:"all 0.2s"}}>
+          return(<button key={s} onClick={()=>{setSegment(s);setExpandedPlan(null);setView("steps");}} style={{...F,flex:"0 0 auto",padding:"10px 14px",background:active?C.card:"transparent",border:active?`1.5px solid ${info.color}30`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",fontSize:12,fontWeight:active?600:400,color:active?info.color:C.t3,boxShadow:active?C.shadow:"none",display:"flex",alignItems:"center",gap:3,transition:"all 0.2s"}}>
             {info.label}{count>0?<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>:null}
           </button>);
         })}
-        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,padding:"10px 12px",background:segment==="everything"&&view==="steps"?C.card:"transparent",border:segment==="everything"&&view==="steps"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",boxShadow:segment==="everything"&&view==="steps"?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s",fontSize:12,color:segment==="everything"&&view==="steps"?C.acc:C.t3}}><Calendar size={14}/> My Journey</button>
+        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,flex:"0 0 auto",padding:"10px 14px",background:segment==="everything"&&view==="steps"?C.card:"transparent",border:segment==="everything"&&view==="steps"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:12,cursor:"pointer",boxShadow:segment==="everything"&&view==="steps"?C.shadow:"none",display:"flex",alignItems:"center",gap:4,transition:"all 0.2s",fontSize:12,color:segment==="everything"&&view==="steps"?C.acc:C.t3}}><Calendar size={14}/> My Journey</button>
       </div>
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -559,7 +560,7 @@ export default function App(){
         </>)}
       </div>
 
-      {transitionMsg&&<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:150,padding:"12px 16px 12px 20px",borderRadius:20,background:C.accGrad,color:"#fff",boxShadow:"0 8px 32px rgba(212,82,42,0.3)",display:"flex",alignItems:"center",gap:10,animation:"fadeUp 0.4s ease",maxWidth:380}}>
+      {transitionMsg&&<div style={{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:150,padding:"12px 16px 12px 20px",borderRadius:20,background:C.accGrad,color:"#fff",boxShadow:"0 8px 32px rgba(212,82,42,0.3)",display:"flex",alignItems:"center",gap:10,animation:"fadeUp 0.4s ease",maxWidth:"calc(100% - 40px)"}}>
         <Check size={18}/>
         <span style={{...F,fontSize:13,fontWeight:600,flex:1}}>{transitionMsg.text}</span>
         <button onClick={()=>{setSegment(transitionMsg.targetSeg);setView("steps");setTransitionMsg(null);}} style={{...F,fontSize:12,fontWeight:700,padding:"6px 14px",borderRadius:12,background:"rgba(255,255,255,0.25)",color:"#fff",border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>See it</button>
