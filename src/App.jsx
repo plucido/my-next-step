@@ -359,9 +359,9 @@ export default function App(){
       <h1 style={{...H,fontSize:26,color:C.t1,marginBottom:12}}>Welcome, {profile?.name}!</h1>
       <div style={{textAlign:"left",marginBottom:28}}>
         {[
-          {emoji:"💬",title:"Tell your guide what you want",desc:"Plan a trip, find a restaurant, start a workout — just ask."},
-          {emoji:"📋",title:"Get actionable steps",desc:"Real places, prices, and booking links you can act on immediately."},
-          {emoji:"📅",title:"Track everything in one place",desc:"Your career, wellness, and adventure goals — all organized."},
+          {emoji:"💬",title:"Ask me anything",desc:"Plan a trip, find a restaurant, start a workout — just type what you want."},
+          {emoji:"📋",title:"Pick from real options",desc:"I'll find specific places with prices and links. You choose the one you like."},
+          {emoji:"🗂️",title:"Everything stays organized",desc:"Your steps automatically sort into Career, Wellness, and Adventure tabs."},
         ].map((item,i)=>(
           <FadeIn key={i} delay={150+i*100}><div style={{display:"flex",gap:14,padding:"12px 0",borderBottom:i<2?"1px solid "+C.b1:"none"}}>
             <span style={{fontSize:24,flexShrink:0}}>{item.emoji}</span>

@@ -39,7 +39,7 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
           </div>
         ))}
         <div style={{display:"flex",gap:6,marginTop:4,alignItems:"center"}}>
-          <button onClick={()=>{if(onSwap)onSwap(step);}} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Show me something else</button>
+          <button onClick={()=>{if(onSwap)onSwap(step);}} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Get different options</button>
         </div>
       </div>
     ):(
@@ -75,7 +75,7 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
           {(step.chosen?.link||step.link)&&!step.booked&&<button onClick={()=>setExpanded(true)} style={{...F,fontSize:13,fontWeight:600,padding:"10px 18px",borderRadius:12,background:C.accGrad,color:"#fff",border:"none",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6,boxShadow:"0 2px 8px rgba(212,82,42,0.2)"}}>See details & book</button>}
           {step.booked&&<span style={{...F,fontSize:12,padding:"8px 14px",borderRadius:10,background:"rgba(15,118,110,0.08)",border:`1px solid ${C.tealBorder}`,color:C.teal,display:"inline-flex",alignItems:"center",gap:6}}><Check size={13}/> On your calendar</span>}
           {!(step.chosen?.link||step.link)&&!step.booked&&<button onClick={()=>setExpanded(true)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:10,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>More details</button>}
-          <button onClick={()=>{if(onSwap)onSwap(step);}} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Something else</button>
+          <button onClick={()=>{if(onSwap)onSwap(step);}} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Get a different option</button>
         </div>}
       </div>
     )}

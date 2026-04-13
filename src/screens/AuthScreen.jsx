@@ -26,10 +26,10 @@ export default function AuthScreen({onAuth}){
   var inp={...F,width:"100%",padding:"15px 18px",fontSize:15,borderRadius:16,border:"1.5px solid "+C.b2,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"};
 
   var features = [
-    {icon:<Footprints size={18} color={C.acc}/>,text:"AI-powered steps tailored to your goals"},
-    {icon:<Calendar size={18} color={C.teal}/>,text:"Smart calendar integration"},
-    {icon:<Heart size={18} color="#DB2777"/>,text:"Learns your preferences over time"},
-    {icon:<Sparkles size={18} color="#D97706"/>,text:"Work, health & fun \u2014 all in one place"},
+    {icon:<Footprints size={18} color={C.acc}/>,text:"Say what you want, get real options with booking links"},
+    {icon:<Calendar size={18} color={C.teal}/>,text:"Steps auto-add to your calendar"},
+    {icon:<Heart size={18} color="#DB2777"/>,text:"Gets smarter the more you use it"},
+    {icon:<Sparkles size={18} color="#D97706"/>,text:"Career, health, travel & fun — all organized"},
   ];
 
   if(mode==="email") return (
@@ -54,7 +54,7 @@ export default function AuthScreen({onAuth}){
         <div style={{width:"100%",maxWidth:420,textAlign:"center"}}>
           <div style={{width:80,height:80,borderRadius:24,margin:"0 auto 28px",background:C.accGrad,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",boxShadow:"0 12px 36px rgba(212,82,42,0.25)"}}><Logo size={42} color="#fff"/></div>
           <h1 style={{...H,fontSize:42,color:C.t1,lineHeight:1.05,marginBottom:12,letterSpacing:"-0.5px"}}>My Next Step</h1>
-          <p style={{...F,fontSize:17,color:C.t2,lineHeight:1.6,maxWidth:320,margin:"0 auto 36px"}}>Your AI guide that turns goals into clear, actionable steps.</p>
+          <p style={{...F,fontSize:17,color:C.t2,lineHeight:1.6,maxWidth:320,margin:"0 auto 36px"}}>Tell me what you want to do. I'll find options, book them, and keep you on track.</p>
 
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:36,textAlign:"left"}}>
             {features.map(function(f,i){
