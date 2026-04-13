@@ -27,9 +27,11 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
       {step.recurring&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 6px",borderRadius:5}}>{step.recurring}</span>}
       {step.createdAt&&<span style={{...F,fontSize:10,color:C.t3,marginLeft:"auto"}}>{((d)=>{const m=Math.floor(d/6e4);if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";return Math.floor(h/24)+"d";})(Date.now()-new Date(step.createdAt).getTime())} ago</span>}
     </div>
-    <div style={{...F,fontSize:15,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:4,paddingRight:24}}>{step.title}</div>
-    {step.time&&<div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>{step.time}</div>}
-    {step.why&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:14}}>{step.why}</div>}
+    <div onClick={()=>{if(step.link)window.open(step.link,"_blank");else onTalk(`Tell me more about "${step.title}" and help me take action on it.`);}} style={{cursor:"pointer"}}>
+      <div style={{...F,fontSize:15,fontWeight:600,color:C.t1,lineHeight:1.4,marginBottom:4,paddingRight:24}}>{step.title}</div>
+      {step.time&&<div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>{step.time}</div>}
+      {step.why&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:14}}>{step.why}</div>}
+    </div>
     <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center"}}>
       {step.link&&!step.booked&&<a href={step.link} target="_blank" rel="noopener noreferrer" onClick={()=>{onBooked(step);}} style={{...F,fontSize:14,fontWeight:700,padding:"11px 20px",borderRadius:14,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:6,cursor:"pointer",boxShadow:"0 2px 8px rgba(212,82,42,0.2)"}}>Book it <ExternalLink size={12}/></a>}
       {step.booked&&<span style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(15,118,110,0.08)",border:`1px solid ${C.tealBorder}`,color:C.teal,display:"inline-flex",alignItems:"center",gap:6}}><Check size={14}/> Booked</span>}
