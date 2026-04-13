@@ -58,10 +58,9 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
         </div>
       </div>
     )}
-    <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
-      <button onClick={()=>{if(onSwap)onSwap(step);else onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`);}} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Not feeling it? Try others</button>
-      {step.time&&<button onClick={()=>onTalk(`Reschedule "${step.title}" to a different time. Suggest a few options that work with my calendar.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Different time</button>}
-      <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Send to friend</button>
+    <div style={{display:"flex",gap:6,marginTop:4,alignItems:"center"}}>
+      <button onClick={()=>{if(onSwap)onSwap(step);else onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`);}} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Show me something else</button>
+      <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:"transparent",border:"none",color:C.t3,cursor:"pointer"}}>Share</button>
     </div>
   </div></FadeIn>);
 })
