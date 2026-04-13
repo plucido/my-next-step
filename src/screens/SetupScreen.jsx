@@ -7,7 +7,7 @@ export default function SetupScreen({profile,onComplete}){
   const inp={...F,width:"100%",padding:"15px 18px",fontSize:16,borderRadius:16,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box"};
   return(<div style={{...F,minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center",padding:24,background:C.bg}}><FadeIn><div style={{width:"100%",maxWidth:420}}>
     <h2 style={{...H,fontSize:30,color:C.t1,marginBottom:8}}>A bit about you</h2>
-    <p style={{color:C.t2,fontSize:15,marginBottom:36}}>Just the basics, {profile.name}.</p>
+    <p style={{color:C.t2,fontSize:15,marginBottom:36}}>This helps me personalize for you, {profile.name}.</p>
     <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:8}}>Age</label>
     <input value={age} onChange={e=>setAge(e.target.value)} placeholder="e.g. 28" type="number" style={{...inp,marginBottom:20}} />
     <label style={{...F,fontSize:12,color:C.t3,display:"block",marginBottom:10}}>Gender</label>

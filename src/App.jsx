@@ -290,7 +290,7 @@ export default function App(){
 
 
       displayText=displayText.replace(/\[[\s\S]*?"type"\s*:[\s\S]*?\]/g,"").trim();
-      if(!displayText)displayText=newSteps.length>allSteps.length?"Here's what I found!":newPlans.length>allPlans.length?"Path mapped out!":"Let me know what you think.";
+      if(!displayText)displayText=newSteps.length>allSteps.length?"Here's what I found!":newPlans.length>allPlans.length?"Plan mapped out!":"Let me know what you think.";
 
       const isError=displayText.startsWith("Something went wrong")||displayText.startsWith("Hmm, I didn't")||displayText.startsWith("Quick hiccup");
       const finalChat={all:[...(newChats.all||[]),{role:"assistant",content:clean(displayText),ts:Date.now(),isError:isError}]};
@@ -310,7 +310,7 @@ export default function App(){
           const targetSeg=itemCat?catToSeg(itemCat):segment;
           const targetLabel=SEGMENTS[targetSeg]?.label||"Your Journey";
           const type=createdSteps.length>0?"step":createdPlans.length>0?"path":"recurring step";
-          const text=totalCreated===1?(type==="step"?`New step: ${firstItem?.title||"Ready!"}`:(type==="path"?`Path: ${firstPlan?.title||"Mapped out!"}`:`Recurring: ${firstRoutine?.title||"Set up!"}`)):`${totalCreated} new items created`;
+          const text=totalCreated===1?(type==="step"?`New step: ${firstItem?.title||"Ready!"}`:(type==="path"?`Plan: ${firstPlan?.title||"Mapped out!"}`:`Repeating: ${firstRoutine?.title||"Set up!"}`)):`${totalCreated} new items created`;
           setTransitionMsg({text,targetSeg,targetLabel,count:totalCreated});
         }
       }
@@ -328,7 +328,7 @@ export default function App(){
   const deletePlan=idx=>{const u=allPlans.filter((_,i)=>i!==idx);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const toggleTask=(pi,ti)=>{const u=allPlans.map((p,i)=>i===pi?{...p,tasks:p.tasks.map((t,j)=>j===ti?{...t,done:!t.done}:t)}:p);setAllPlans(u);persist(profile,allSteps,u,chats,preferences);};
   const pauseRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,paused:!r.paused}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
-  const deleteRoutine=id=>{showConfirm("Delete this recurring step permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
+  const deleteRoutine=id=>{showConfirm("Delete this repeating step permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
   const completeRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,completions:(r.completions||0)+1,lastCompleted:new Date().toISOString()}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const snoozeStep=useCallback((id,until)=>{const u=allSteps.map(s=>s.id===id?{...s,snoozedUntil:until,status:"active"}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);showToast("Snoozed until "+new Date(until).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));},[allSteps,profile,allPlans,chats,preferences]);
   const talkAbout=useCallback(text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);},[]);
@@ -435,7 +435,7 @@ export default function App(){
             {info.label}{count>0?<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>:null}
           </button>);
         })}
-        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,width:36,padding:"10px 0",background:segment==="everything"&&view==="steps"?C.card:"transparent",border:segment==="everything"&&view==="steps"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",boxShadow:segment==="everything"&&view==="steps"?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}><Calendar size={14} color={segment==="everything"&&view==="steps"?C.acc:C.t3}/></button>
+        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,width:42,padding:"6px 0",background:segment==="everything"&&view==="steps"?C.card:"transparent",border:segment==="everything"&&view==="steps"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",boxShadow:segment==="everything"&&view==="steps"?C.shadow:"none",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:1,transition:"all 0.2s"}}><Calendar size={14} color={segment==="everything"&&view==="steps"?C.acc:C.t3}/><span style={{fontSize:8,color:segment==="everything"&&view==="steps"?C.acc:C.t3,lineHeight:1}}>All</span></button>
       </div>
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
@@ -454,14 +454,14 @@ export default function App(){
             {segSteps.length===0&&segPlans.length===0&&segRoutines.length===0&&doneSteps.length===0&&expiredSteps.length===0?(
               <FadeIn><div style={{textAlign:"center",padding:"36px 20px"}}>
                 <div style={{width:64,height:64,borderRadius:20,margin:"0 auto 16px",background:segInfo.soft||C.accSoft,display:"flex",alignItems:"center",justifyContent:"center",fontSize:28}}>{segIcon(segment)}</div>
-                <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>Nothing in {segInfo.label} yet</div>
-                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto 24px"}}>Tell your guide what you're looking for and I'll create personalized steps and paths.</div>
-                <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Talk to your guide {"\u2192"}</button>
+                <div style={{...H,fontSize:20,color:C.t1,marginBottom:8}}>No {segInfo.label.toLowerCase()} steps yet</div>
+                <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6,maxWidth:280,margin:"0 auto 24px"}}>Try asking: "Find a restaurant tonight" or "Plan a trip to Italy"</div>
+                <button onClick={()=>{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}} style={{...F,padding:"14px 32px",borderRadius:16,border:"none",fontSize:15,fontWeight:600,cursor:"pointer",background:C.accGrad,color:"#fff",boxShadow:"0 4px 16px rgba(212,82,42,0.2)",marginBottom:12}}>Ask me anything {"\u2192"}</button>
                 <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap",marginTop:8}}>
                   {(()=>{const qp=profile?.quickProfile||{};const interests=(qp.interests||[]);const loc=profile?.setup?.location||"";
                     if(segment==="career"){const base=["Help me grow my career","Find a course near me"];if(qp.work)base.push(qp.work.includes("Between")?"Help me find a job":"Networking events in "+loc);return base;}
                     if(segment==="adventure"){const base=[];if(interests.includes("Travel"))base.push("Plan a weekend trip");if(interests.includes("Nightlife")||interests.includes("Wine & Dining"))base.push("Find a great restaurant for tonight");base.push("Find events this weekend");if(interests.includes("Outdoors"))base.push("Outdoor activities near me");if(base.length<3)base.push("Plan something with friends");return base.slice(0,4);}
-                    const base=["What should I do today?"];if(interests.includes("Fitness")||interests.includes("Yoga"))base.push("Build me a workout plan");else base.push("Help me start exercising");if(interests.includes("Meditation"))base.push("Set up a meditation recurring step");else base.push("Find a gym or class near me");return base;
+                    const base=["What should I do today?"];if(interests.includes("Fitness")||interests.includes("Yoga"))base.push("Build me a workout plan");else base.push("Help me start exercising");if(interests.includes("Meditation"))base.push("Set up a daily meditation");else base.push("Find a gym or class near me");return base;
                   })().map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",boxShadow:C.shadow}}>{c}</button>))}
                 </div>
               </div></FadeIn>
@@ -472,12 +472,12 @@ export default function App(){
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>
-                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Paths ({segPlans.length})</div>
+                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Plans ({segPlans.length})</div>
                 {segPlans.slice(0,segment==="everything"?allPlans.length:2).map((plan,pi)=><JourneyCard key={pi} plan={plan} pi={allPlans.indexOf(plan)} open={expandedPlan===allPlans.indexOf(plan)} onToggle={i=>setExpandedPlan(expandedPlan===i?null:i)} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onSnooze={snoozeStep} onShare={shareItem} delay={pi*50}/>)}
-                {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all paths</button>}
+                {segment!=="everything"&&segPlans.length>2&&<button onClick={()=>setSegment("everything")} style={{...F,fontSize:12,color:C.acc,background:"none",border:"none",cursor:"pointer",padding:"8px 0",width:"100%",textAlign:"center"}}>View all plans</button>}
               </div>}
               {segRoutines.length>0&&<div style={{marginBottom:20}}>
-                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Recurring ({segRoutines.length})</div>
+                <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Repeating ({segRoutines.length})</div>
                 {segRoutines.map((r,i)=><RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onComplete={completeRoutine} onTalk={talkAbout} delay={i*50}/>)}
               </div>}
               {(()=>{const segDone=segment==="everything"?doneSteps:doneSteps.filter(s=>catToSeg(s.category)===segment);return segDone.length>0?<div style={{marginBottom:20}}><div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Completed ({segDone.length})</div>{segDone.slice(0,segment==="everything"?5:3).map(s=>(<div key={s.id} style={{padding:"12px 16px",borderRadius:14,marginBottom:6,background:s.loved?"rgba(220,38,38,0.04)":C.tealSoft,border:`1px solid ${s.loved?"rgba(220,38,38,0.1)":C.tealBorder}`,display:"flex",alignItems:"center",gap:10,opacity:s.loved?.7:.5}}><span style={{color:s.loved?"#DC2626":C.teal}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Check size={14}/>}</span><span style={{...F,fontSize:13,textDecoration:"line-through",color:C.t2,flex:1}}>{s.title}</span><button onClick={()=>loveStep(s.id)} style={{background:"none",border:"none",cursor:"pointer",fontSize:14,opacity:s.loved?1:.4}}>{s.loved?<Heart size={14} fill="#DC2626" color="#DC2626"/>:<Heart size={14} color={C.t3}/>}</button><button onClick={()=>deleteStep(s.id)} style={{background:"none",border:"none",color:C.t3,cursor:"pointer",fontSize:13}}><X size={16}/></button></div>))}{segDone.length>(segment==="everything"?5:3)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:4}}>+{segDone.length-(segment==="everything"?5:3)} more</div>}</div>:null;})()}
@@ -507,10 +507,10 @@ export default function App(){
           {view==="steps"&&(
             <div style={{padding:"6px 20px 14px",flexShrink:0,borderTop:`1px solid ${C.b1}`}}>
               <div style={{display:"flex",gap:5,marginBottom:8,overflowX:"auto",scrollbarWidth:"none",WebkitOverflowScrolling:"touch"}}>
-                {(segment==="career"?["Find my next job opportunity","Help me network","Suggest a course"]:segment==="adventure"?["Plan me a trip","Find a restaurant tonight","What events are nearby?"]:segment==="wellness"?["Build me a workout","Find a yoga class","Help me eat healthier"]:["What should I do today?","Plan something fun","Help me be productive"]).map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"6px 12px",borderRadius:12,fontSize:12,fontWeight:500,background:C.card,border:`1px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}</button>))}
+                {(segment==="career"?["What jobs are out there for me?","How can I grow my network?","What course should I take?"]:segment==="adventure"?["Where should I travel next?","What's a good restaurant tonight?","What's happening this weekend?"]:segment==="wellness"?["Can you build me a workout?","What yoga classes are near me?","How can I eat healthier?"]:["What should I do today?","What's something fun to try?","How can I be more productive?"]).map(c=>(<button key={c} onClick={()=>{setView("chat");setInput(c);setTimeout(()=>sendMessage(c),100);}} style={{...F,padding:"6px 12px",borderRadius:12,fontSize:12,fontWeight:500,background:C.card,border:`1px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",flexShrink:0}}>{c}</button>))}
               </div>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){e.preventDefault();setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}}} placeholder="Ask your guide..." style={{...F,flex:1,padding:"12px 16px",fontSize:16,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} onFocus={e=>{e.target.style.borderColor=C.acc;}} onBlur={e=>{e.target.style.borderColor=C.b2;}}/>
+                <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&input.trim()){e.preventDefault();setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}}} placeholder="What do you want to do?" style={{...F,flex:1,padding:"12px 16px",fontSize:16,borderRadius:14,border:`1.5px solid ${C.b2}`,background:C.card,color:C.t1,outline:"none",boxSizing:"border-box",boxShadow:C.shadow}} onFocus={e=>{e.target.style.borderColor=C.acc;}} onBlur={e=>{e.target.style.borderColor=C.b2;}}/>
                 <button onClick={()=>{if(input.trim()){setView("chat");setTimeout(()=>sendMessage(input.trim()),100);}else{setView("chat");setTimeout(()=>inputRef.current?.focus(),100);}}} style={{width:44,height:44,borderRadius:14,border:"none",cursor:"pointer",background:C.accGrad,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(212,82,42,0.2)"}}>{input.trim()?<ArrowUp size={18}/>:<MessageCircle size={18}/>}</button>
               </div>
             </div>
@@ -545,7 +545,7 @@ export default function App(){
           </div>
           {(chats.all||[]).length<=4&&<div style={{padding:"0 20px 6px",flexShrink:0}}>
             <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none"}}>
-              {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="adventure"?["Plan a trip","Find events this weekend","Plan something with friends"]:["What should I do today?","Help me build a recurring step","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
+              {(segSteps.length>0?["What else should I try?","Switch things up","Find me something new"]:segment==="career"?["Help me grow my career","Find a course","Networking events near me"]:segment==="adventure"?["Plan a trip","Find events this weekend","Plan something with friends"]:["What should I do today?","Set up a repeating step","Find something nearby"]).map(c=>(<button key={c} onClick={()=>{setInput(c);setTimeout(()=>sendMessage(c),50);}} style={{...F,padding:"7px 14px",borderRadius:18,fontSize:12,fontWeight:500,background:C.card,border:`1.5px solid ${C.b2}`,color:C.t2,cursor:"pointer",whiteSpace:"nowrap",boxShadow:C.shadow}}>{c}</button>))}
             </div>
           </div>}
           {(chats.all||[]).length>0&&<div style={{padding:"0 20px 4px",flexShrink:0,textAlign:"right"}}>

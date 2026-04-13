@@ -32,7 +32,7 @@ export default function HelpModal({onClose}) {
         </div>
 
         <div style={{...F,fontSize:15,color:C.t2,lineHeight:1.7,marginBottom:28}}>
-          My Next Step is your AI-powered life guide. Tell it what you want to do and it creates actionable cards you can act on right away.
+          My Next Step is your AI-powered life guide. Tell it what you want to do and it creates steps and plans you can act on right away.
         </div>
 
         {renderSection(
@@ -49,15 +49,15 @@ export default function HelpModal({onClose}) {
 
         {renderSection(
           <Map size={18} color={C.acc}/>,
-          "Paths",
-          "A path is a multi-step plan with a timeline. Think trip itineraries, workout programs, or project plans. Each path has tasks you can check off as you go.",
+          "Plans",
+          "A plan is a set of steps with a timeline \u2014 like a trip itinerary or fitness program. Each plan has tasks you can check off as you go.",
           null
         )}
 
         {renderSection(
           <RotateCcw size={18} color={C.acc}/>,
-          "Recurring Steps",
-          "A recurring step is an activity that repeats — weekly workouts, Saturday adventures, daily meditation. The AI generates fresh content for each occurrence and can add them to your calendar automatically.",
+          "Repeating Steps",
+          "Repeating steps happen on a schedule \u2014 like a weekly workout or daily meditation. The AI generates fresh content for each occurrence and can add them to your calendar automatically.",
           null
         )}
 
@@ -67,7 +67,7 @@ export default function HelpModal({onClose}) {
             <div style={{...H,fontSize:18,color:C.t1}}>The Guide</div>
           </div>
           <div style={{...F,fontSize:14,color:C.t2,lineHeight:1.6}}>
-            Your AI guide lives in the Guide tab. Just tell it what you want — "plan a trip to Florence", "find a restaurant tonight", "build me a workout plan" — and it creates steps, paths, or recurring steps for you. It searches the web for real options with prices and booking links.
+            Your AI guide lives in the Guide tab. Just tell it what you want — "plan a trip to Florence", "find a restaurant tonight", "build me a workout plan" — and it creates steps, plans, or repeating steps for you. It searches the web for real options with prices and booking links.
           </div>
         </div>
 

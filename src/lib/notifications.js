@@ -38,7 +38,7 @@ export function checkReminders(allSteps, allRoutines, calData) {
   allRoutines.filter(function(r) { return !r.paused; }).forEach(function(r) {
     var days = (r.days || []).map(function(d) { return d.toLowerCase(); });
     if (days.includes(todayName)) {
-      reminders.push({ title: "Recurring step today", body: r.title + " - " + (r.time || r.schedule) });
+      reminders.push({ title: "Repeating step today", body: r.title + " - " + (r.time || r.schedule) });
     }
   });
 

@@ -23,7 +23,7 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
       <span style={{fontSize:14}}>{catIcon(step.category)}</span>
       <span style={{...F,fontSize:10,fontWeight:700,color:seg?.color||C.acc,textTransform:"uppercase",letterSpacing:1.5}}>{step.category}</span>
-      {step.booked&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:"rgba(15,118,110,0.15)",padding:"2px 6px",borderRadius:5}}>Booked</span>}
+      {step.booked&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:"rgba(15,118,110,0.15)",padding:"2px 6px",borderRadius:5}}>On your calendar</span>}
       {step.recurring&&<span style={{...F,fontSize:9,fontWeight:600,color:C.teal,background:C.tealSoft,padding:"2px 6px",borderRadius:5}}>{step.recurring}</span>}
       {step.createdAt&&<span style={{...F,fontSize:10,color:C.t3,marginLeft:"auto"}}>{((d)=>{const m=Math.floor(d/6e4);if(m<60)return m+"m";const h=Math.floor(m/60);if(h<24)return h+"h";return Math.floor(h/24)+"d";})(Date.now()-new Date(step.createdAt).getTime())} ago</span>}
     </div>
@@ -50,7 +50,7 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
         {step.why&&<div style={{...F,fontSize:13,color:C.t2,lineHeight:1.55,marginBottom:10}}>{step.chosen?`You picked: ${step.chosen.name}`:step.why}</div>}
         <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:6}}>
           {(step.chosen?.link||step.link)&&!step.booked&&<a href={step.chosen?.link||step.link} target="_blank" rel="noopener noreferrer" onClick={()=>{onBooked(step);}} style={{...F,fontSize:14,fontWeight:700,padding:"11px 20px",borderRadius:14,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:6,cursor:"pointer",boxShadow:"0 2px 8px rgba(212,82,42,0.2)"}}>Book it <ExternalLink size={12}/></a>}
-          {step.booked&&<span style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(15,118,110,0.08)",border:`1px solid ${C.tealBorder}`,color:C.teal,display:"inline-flex",alignItems:"center",gap:6}}><Check size={14}/> Booked</span>}
+          {step.booked&&<span style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(15,118,110,0.08)",border:`1px solid ${C.tealBorder}`,color:C.teal,display:"inline-flex",alignItems:"center",gap:6}}><Check size={14}/> On your calendar</span>}
           {!(step.chosen?.link||step.link)&&!step.booked&&step.time&&<button onClick={()=>onBooked(step)} style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6}}><Calendar size={14}/> Add to calendar</button>}
           <button onClick={()=>onDone(step.id)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:10,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>I did this</button>
           <button onClick={()=>onLove(step.id)} style={{...F,fontSize:11,padding:"6px 10px",borderRadius:8,border:"none",cursor:"pointer",background:step.loved?"rgba(220,38,38,0.08)":"transparent",display:"inline-flex",alignItems:"center",gap:4,color:step.loved?"#DC2626":C.t3}}>{step.loved?<Heart size={13} fill="#DC2626" color="#DC2626"/>:<Heart size={13}/>}{step.loved?" Saved":""}</button>

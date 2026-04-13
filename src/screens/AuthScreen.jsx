@@ -29,7 +29,7 @@ export default function AuthScreen({onAuth}){
     {icon:<Footprints size={18} color={C.acc}/>,text:"AI-powered steps tailored to your goals"},
     {icon:<Calendar size={18} color={C.teal}/>,text:"Smart calendar integration"},
     {icon:<Heart size={18} color="#DB2777"/>,text:"Learns your preferences over time"},
-    {icon:<Sparkles size={18} color="#D97706"/>,text:"Career, wellness & adventure"},
+    {icon:<Sparkles size={18} color="#D97706"/>,text:"Work, health & fun \u2014 all in one place"},
   ];
 
   if(mode==="email") return (

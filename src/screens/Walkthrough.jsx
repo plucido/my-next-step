@@ -67,14 +67,14 @@ var slides = [
   {
     icon: function() { return <Calendar size={40} color={C.acc} strokeWidth={1.5}/>; },
     title: "Build recurring steps & paths",
-    subtitle: "Create recurring steps and multi-step paths to reach your goals.",
+    subtitle: "Create repeating steps and plans to reach your goals.",
     render: function() {
       return (
         <div style={{marginTop:16,display:"flex",flexDirection:"column",gap:10,maxWidth:280,margin:"16px auto 0"}}>
           <div style={{background:C.card,border:"1px solid "+C.b1,borderRadius:14,padding:"14px 16px",boxShadow:C.shadow}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <Sparkles size={14} color="#D97706"/>
-              <div style={{...F,fontSize:11,color:"#D97706",fontWeight:600,textTransform:"uppercase"}}>Recurring</div>
+              <div style={{...F,fontSize:11,color:"#D97706",fontWeight:600,textTransform:"uppercase"}}>Repeating</div>
             </div>
             <div style={{...H,fontSize:14,color:C.t1,marginTop:6}}>Weekly Upper Body Day</div>
             <div style={{...F,fontSize:12,color:C.t3,marginTop:2}}>Every Monday</div>
@@ -82,7 +82,7 @@ var slides = [
           <div style={{background:C.card,border:"1px solid "+C.b1,borderRadius:14,padding:"14px 16px",boxShadow:C.shadow}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <Calendar size={14} color={C.teal}/>
-              <div style={{...F,fontSize:11,color:C.teal,fontWeight:600,textTransform:"uppercase"}}>Path</div>
+              <div style={{...F,fontSize:11,color:C.teal,fontWeight:600,textTransform:"uppercase"}}>Plan</div>
             </div>
             <div style={{...H,fontSize:14,color:C.t1,marginTop:6}}>Florence Getaway</div>
             <div style={{...F,fontSize:12,color:C.t3,marginTop:2}}>3 of 5 tasks done</div>

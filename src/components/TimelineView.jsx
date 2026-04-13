@@ -221,19 +221,19 @@ export default function TimelineView({
         <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 24 }}>
           <div style={{ flex: 1 }}>
             {upcomingItems.length > 0 ? <div>
-              <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming Up</div>
+              <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming up</div>
               {upcomingItems.slice(0,5).map((item, i) => {
                 if (item.type === "cal") return renderCalEvent(item.data, "up-" + i);
                 return renderCompactStep(item.data, i);
               })}
             </div> : null}
             {unscheduledSteps.length > 0 ? <div style={{marginTop: upcomingItems.length>0 ? 16 : 0}}>
-              <div style={{ ...sectionHeader, marginBottom: 10 }}>Anytime</div>
+              <div style={{ ...sectionHeader, marginBottom: 10 }}>Flexible</div>
               {unscheduledSteps.slice(0,5).map((s, i) => renderCompactStep(s, i))}
             </div> : null}
             {upcomingItems.length===0 && unscheduledSteps.length===0 ? <div>
-              <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming Up</div>
-              <div style={{ ...F, fontSize: 13, color: C.t3, fontStyle: "italic" }}>Nothing scheduled yet</div>
+              <div style={{ ...sectionHeader, marginBottom: 10 }}>Coming up</div>
+              <div style={{ ...F, fontSize: 13, color: C.t3, fontStyle: "italic" }}>Nothing here yet — ask your guide to plan something!</div>
             </div> : null}
           </div>
           <div>
@@ -318,7 +318,7 @@ export default function TimelineView({
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12, padding: "8px 0 0", borderTop: "1px solid " + C.b1 }}>
             {Object.keys(SEGMENTS).map((s) => <div key={s} style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: SEGMENTS[s].color }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>{SEGMENTS[s].label}</span></div>)}
-            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: "#4285F4" }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>Synced</span></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 3 }}><div style={{ width: 6, height: 6, borderRadius: 3, background: "#4285F4" }}>{null}</div><span style={{ ...F, fontSize: 9, color: C.t3 }}>Calendar</span></div>
           </div>
         </div>
         {selectedDate ? renderSelectedDay(selectedDate, selSteps, selCal, selRoutines, selUnscheduled) : null}
@@ -348,10 +348,10 @@ export default function TimelineView({
         {steps.map((s) => {
           const seg = SEGMENTS[catToSeg(s.category)];
           return <div key={s.id} style={{ padding: "8px 12px", borderRadius: 10, marginBottom: 6, background: s.booked ? C.tealSoft : C.cream, borderLeft: "3px solid " + (s.booked ? C.teal : (seg ? seg.color : C.acc)), display: "flex", alignItems: "center", gap: 8 }}>
-            <span style={{ ...F, fontSize: 11, color: seg ? seg.color : C.acc, fontWeight: 600, minWidth: 50 }}>{s.time || "Anytime"}</span>
+            <span style={{ ...F, fontSize: 11, color: seg ? seg.color : C.acc, fontWeight: 600, minWidth: 50 }}>{s.time || "Flexible"}</span>
             <div style={{ flex: 1 }}>
               <div style={{ ...F, fontSize: 13, fontWeight: 500, color: C.t1 }}>{s.title}</div>
-              {s.booked ? <span style={{ ...F, fontSize: 10, color: C.teal }}>Booked</span> : null}
+              {s.booked ? <span style={{ ...F, fontSize: 10, color: C.teal }}>On your calendar</span> : null}
             </div>
           </div>;
         })}
@@ -372,7 +372,7 @@ export default function TimelineView({
     return (
       <FadeIn delay={180}>
         <div style={{ marginBottom: 24 }}>
-          <div style={{ ...sectionHeader, marginBottom: 12 }}>Recurring ({active.length})</div>
+          <div style={{ ...sectionHeader, marginBottom: 12 }}>Repeating ({active.length})</div>
           {active.map((r, i) => (
             <RoutineCard key={r.id} routine={r} onPause={pauseRoutine} onDelete={deleteRoutine} onComplete={completeRoutine} onTalk={talkAbout} delay={i * 30} />
           ))}
@@ -386,7 +386,7 @@ export default function TimelineView({
     return (
       <FadeIn delay={240}>
         <div style={{ marginBottom: 24 }}>
-          <div style={{ ...sectionHeader, marginBottom: 12 }}>Paths ({allPlans.length})</div>
+          <div style={{ ...sectionHeader, marginBottom: 12 }}>Plans ({allPlans.length})</div>
           {allPlans.map((plan, pi) => (
             <JourneyCard key={pi} plan={plan} pi={pi} open={expandedPlan === pi} onToggle={(i) => { setExpandedPlan(expandedPlan === i ? null : i); }} onDelete={deletePlan} onTalk={talkAbout} onToggleTask={toggleTask} onSnooze={snoozeStep} onShare={shareItem} delay={pi * 30} />
           ))}
@@ -420,7 +420,7 @@ export default function TimelineView({
         <div style={{ textAlign: "center", padding: "44px 20px" }}>
           <div style={{ width: 64, height: 64, borderRadius: 20, margin: "0 auto 16px", background: C.accSoft, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28 }}><Calendar size={20} /></div>
           <div style={{ ...H, fontSize: 20, color: C.t1, marginBottom: 8 }}>Your journey</div>
-          <div style={{ ...F, fontSize: 14, color: C.t2, lineHeight: 1.6, maxWidth: 280, margin: "0 auto" }}>Start chatting in any segment to see your steps, paths, and calendar events here.</div>
+          <div style={{ ...F, fontSize: 14, color: C.t2, lineHeight: 1.6, maxWidth: 280, margin: "0 auto" }}>Ask your guide anything — try "Plan a weekend trip" or "Find a gym near me"</div>
         </div>
       </FadeIn>
     );
@@ -482,7 +482,7 @@ export default function TimelineView({
         <div style={{display:"flex",gap:8}}>
           {next.map((item,i) => {
             const color = item.type==="cal"?"#4285F4":(item.cat?SEGMENTS[catToSeg(item.cat)]?.color:null)||C.acc;
-            const typeLabel = item.type==="cal"?"Synced":item.type==="routine"?"Recurring":"Step";
+            const typeLabel = item.type==="cal"?"Calendar":item.type==="routine"?"Repeating":"Step";
             return (
               <div key={i} style={{flex:1,padding:"10px 14px",borderRadius:14,background:C.card,boxShadow:C.shadow,borderLeft:"3px solid "+color,minWidth:0}}>
                 <div style={{...F,fontSize:10,fontWeight:600,color:color,textTransform:"uppercase",letterSpacing:1,marginBottom:3}}>{typeLabel}</div>
