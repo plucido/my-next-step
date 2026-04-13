@@ -15,7 +15,7 @@ function getSnoozeDate(option){
 
 const SNOOZE_OPTIONS=["1h","Tonight","Tomorrow","This weekend","Next week"];
 
-export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove,onTalk,onAddCal,onShare,onSnooze,delay=0}){
+export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,onLove,onTalk,onSwap,onAddCal,onShare,onSnooze,delay=0}){
   const seg=SEGMENTS[catToSeg(step.category)];
   const [showSnooze,setShowSnooze]=useState(false);
   return(<FadeIn delay={delay}><div style={{padding:"18px 20px",borderRadius:18,marginBottom:10,background:step.booked?C.tealSoft:C.card,boxShadow:C.shadow,position:"relative",borderLeft:`4px solid ${step.booked?C.teal:seg?.color||C.acc}`}}>
@@ -39,7 +39,7 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
       <button onClick={()=>onDislike(step.id)} style={{width:36,height:36,borderRadius:10,border:"none",cursor:"pointer",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}><ThumbsDown size={15} color={C.t3}/></button>
     </div>
     <div style={{display:"flex",gap:4,marginTop:6,flexWrap:"wrap"}}>
-      <button onClick={()=>onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`)} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Swap</button>
+      <button onClick={()=>{if(onSwap)onSwap(step);else onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`);}} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Swap</button>
       {step.time&&<button onClick={()=>onTalk(`Reschedule "${step.title}" to a different time. Suggest a few options that work with my calendar.`)} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Clock size={11}/> Reschedule</button>}
       <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Share</button>
     </div>
