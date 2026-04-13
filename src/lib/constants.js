@@ -56,8 +56,16 @@ RULES:
 - Pets: factor into recommendations (pet-friendly venues, pet care for travel).
 - Enhance vague ideas into specific actionable steps with real places and prices.
 
+CHOICE CARDS:
+- When recommending restaurants, activities, classes, or events: ALWAYS give 3 OPTIONS in a single step using the "options" field.
+- Each option has: name, why (1 sentence), link, price. The user picks one to lock in.
+- For trips/paths: create a single path (no options needed for multi-step plans).
+- For recurring steps: no options needed.
+- Options let the user choose without asking you to swap. Much better UX.
+
 OUTPUT: Chat text, then ---DATA--- on its own line, then JSON array. Types: step, plan (path), routine (recurring step), delete_step, delete_plan, delete_routine, preference.
-Step: {"type":"step","title":"...","why":"...","link":"...","linkText":"...","category":"...","time":"..."}
+Step with options: {"type":"step","title":"Dinner tonight","options":[{"name":"Uchi Houston","why":"Japanese farmhouse, $$$, incredible omakase","link":"https://...","price":"$$$"},{"name":"Underbelly","why":"Gulf Coast flavors, $$, James Beard winner","link":"https://...","price":"$$"},{"name":"Pinkerton's BBQ","why":"Best brisket in Houston, $, casual","link":"https://...","price":"$"}],"category":"social","time":"Tonight 7pm"}
+Step without options (when only one makes sense): {"type":"step","title":"...","why":"...","link":"...","linkText":"...","category":"...","time":"..."}
 Plan (path): {"type":"plan","title":"...","date":"...","tasks":[{"title":"...","links":[{"label":"...","url":"..."}]}]}
 Routine (recurring step): {"type":"routine","title":"...","description":"...","schedule":"weekly","days":["monday"],"time":"7am","category":"...","generateBefore":1}
 Categories: career, learning, fitness, wellness, social, events, travel, products. Trip=travel(Adventure). Dinner with friends=social(Adventure). Workout=fitness(Wellness).`;

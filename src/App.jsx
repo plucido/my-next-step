@@ -333,6 +333,7 @@ export default function App(){
   const snoozeStep=useCallback((id,until)=>{const u=allSteps.map(s=>s.id===id?{...s,snoozedUntil:until,status:"active"}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);showToast("Snoozed until "+new Date(until).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));},[allSteps,profile,allPlans,chats,preferences]);
   const talkAbout=useCallback(text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);},[]);
   const swapStep=useCallback((step)=>{sendMessage(`Replace "${step.title}" with a different option. Delete the old one and create a fresh alternative with prices and booking links. Keep the same category.`);},[]);
+  const chooseOption=useCallback((stepId,option)=>{const u=allSteps.map(s=>s.id===stepId?{...s,chosen:option,title:option.name,why:option.why,link:option.link}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);},[allSteps,profile,allPlans,chats,preferences]);
   const[shareModalItem,setShareModalItem]=useState(null);
   const shareItem=useCallback((item)=>{setShareModalItem(item);},[]);
   const handleBooked=useCallback((step)=>{handleAddCal(step.title,step.why,step.time);const u=allSteps.map(s=>s.id===step.id?{...s,booked:true}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);},[allSteps,profile,allPlans,chats,preferences,calToken]);
@@ -444,7 +445,7 @@ export default function App(){
             expandedPlan={expandedPlan} setExpandedPlan={setExpandedPlan}
             markStep={markStep} deleteStep={deleteStep} loveStep={loveStep} dislikeStep={dislikeStep} handleBooked={handleBooked}
             deletePlan={deletePlan} toggleTask={toggleTask} pauseRoutine={pauseRoutine} deleteRoutine={deleteRoutine} completeRoutine={completeRoutine}
-            talkAbout={talkAbout} swapStep={swapStep} shareItem={shareItem} handleAddCal={handleAddCal} snoozeStep={snoozeStep}
+            talkAbout={talkAbout} swapStep={swapStep} chooseOption={chooseOption} shareItem={shareItem} handleAddCal={handleAddCal} snoozeStep={snoozeStep}
             userTier={userTier}
           />
         )}
@@ -467,7 +468,7 @@ export default function App(){
             ):(<>
               {segSteps.length>0&&<div style={{marginBottom:20}}>
                 <div style={{...F,fontSize:11,letterSpacing:2,textTransform:"uppercase",color:C.t3,marginBottom:12}}>Steps ({segSteps.length})</div>
-                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><>{i===2&&userTier==="free"?<SponsorCard segment={segment} onUpgrade={()=>setShowUpgrade(true)}/>:null}{i===4&&userTier==="free"?<InlineFeedAd tier={userTier}/>:null}<StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onSwap={swapStep} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i*50}/></>)}
+                {segSteps.slice(0,segment==="everything"?10:5).map((step,i)=><>{i===2&&userTier==="free"?<SponsorCard segment={segment} onUpgrade={()=>setShowUpgrade(true)}/>:null}{i===4&&userTier==="free"?<InlineFeedAd tier={userTier}/>:null}<StepCard key={step.id} step={step} onDone={id=>markStep(id,"done")} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onSwap={swapStep} onChoose={chooseOption} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i*50}/></>)}
                 {segSteps.length>(segment==="everything"?10:5)&&<div style={{...F,fontSize:12,color:C.t3,textAlign:"center",padding:"8px 0"}}>+{segSteps.length-(segment==="everything"?10:5)} more steps</div>}
               </div>}
               {segPlans.length>0&&<div style={{marginBottom:20}}>

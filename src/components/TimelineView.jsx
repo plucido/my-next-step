@@ -14,7 +14,7 @@ export default function TimelineView({
   expandedPlan, setExpandedPlan,
   markStep, deleteStep, loveStep, dislikeStep, handleBooked,
   deletePlan, toggleTask, pauseRoutine, deleteRoutine, completeRoutine,
-  talkAbout, swapStep, shareItem, handleAddCal, snoozeStep, userTier
+  talkAbout, swapStep, chooseOption, shareItem, handleAddCal, snoozeStep, userTier
 }) {
   const [calMonth, setCalMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
@@ -148,7 +148,7 @@ export default function TimelineView({
           </div>
           {todayCal.map((e, i) => renderCalEvent(e, i))}
           {todaySteps.map((s, i) => (
-            <StepCard key={s.id} step={s} onDone={(id) => { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onSwap={swapStep} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
+            <StepCard key={s.id} step={s} onDone={(id) => { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onSwap={swapStep} onChoose={chooseOption} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
           ))}
           {!hasContent ? <div style={{ ...F, fontSize: 13, color: C.t3, padding: "12px 0", fontStyle: "italic" }}>Nothing on today's agenda</div> : null}
         </div>
@@ -178,7 +178,7 @@ export default function TimelineView({
                 <div style={{ ...F, fontSize: 13, fontWeight: 600, color: C.t1, marginBottom: 8 }}>{getDayLabel(day)}</div>
                 {dayCal.map((e, i) => renderCalEvent(e, i))}
                 {daySteps.map((s, i) => (
-                  <StepCard key={s.id} step={s} onDone={(id) => { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onSwap={swapStep} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
+                  <StepCard key={s.id} step={s} onDone={(id) => { markStep(id, "done"); }} onBooked={handleBooked} onDislike={dislikeStep} onDelete={deleteStep} onLove={loveStep} onTalk={talkAbout} onSwap={swapStep} onChoose={chooseOption} onAddCal={handleAddCal} onSnooze={snoozeStep} onShare={shareItem} delay={i * 30} />
                 ))}
               </div>
             );
