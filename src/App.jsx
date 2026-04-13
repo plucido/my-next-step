@@ -436,7 +436,7 @@ export default function App(){
             {info.label}{count>0?<span style={{fontSize:9,background:active?info.color+"15":C.cream,color:info.color,padding:"1px 5px",borderRadius:6,fontWeight:700}}>{count}</span>:null}
           </button>);
         })}
-        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,padding:"10px 12px",background:segment==="everything"&&view==="steps"?C.card:"transparent",border:segment==="everything"&&view==="steps"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",boxShadow:segment==="everything"&&view==="steps"?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s",fontSize:12,color:segment==="everything"&&view==="steps"?C.acc:C.t3}}><Calendar size={14}/> Week</button>
+        <button onClick={()=>{setSegment(segment==="everything"?"wellness":"everything");setView("steps");}} style={{...F,padding:"10px 12px",background:segment==="everything"&&view==="steps"?C.card:"transparent",border:segment==="everything"&&view==="steps"?`1.5px solid ${C.acc}30`:"1.5px solid transparent",borderRadius:14,cursor:"pointer",boxShadow:segment==="everything"&&view==="steps"?C.shadow:"none",display:"flex",alignItems:"center",justifyContent:"center",gap:4,transition:"all 0.2s",fontSize:12,color:segment==="everything"&&view==="steps"?C.acc:C.t3}}><Calendar size={14}/> My Journey</button>
       </div>
 
       <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
