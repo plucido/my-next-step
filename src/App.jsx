@@ -312,6 +312,9 @@ export default function App(){
           const type=createdSteps.length>0?"step":createdPlans.length>0?"path":"recurring step";
           const text=totalCreated===1?(type==="step"?`New step: ${firstItem?.title||"Ready!"}`:(type==="path"?`Plan: ${firstPlan?.title||"Mapped out!"}`:`Repeating: ${firstRoutine?.title||"Set up!"}`)):`${totalCreated} new items created`;
           setTransitionMsg({text,targetSeg,targetLabel,count:totalCreated});
+          // Auto-switch to the right segment's steps view after a brief delay
+          setTimeout(()=>{setSegment(targetSeg);setView("steps");},1500);
+          setTimeout(()=>{setTransitionMsg(null);},4000);
         }
       }
     }catch(err){console.error(err);const errChat={all:[...(newChats.all||[]),{role:"assistant",content:"Quick hiccup \u2014 say that again?",ts:Date.now(),isError:true}]};setChats(errChat);}
