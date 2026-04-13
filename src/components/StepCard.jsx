@@ -31,7 +31,7 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
     {step.time&&<div style={{...F,fontSize:12,color:C.t3,marginBottom:6}}>{step.time}</div>}
     {step.options&&step.options.length>0&&!step.chosen?(
       <div style={{marginBottom:10}}>
-        <div style={{...F,fontSize:11,color:C.t3,textTransform:"uppercase",letterSpacing:1,marginBottom:8}}>Pick one</div>
+        <div style={{...F,fontSize:12,color:C.t2,marginBottom:8}}>Here are your options — tap to choose:</div>
         {step.options.map((opt,oi)=>(
           <div key={oi} onClick={()=>{if(onChoose)onChoose(step.id,opt);}} style={{padding:"12px 14px",borderRadius:12,marginBottom:6,background:C.card,border:`1.5px solid ${C.b2}`,cursor:"pointer",display:"flex",alignItems:"center",gap:10,transition:"border-color 0.15s"}} onMouseOver={e=>{e.currentTarget.style.borderColor=seg?.color||C.acc;}} onMouseOut={e=>{e.currentTarget.style.borderColor=C.b2;}}>
             <div style={{flex:1}}>
@@ -52,16 +52,16 @@ export default memo(function StepCard({step,onDone,onBooked,onDislike,onDelete,o
           {(step.chosen?.link||step.link)&&!step.booked&&<a href={step.chosen?.link||step.link} target="_blank" rel="noopener noreferrer" onClick={()=>{onBooked(step);}} style={{...F,fontSize:14,fontWeight:700,padding:"11px 20px",borderRadius:14,background:C.accGrad,color:"#fff",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:6,cursor:"pointer",boxShadow:"0 2px 8px rgba(212,82,42,0.2)"}}>Book it <ExternalLink size={12}/></a>}
           {step.booked&&<span style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(15,118,110,0.08)",border:`1px solid ${C.tealBorder}`,color:C.teal,display:"inline-flex",alignItems:"center",gap:6}}><Check size={14}/> Booked</span>}
           {!(step.chosen?.link||step.link)&&!step.booked&&step.time&&<button onClick={()=>onBooked(step)} style={{...F,fontSize:13,padding:"9px 16px",borderRadius:12,background:"rgba(66,133,244,0.06)",border:"1px solid rgba(66,133,244,0.1)",color:"#4285F4",cursor:"pointer",display:"inline-flex",alignItems:"center",gap:6}}><Calendar size={14}/> Add to calendar</button>}
-          <button onClick={()=>onDone(step.id)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:10,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>Done</button>
-          <button onClick={()=>onLove(step.id)} style={{width:36,height:36,borderRadius:10,border:"none",cursor:"pointer",background:step.loved?"rgba(220,38,38,0.08)":"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}>{step.loved?<Heart size={15} fill="#DC2626" color="#DC2626"/>:<Heart size={15} color={C.t3}/>}</button>
-          <button onClick={()=>onDislike(step.id)} style={{width:36,height:36,borderRadius:10,border:"none",cursor:"pointer",background:"transparent",display:"flex",alignItems:"center",justifyContent:"center"}}><ThumbsDown size={15} color={C.t3}/></button>
+          <button onClick={()=>onDone(step.id)} style={{...F,fontSize:12,padding:"8px 14px",borderRadius:10,background:C.tealSoft,border:`1px solid ${C.tealBorder}`,color:C.teal,cursor:"pointer"}}>I did this</button>
+          <button onClick={()=>onLove(step.id)} style={{...F,fontSize:11,padding:"6px 10px",borderRadius:8,border:"none",cursor:"pointer",background:step.loved?"rgba(220,38,38,0.08)":"transparent",display:"inline-flex",alignItems:"center",gap:4,color:step.loved?"#DC2626":C.t3}}>{step.loved?<Heart size={13} fill="#DC2626" color="#DC2626"/>:<Heart size={13}/>}{step.loved?" Saved":""}</button>
+          <button onClick={()=>onDislike(step.id)} style={{...F,fontSize:11,padding:"6px 10px",borderRadius:8,border:"none",cursor:"pointer",background:"transparent",display:"inline-flex",alignItems:"center",gap:4,color:C.t3}}><ThumbsDown size={13}/> Not for me</button>
         </div>
       </div>
     )}
-    <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-      <button onClick={()=>{if(onSwap)onSwap(step);else onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`);}} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Swap</button>
-      {step.time&&<button onClick={()=>onTalk(`Reschedule "${step.title}" to a different time. Suggest a few options that work with my calendar.`)} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}><Clock size={11}/> Reschedule</button>}
-      <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"5px 10px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Share</button>
+    <div style={{display:"flex",gap:4,marginTop:4,flexWrap:"wrap",alignItems:"center"}}>
+      <button onClick={()=>{if(onSwap)onSwap(step);else onTalk(`Find a different alternative to "${step.title}" with prices and details. Something fresh.`);}} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Not feeling it? Try others</button>
+      {step.time&&<button onClick={()=>onTalk(`Reschedule "${step.title}" to a different time. Suggest a few options that work with my calendar.`)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Different time</button>}
+      <button onClick={()=>onShare(step)} style={{...F,fontSize:11,padding:"6px 12px",borderRadius:8,background:C.cream,border:"none",color:C.t2,cursor:"pointer"}}>Send to friend</button>
     </div>
   </div></FadeIn>);
 })
