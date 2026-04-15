@@ -332,8 +332,8 @@ export default function App(){
   const deleteRoutine=id=>{showConfirm("Delete this repeating step permanently?",function(){const u=allRoutines.filter(r=>r.id!==id);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);});};
   const completeRoutine=id=>{const u=allRoutines.map(r=>r.id===id?{...r,completions:(r.completions||0)+1,lastCompleted:new Date().toISOString()}:r);setAllRoutines(u);persist(profile,allSteps,allPlans,chats,preferences,u);};
   const snoozeStep=useCallback((id,until)=>{const u=allSteps.map(s=>s.id===id?{...s,snoozedUntil:until,status:"active"}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);showToast("Snoozed until "+new Date(until).toLocaleDateString([],{weekday:"short",month:"short",day:"numeric",hour:"numeric",minute:"2-digit"}));},[allSteps,profile,allPlans,chats,preferences]);
-  const talkAbout=useCallback(text=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);},[]);
-  const swapStep=useCallback((step)=>{sendMessage(`Replace "${step.title}" with a different option. Delete the old one and create a fresh alternative with prices and booking links. Keep the same category.`);},[]);
+  const talkAbout=(text)=>{setView("chat");setTimeout(()=>{inputRef.current?.focus();sendMessage(text);},100);};
+  const swapStep=(step)=>{sendMessage(`Replace "${step.title}" with a different option. Delete the old one and create a fresh alternative with prices and booking links. Keep the same category.`);};
   const chooseOption=useCallback((stepId,option)=>{const u=allSteps.map(s=>s.id===stepId?{...s,chosen:option,title:option.name,why:option.why,link:option.link}:s);setAllSteps(u);persist(profile,u,allPlans,chats,preferences);},[allSteps,profile,allPlans,chats,preferences]);
   const[shareModalItem,setShareModalItem]=useState(null);
   const shareItem=useCallback((item)=>{setShareModalItem(item);},[]);
